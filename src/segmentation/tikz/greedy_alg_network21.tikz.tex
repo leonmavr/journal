@@ -1,0 +1,56 @@
+\usetikzlibrary{arrows, quotes}
+\newcommand{\bluebold}[1]{\textbf{\textcolor{blue}{#1}}} % text above = symbol
+
+\begin{tikzpicture}[
+      circle_st/.style={
+         circle,
+         draw=black,
+         fill=yellow,
+         fill opacity = 0.3,
+         text opacity=1,
+         inner sep=0pt,
+         minimum size=20pt,
+         font=\small},
+       circle_node/.style={
+         circle,
+         draw=black,
+         fill=gray,
+         fill opacity = 0.3,
+         text opacity=1,
+         inner sep=0pt,
+         minimum size=20pt,
+         font=\small} ,
+       arrow_black/.style={
+        -Stealth,
+        },
+        arrow_bold/.style={
+        -Stealth,
+        dash pattern=on 3pt off 2pt,
+        fill=blue,
+        line width=0.25mm,
+        draw = blue,
+        }
+]		
+      %source
+      \node[circle_st] (s) {$s$};
+      \node[circle_node,above right=of s] (v1) {$v_1$};
+      \node[circle_node,below right=of s] (v2) {$v_2$};
+      \node[circle_st,below right=of v1] (t) {$t$};
+
+    \foreach \i/\j/\txt/\p in {% start node/end node/text/position
+      s/v2/$0 \textup{/} 10$/below,
+      v1/v2/$0 \textup{/} 30$/below,
+      v1/v2/$0 \textup{/} 30$/below,
+      v2/t/$0 \textup{/} 20$/below}
+      \draw [arrow_black] (\i) -- node[sloped,font=\small,\p] {\txt} (\j);
+      
+    \foreach \i/\j/\txt/\p in {% start node/end node/text/position
+      s/v1/$\bluebold{10} \textup{/} 20$/above,
+      s/v1/$\bluebold{10}$/below,
+      v1/t/$\bluebold{10} \textup{/} 10$/above,
+      v1/t/$\bluebold{10}$/below}
+      \draw [arrow_bold] (\i) -- node[sloped,font=\small,\p] {\txt} (\j);
+
+
+
+\end{tikzpicture}
