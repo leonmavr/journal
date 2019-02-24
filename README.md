@@ -1,2 +1,2 @@
-# leos-cv-notes
-Learning image processing &amp; computer vision again but more thoroughly
+# my-diary
+Notes I keep for things I learn so I can read them again in the future.
