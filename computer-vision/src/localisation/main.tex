@@ -1,0 +1,258 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+\section{Histogram-Based Methods}
+
+\subsection{Histogram backprojection}
+
+\subsubsection{Intuition - model and search image histogram}
+In image processing, we are usually interested in histograms of greyscale images. However, often the colour histogram can be used to identify an image region or object. RGB histograms are practically not good enough for matching as the R, G, B components are strongly correlation with the illumination hitting the object. In practice, objects are converted from RGB to HSV (Hue, Saturation, Value) domain. \emphasis{Hue} represents the colour type (blue, yellow, etc.), \emphasis{saturation} represents the vibrancy (how vivid or neutral it is) and \emphasis{value} represents the brightness of the colour. Hence HSV decouples the brightness from the colour description. Therefore when performing colour matching we are only interested in the H and S components, which map to a 2D histogram. More about the HSV domain in \ref{app:hsv_domain}.
+
+\mycomment{
+The HS components are often but \textit{not always} a good choice for colour-based detection. They may fail detecting black and white objects since black and white can have any colour (H) and in this case the SV components of the HSV or even the YUV domain are a better choice. However, in this article we stick to HS.
+}
+
+\emphasis{Histogram backprojection} answers the question ``where in the image are the colours that belong to the object being looked for?''. We do this by defining a \emphasis{model} image (the object we search for -- a. k.a. \emphasis{target}) and the \emphasis{search} (the whole image where we search in), probing the model over search image and calculating their histogram  similarity at each position.
+
+Just to illustrate the idea, assume that we want to match the greyscale (instead of the 2D) histogram of the garlic in Fig. \ref{fig:peppers_and_garlic}. A part of the top garlic has been chosen as the model. The histogram of the model is shown as well as that of two matching candidates. In this case, the histogram of ``match 2'' is more similar to the model's than one ``match 1'' so we want somehow to register that similarity. The question attempted to be answered in the next section is ``how do we measure the similarity of the histogram of the matching candidate to that of the model?''.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=6.5cm]{img/image_hist_different_regions.png}
+    \caption{Model and two matches' greyscale histograms.}
+    \label{fig:peppers_and_garlic}
+\end{figure}
+
+
+\subsubsection{(optional) The rationale behind defining the ratio histogram}
+
+We assume that 
+\begin{enumerate}
+    \item the model's histogram (the object we search for) is narrow and tall
+    \item and the scene's (whole input image) histogram is rather wide.
+\end{enumerate}
+It has then been proven (it won't be discussed in this article how as the how is out of scope) that a good histogram similarity measure between the model $M$ and a patch of the image we search it in $I$ is the ratio histogram $R$. $M$ and $I$ need to be pre-calculated and can be divided element-wise, since they have the same range and bins to obtain $R$. The \emphasis{ratio histogram} is a therefore function $R:\mathbb{Z}^2 \rightarrow \mathbb{R}$ that maps a colour $(h,s)$ to some value. If $M(h,s) > I(h,s) \Rightarrow R(h,s) > 1$ that means the model has more pixels of colour $(h,s)$ relative to its total number of pixels compared to $I(h,s)$, and vice versa. If $R(h,s) = 1$, then that means  that the input and model images contain $(h,s)$ at the same degree.
+
+However, because of assumptions (1), (2), $M(h,s) > I(h,s)$ can happen quite often and so long as $M(h,s) > I(h,s) \Rightarrow R(h,s)>1$, e.g. $R(h,s) = 2,3,10$, the exact value does not give much useful information. To summarise, $R$ de-emphasises pixels with colours that do not belong to the model and emphasises the rest.
+
+
+\subsubsection{A colour matching heuristic}
+
+From the previous section, the conclusion is that it is desirable to clip the ratio histogram to 1, as defined by Swain et al. 
+\begin{definition}
+For each bin $j$, the ratio histogram is defined as
+\begin{equation}
+    R_j = \min\left(\frac{M_j}{I_j},1\right)
+\end{equation}
+, where $M$, $I$ are the model's and input's histograms respectively.
+\end{definition}
+Note that $j$ does not necessarily have to be a pair $(h,s)$, but it if a histogram bin (index) is quantised it can be a rectangle in the 2D space, such as $[20, 39] \times [50, 69]$. As mentioned before, $R$ associates a colour with its probability of appearing in the model and the next step is the associate each pixel with that probability.
+
+Each pixel of the original image at $(x,y)$ maps to a 2D HS value, by a colour function $c: \mathbb{Z}^2 \leftarrow \mathbb{Z}^2$, by taking $c(x,y)$. Sometimes need an intermediate function $h:\mathbb{Z}^2 \rightarrow \mathbb{Z}^2$ that takes the output of $c$ and quantises it (groups multiple colours in one bin), before it is fed to $R$. For example, $h$ could convert $[0,1,\ldots,179] \times [0,1,\ldots,255]$ to $[0, 19, 39, \ldots,179] \times [0, 24, 49, \ldots, 255]$. The output of $h$ is bed to $R$, which divides $M_j$ to $I_j$ at each bin $j$.To summarise this paragraph we have  defined the following functions in backpropagation:
+\begin{itemize}
+    \item $c: \mathbb{Z}^2 \rightarrow \mathbb{Z}^2$: maps a pixel at $(x,y)$ to an HS value $(h_j,s_j)$.
+    \item $h: \mathbb{Z}^2 \rightarrow \mathbb{Z}^2$ maps a set of values $(h_i,s_i,h_{i+1},s_{i+1},\ldots,h_n,s_n)$ to another $(h,s)$ value by having quantised the range of $h$ and $s$.
+    \item $R: \mathbb{Z}^2 \rightarrow [0,1]$ maps an $(h,s)$ value to a probablity.
+\end{itemize}
+We therefore want to create a new image $b$ where each pixel $(x,y)$ gets assigned its output of $R$ - the measure of how much its colour appears in the model image. 
+\begin{equation}
+    b(x,y) := R\left(h\left(c(x,y)\right)\right)=
+    \min\left(\frac{M\left(h\left(c(x,y)\right)\right)}{I\left(h\left(c(x,y)\right)\right)},1\right) \; \forall \; x,y
+\end{equation}
+The final step is to find compact regions where $b$ is high. If the shape of the object (model) to detect is generic, then this can be done by convolving $b$ with binary disk mask $D^r$ of radius $r$. Define:
+\begin{equation}
+    D_{x,y}^r = \left\{
+\begin{array}{ll}
+      1 & \sqrt{x^2+y^2\leq r} \\
+      0 & \textup{otherwise}\\
+\end{array} 
+\right. 
+\end{equation}
+Then the probability image $b$ can be convolved with the mask:
+\begin{equation}
+    b := D^r \ast b
+\end{equation}
+The $\arg \max$ function to returns the pixel $(x, y)$ with
+the maximum value of its argument, i.e. where the $R$ matrix and the $\ast$ symbol denotes convolution. Then Histogram Backprojection can be
+written
+\begin{algorithm}[H]
+\caption{Colour matching by histogram backprojection according to Swain et al}
+\label{alg:hist_backproj}
+\begin{algorithmic}[1]
+\Procedure{Hist-BackProj} {ImM, ImI} \Comment{ImM: model, ImI: search image}
+\State $M\leftarrow \textup{histogram}(ImM)$
+\State $I\leftarrow \textup{histogram}(ImI)$
+\For{each histogram bin $j$} \Comment{a bin is a pair $(h,s)$}
+\State $R_j = \min\left(\frac{M_j}{I_j}, 1\right)$ \Comment{Divide element-wise}
+\EndFor
+\State $m \leftarrow rows(M)$
+\State $n \leftarrow cols(M)$
+\State $b \leftarrow empty_{m \times n}$
+\For{y in 0\ldots m-1}
+\For{x in 0\ldots n-1}
+\State $b_{x,y} \leftarrow R(h(c(x,y)))$ \Comment{b matrix of colour probability}
+\EndFor
+\EndFor
+\State $D^r\leftarrow$ \textup{binary disk of radius r}
+\State $b \leftarrow D^r \ast b$ \Comment{Group (by convolving) high probability pixels together.}
+\State $x_{obj},y_{obj} \leftarrow \arg \, \underset{x,y}{\mathop{\max }}\,(b)$
+\State \textbf{return}  $x_{obj},y_{obj}$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Histogram backprojection implementation from scratch}
+
+An implementation of Alg. \ref{alg:hist_backproj} has been written in \ref{app:hist_backproj_src}. However, instead of finding the location of the object by the $\arg \max$ function, it applies Otsu's threshold on the $R$ matrix. This automatically selects a threshold $T$ based on the statistics of the histogram of $R$ for which if $R[x,y] < T$, then the pixel at $(x,y)$ is classified as background, else as foreground. Instructions on how to run the implementation code are in \ref{app:hist_backproj_src} and an output is shown below.
+\begin{multicols}{2}
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=5cm]{img/hist_backproj/rect.jpg}
+        \caption{Input image with a ROI of the objects to detect selected.}
+        %\label{fig:my_label}
+    \end{figure}
+    \columnbreak
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=5cm]{img/hist_backproj/res.jpg}
+        \caption{Detected objects on the original image.}
+        %\label{fig:my_label}
+    \end{figure}
+\end{multicols}
+
+
+
+\subsubsection{Histogram backprojection implementation using OpenCV's API}
+
+
+OpenCV implements the technique using the \mintinline{python}{cv2.calcBackProject(image, channels, histohram_array, channel_ranges, [scale = 1])} method (in Python). Its invocation looks like:\\
+\mintinline{python}{cv2.calcBackProject(search_image, channels, model_histogram, channel_ranges, [scale = 1])}
+\begin{itemize}
+    \item \mintinline{python}{search_image}: the input image, e.g. in HSV.
+    \item \mintinline{python}{channels}: which channels of the original image and the model to select in order to draw its histogram, e.g. \mintinline{python}{channels = [0,1] -> H, S}.
+    \item \mintinline{python}{model_histogram}: histogram of the model (ROI), needs to be pre-calculated.
+    \item \mintinline{python}{channel_ranges}: set it to \mintinline{python}{[0,180,0,256]} to select the full range of H, S components.
+\end{itemize}
+The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the one in \ref{app:hist_backproj_src}, expecting two clicks from the user to define a bounding box around a sample of the object to detect. It also performs similarly on the same images, showing some black spots on roughly the same positions.
+
+
+\subsubsection{Histogram backprojection summary}
+\begin{multicols}{2}
+    \begin{itemize}
+        \item[\textcolor{DarkPink}{\ding{51}}] Fast -- can easily be used in real time.
+        \item[\textcolor{DarkPink}{\ding{51}}] Relatively immune to noise and illumination changes.
+        \item[\textcolor{DarkPink}{\ding{51}}] Simple to implement.
+    \end{itemize}
+    
+    \columnbreak
+    \begin{itemize}
+        \item[\textcolor{DarkPink}{\ding{55}}] Not effective against non-compact objects.
+        \item[\textcolor{DarkPink}{\ding{55}}] Does not use any knowledge about the shape or position of the detected object -- only its colour.
+    \end{itemize}
+\end{multicols}
+
+
+
+
+
+\subsection{Mean Shift Tracking}
+
+
+
+
+
+
+
+
+%------------------------------ New section ------------------------------%
+
+\section{Motion-based methods}
+
+\subsection{Optical Flow}
+
+
+
+\subsection{Lukas-Kanade tracking}
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Edge-based methods}
+
+\subsection{Hough Transform}
+
+
+
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% APPENDICES
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newpage
+\appendix
+
+\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{HSV domain}
+\label{app:hsv_domain}
+
+
+
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Histogram implementation from scratch - source code}
+\label{app:hist_backproj_src}
+\inputminted{python}{src/hist_backproj/backproj.py}
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Histogram implementation using OpenCV - source code}
+\label{app:hist_backproj_src_opencv}
+\inputminted{python}{src/hist_backproj/backproj_cv.py}
+
+
+\end{document}

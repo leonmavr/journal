@@ -1,0 +1,101 @@
+	% how to draw cut line https://tex.stackexchange.com/questions/350852/directed-graph-with-cuts
+	\usetikzlibrary{arrows, quotes}
+	
+	\definecolor{medium_blue}{RGB}{60,125,190}
+	\definecolor{dark_blue}{RGB}{25,60,85}
+	
+	
+    \begin{tikzpicture}[
+      mycircle/.style={
+         circle,
+         draw=black,
+         fill=yellow,
+         fill opacity = 0.3,
+         text opacity=1,
+         inner sep=0pt,
+         minimum size=20pt,
+         font=\small},
+      cicle_sink/.style={
+         circle,
+         draw=black,
+         fill=gray,
+         fill opacity = 0.3,
+         text opacity=1,
+         inner sep=0pt,
+         minimum size=20pt,
+         font=\small},
+      myarrow/.style={
+        -Stealth,
+      },
+      arrow_dark_blue/.style={
+        -Stealth,
+        fill=dark_blue,
+        draw=dark_blue },
+      arrow_blue/.style={
+        -Stealth,
+        fill=medium_blue,
+        draw=medium_blue},
+      arrow_red/.style={
+        -Stealth,
+        fill=red,
+        draw=red},
+        node distance=0.6cm and 1.2cm,
+        xs/.style = {xshift=#1 mm},
+        ys/.style = {yshift=#1 mm},
+      ]
+      %source
+      \node[mycircle] (s) {$s$};
+      
+      \node[mycircle,above right=of s] (v1) {$v_1$};
+      \node[mycircle,below right=of s] (v2) {$v_2$};
+
+      \node[mycircle,right=of v1] (v4) {$v_4$};
+      \node[mycircle,above=of v4] (v3) {$v_3$};
+      \node[mycircle,right=of v2] (v5) {$v_5$};
+      % sink
+      \node[cicle_sink,below=of v5] (v6) {$v_6$};
+      
+      \node[mycircle,right=of v4] (v7) {$v_7$};
+      % sink
+      \node[cicle_sink,right=of v5] (v8) {$v_8$};
+      
+      \node[cicle_sink,below right=of v7] (t) {$t$};
+      %\node[mycircle,right=of c4] (c5) {$v_3$};
+      %\node[mycircle,below right=of c5] (c6) {$t$};
+
+    %%% in S out S
+    \foreach \i/\j/\txt/\p in {% start node/end node/text/position
+      s/v1/$e_1$/above,
+      s/v2/$e_2$/above,
+      v1.250/v2.110//above, %.deg, .deg
+      v1/v3//above,
+      v1/v4//above,
+      v2/v5//above,
+      v3/v7//above,
+      v4/v7//above,
+      v7/v2//above,
+      v4/v3//above}
+      \draw [arrow_dark_blue] (\i) -- node[sloped,font=\small,\p] {\txt} (\j);
+    
+    \foreach \i/\j/\txt/\p in {% start node/end node/text/position
+      v5/v6//above,
+      v5.20/v8.160//above,
+      v2/v6//above,
+      v7.250/v8.110//above,
+      v7/t//above}
+     \draw [arrow_blue] (\i) -- node[sloped,font=\small,\p] {\txt} (\j); 
+    
+    \foreach \i/\j/\txt/\p in {% start node/end node/text/position
+      v8.200/v5.340//above,
+      v8.70/v7.290//below,
+      v8/t//above,
+      v6/v8//above}
+      \draw [myarrow] (\i) -- node[sloped,font=\small,\p] {\txt} (\j);
+    
+    \draw[rounded corners=10mm, red, densely dashed] 
+        ([xs=-4,ys=2]  v6.west)  -- ([ys=4] v8.west)   -- ([xs=11]  v7.east)
+    ;
+
+     % draw this outside loop to get proper orientation of 10
+     %\draw [myarrow] (c4.250) -- node[sloped,font=\small,above,rotate=180] {10} (c2.110);
+    \end{tikzpicture}

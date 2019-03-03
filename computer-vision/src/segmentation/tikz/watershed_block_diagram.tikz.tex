@@ -1,0 +1,65 @@
+\definecolor{lightestpink}{rgb}{1.,0.95,0.99} % bg color, r,g,b <= 1
+\definecolor{darkpink}{rgb}{0.55, 0.05, 0.37}
+\definecolor{darkerpink}{rgb}{0.41, 0.0, 0.21}
+
+\usetikzlibrary{positioning,fit,calc}
+\tikzset{block/.style=
+    {draw,fill=white,thick,text width=2cm,minimum height=1cm,align=center, rounded corners, line width=0.4mm},
+    invisible/.style=
+    {draw,thick,text width=0.1cm,minimum height=1cm,align=center, draw=white},
+    line/.style=
+    {-Stealth, thick},
+    shadowed/.style=
+    {preaction={transform canvas={shift={(-1pt,-1pt)}},draw=gray,very thick}}
+}
+
+
+\begin{tikzpicture}
+  \node[invisible] (inv) {};
+  
+  \node[block,right=of inv] (a) {RGB to grayscale};
+  \node[block,right=of a] (b) {BW converter 1};
+  \node[block,right=of b] (c) {Morph. opening};
+  \node[draw=darkpink,dashed,fill=lightestpink,inner xsep=5mm,inner ysep=6mm,fit=(a)(c),label={90:\textcolor{darkerpink}{Preprocessing (noise removal)}}](abc){};
+  \node[block,shadowed,right=of inv] (a) {RGB to grayscale};
+  \node[block,shadowed,right=of a] (b) {BW converter 1};
+  \node[block,shadowed,right=of b] (c) {Morph. opening};
+  
+  \node[block,shadowed,right=2.8cm of c] (d1) {Find objects' border};
+  \node[block,shadowed,below right=1.2cm and 2.8cm of c] (d2) {Distance transform};
+  \node[block,shadowed,below=1.2cm of d2] (e) {BW converter 2};
+
+  % box
+  \node[block,shadowed,below=3.4cm of c] (f) {Labeller};
+  \node[block,shadowed,left=of f] (g) {Overlay};
+  \node[draw=darkpink,dashed,fill=lightestpink,inner xsep=5mm,inner ysep=6mm,fit=(f)(g),label={90:\textcolor{darkerpink}{Labelling}}](fg){};
+  \node[block,shadowed,below=3.4cm of c] (f) {Labeller};
+  \node[block,shadowed,left=of f] (g) {Overlay};
+  % end box
+  
+  
+  \node[draw=darkpink,dashed,fill=lightestpink,inner xsep=5mm,inner ysep=6mm,fit=(d1)(e),text width = 2.5cm, label={90:\textcolor{darkerpink}{BW processing}}] (d1e) {};
+  \node[block,shadowed,right=2.8cm of c] (d1) {Find objects' border};
+  \node[block,shadowed,below right=1.2cm and 2.8cm of c] (d2) {Distance transform};
+  \node[block,shadowed,below=1.2cm of d2] (e) {BW converter 2};
+  
+  \node[block,shadowed,left=of g] (h) {Watershed transform};
+  \node[invisible,left=of h] (inv2) {};
+
+  
+  \draw[line] (inv) -- node[above, text width=1.2cm] {RGB image} (a);
+  \draw[line] (a) -- node[above, text width=1.2cm, text centered] {greyscale image} (b);
+  \draw[line] (b) -- node[above, text width=1.2cm, text centered] {binary image} (c);
+  \draw[line] (c) -- node[above, text width=1.2cm, text centered,xshift=-0.5cm] {binary image} (d1);
+  \draw[line] (c) -- +(1.5,0) |- node[above, text width=1.2cm] {} (d2);
+  \draw[line] (d2) -- node[above, text width=3cm, text centered, yshift=-0.3cm] {greyscale image, black background} (e);
+  \draw[line] (e) -- node[above,  text centered, text width=1.8cm] {binary image, white CC's} (f);
+  \draw[line] (f) -- node[above,  text centered, text width=1.7cm] {greyscale with CC's} (g);
+  % d1 -> d2 -> e(bw converter 2) -> f -> g
+  \draw[line] (d1.east) |- ([shift={(3mm,22mm)}]d2.east) |- ([shift={(3mm,-3mm)}]e.south east) -- ([shift={(0mm,-3mm)}]f.south) |- node[below, text centered] {binary image, objects' border white} ([shift={(0mm,-3mm)}]g.south) -- (g.south);
+  \draw[line] (g) -- node[above,  text centered, text width=1.8cm] {greyscale with CC's, border} (h);
+  \draw[line] (h) -- node[above,  text centered, text width=1.8cm] {greyscale labelled} (inv2);
+  
+  
+
+\end{tikzpicture}
