@@ -1,0 +1,438 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{The Perceptrons}
+
+\subsection{What is perceptron?}
+
+\begin{definition}
+Perceptron is an algorithm for binary classification that uses a linear prediction function.
+\end{definition}
+So if that input data are $\textbf{x}^1, \textbf{x}^2, \ldots , \textbf{x}^n$, each with features $\begin{bmatrix} x_1 & x_2 & \ldots & x_d\end{bmatrix}$ then a perception separates them in two classes in the feature space -- ``positive'' and ``negative'' instances.
+
+% ref http://mr-pc.org/t/cse5526/pdf/01b-perceptron.pdf
+For convenience, unless otherwise stated, we'll consider them 2D, i.e. the features are $x_1,\ x_2$. In  a 2D fearure space, a perceptron draws a boundary line to separate the data in two classes - one above the line and one below. More generally, For a $d$-dimensional input space, the decision boundary is an $d-1$-dimensional hyperplane.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=6cm]{example_linear_classifier.PNG}
+    \caption{The decision boundary (line) separates the $x_1,x_2$ space in two semi-planes.}
+    %\label{fig:my_label}
+\end{figure}
+
+\subsection{Its architecture}
+
+The perceptron takes as input a bunch of data $\textbf{x}^1, \textbf{x}^2, \ldots , \textbf{x}^n$ and outputs a \emphasis{label} value $y \in \{0,1\}$ for each, which indicates the predicted class where the data sample belongs. Let's analyse the architecture in 2D.
+
+The inputs are $x_1, x_2$. $x_1$ is weighted (multiplied) by some value $x_1$ and $x_2$ by $w_2$. The perceptron also needs some bias so that the decision boundary doesn't always cross the origin. This can be considered as an additional input $x_0 = 1$, multiplied by weight $w_0$. Their weighted sum $S=x_1w_1 + x_2w_2 + b$ is evaluated and passed through an \emphasis{activation} function $f$, whose value determines the input's class, so the final predicted output is:
+\begin{equation}
+    y_{pred} =  f(x_1w_1 + x_2w_2 + b)
+\end{equation}
+Using the dot product, this can be written more compactly as:
+\begin{equation}
+    y_{pred} =  f(\textbf{w} \cdot \textbf{x} + b)
+\end{equation}
+$\textbf{w}$ is the \emphasis{weight vector} and $b$ (a scalar) the \emphasis{bias}. A simple activation function $f$ is the \emphasis{step function}.
+\begin{definition}
+The \emphasis{step function} is defined as
+\begin{equation}
+    f(x) = \left\{
+\begin{array}{ll}
+      1, & x\geq 0 \\
+      0, & x<0\\
+\end{array} \right.
+\end{equation}
+\end{definition}
+So for our model the predicted output $f(\textbf{w} \cdot \textbf{x} + b) \in \{0,1\}$ depends simply on the sign of $\textbf{w} \cdot \textbf{x} + b$. In 2D, for positive instances we have $w_1x_1 + w_2x_2 + b \geq 0$ and for negative ones $w_1x_1 + w_2x_2 + b < 0$. 
+\begin{figure}[H]
+    % ref https://trevorcohn.github.io/comp90051-2017/slides/06_vectors_perceptron.pdf
+    \centering
+    \includegraphics[height=5cm]{perceptron_architecture.png}
+    \caption{Perceptron model.}
+    %\label{fig:my_label}
+\end{figure}
+% ref https://ocw.mit.edu/courses/health-sciences-and-technology/hst-947-medical-artificial-intelligence-spring-2005/lecture-notes/ch7_mach3.pdf
+So the goal of the perceptron is for each data point $\textbf{x}\in \mathbb{R}^n$ find some $\textbf{w}\in \mathbb{R}^n$ and an offset $b\in \mathbb{R}$ such that it can correctly decide whether $\textbf{w}\cdot \textbf{x} + b \geq 0$ or  $\textbf{w}\cdot \textbf{x} + b < 0$. Therefore if the number of features of the input is $n$ (e.g. 2 in the 2D space) then the number of coefficients to be learned is $n+1$ (e.g. $w_0,\ w_1,\ b$ for the 2D space). The \emphasis{decision boundary} is a line for 2D inputs, a plane for 3D, etc., and in general it's called \emphasis{hyperplane}.
+\begin{definition}
+The equation of the decision boundary hyperplane is 
+\begin{equation}
+    \textbf{w}\cdot \textbf{x} + b = 0
+\end{equation}
+or equivalently
+\begin{equation}
+    \sum\limits_{i=1}^{n}{w_ix_i} + b = 0
+\end{equation}
+$w_i$ and $b$ are to be learned.
+\end{definition}
+
+\subsection{Perceptron for logical operations}
+
+\subsubsection{AND perceptron}
+The perceptron can be used to classify samples $\textbf{x}=(x_1,x_2)$ for which the output is defined by the AND operation, as given by the following truth table.
+\begin{center}
+\begin{tabular}{c|c|c}
+$x_1$ & $x_2$ & $y$ \\
+\hline
+0 & 0 & 0 \\
+0 & 1 & 0 \\
+1 & 0 & 0 \\
+1 & 1 & 1 
+\end{tabular}
+\end{center}
+We therefore want for the predicted output:
+\begin{gather*}
+f(0,0) = 0 \Rightarrow 0\cdot w_1 + 0\cdot w_2 + b < 0 \tag{1}\\
+f(0,1) = 0 \Rightarrow 0\cdot w_1 + 1\cdot w_2 + b < 0 \tag{2}\\
+f(1,0) = 0 \Rightarrow 1\cdot w_1 + 0\cdot w_2 + b < 0 \tag{3}\\
+f(1,1) = 1 \Rightarrow 1\cdot w_1 + 1\cdot w_2 + b > 0 \tag{4}
+\end{gather*}
+A set of weights that satisfies Eq. (1)-(4) is $w_1=1,\ w_2=1,\ b=-1.3$. Therefore in 2D space the inputs would be mapped in two classes as follows. 
+\begin{figure}[H]
+    \centering
+    \input{tikz/AND.tikz.tex}
+    \caption{Boundary line for prediction $y=x_1 \ \textup{AND} \ x_2$.}
+    %\label{fig:my_label}
+\end{figure}
+A good boundary line that separates the data in two classes is $x_2 = -x_1 + 1.3$ (the weights and offset were found from Eq. (1)-(4)).
+The semi-plane for which the prediction is TRUE, i.e. $y=1$, is:
+\begin{gather*}
+   x_1 + x_2 - 1.3 \geq 0 \Rightarrow\\
+   1\cdot x_1 + 1\cdot x_2 + (-1.3) = 0
+\end{gather*}
+Therefore the data can be classified by an perceptron with $w_1=1, \ w_2 = 1, \ b = -1.3$.
+
+\subsubsection{OR perceptron}
+Similarly, for the OR truth table and boundary line we have:
+\begin{multicols}{2}
+\begin{center}
+\begin{tabular}{c|c|c}
+$x_1$ & $x_2$ & $y$ \\
+\hline
+0 & 0 & 0 \\
+0 & 1 & 1 \\
+1 & 0 & 1 \\
+1 & 1 & 1 
+\end{tabular}
+\end{center}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \input{tikz/OR.tikz.tex}
+    \caption{Boundary line for prediction $y=x_1 \ \textup{OR} \ x_2$.}
+    %\label{fig:my_label}
+\end{figure}
+\end{multicols}
+For the prediction $y=1$ (TRUE) we have:
+\begin{gather*}
+   x_1 + x_2 - 0.7 \geq 0 \Rightarrow\\
+   1\cdot x_1 + 1\cdot x_2 + 0.7 = 0
+\end{gather*}
+Therefore the perceptron weights are $w_1=1, \ w_2 = 1, \ b = -0.7$.
+
+\subsubsection{NOT perceptron}
+The NOT operation is slightly different from the other two as it's defined for only one input and doesn't care about the other. Let's try to design a perceptron for $y=NOT(x_2)$. In the following truth table, X stands for ``don't care''.
+\begin{multicols}{2}
+\begin{center}
+\begin{tabular}{c|c|c}
+$x_1$ & $x_2$ & $y$ \\
+\hline
+X & 0 & 1 \\
+X & 1 & 0
+\end{tabular}
+\end{center}
+\columnbreak
+
+\begin{figure}[H]
+    \centering
+    \input{tikz/NOT.tikz.tex}
+    \caption{Boundary line for prediction $y=x_1 \ \textup{NOT} \ x_2$.}
+    %\label{fig:my_label}
+\end{figure}
+\end{multicols}
+
+
+\subsubsection{XOR perceptron}
+For the XOR operation, the truth table and output is:
+\begin{multicols}{2}
+\begin{center}
+\begin{tabular}{c|c|c}
+$x_1$ & $x_2$ & $y$ \\
+\hline
+0 & 0 & 0\\
+0 & 1 & 1\\
+1 & 0 & 1\\
+1 & 1 & 0
+\end{tabular}
+\end{center}
+
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \input{tikz/XOR.tikz.tex}
+    \caption{XOR outputs and the two boundary lines needed to classify them.}
+    \label{fig:xor_input_output}
+\end{figure}
+
+\end{multicols}
+However, the is \textit{no single boundary line} that can correctly separate the data. Two lines are needed as shown in \ref{fig:xor_input_output}. The area we want to classify as $y=1$ is desribed by:
+\begin{gather*}
+x_1 + x_2 -0.7 \geq 0 \;\; \textup{and} \;\; x_1 + x_2 -1.3 <0 \Rightarrow\\
+(x_1 \; OR \; x_2) \;\; AND \;\; \left(NOT \;\; (x_1 \; AND \; x_2)\right)
+\end{gather*}
+Schematically, the XOR perceptron is described as follows:
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4cm]{xor_multiplayer.PNG}
+    \caption{XOR design as a combination of other perceptrons.}
+    %\label{fig:my_label}
+\end{figure}
+
+
+\subsubsection{Linear separability}
+
+Linear separability means that the two input classes $X_0,\ X_1$ can be perfectly separated by a straight line. Mathematically, this is expressed as:
+\begin{definition}
+Let $X_0,\ X_1$ be two disjoint sets of the $n$-dimensional input data $X$. Then the sets are linearly separable if there exist $n+1$ real numbers $w_0,\ w_1, \ldots, w_{n-1}, b$ such that:
+    \begin{gather}
+      \sum_{i=1}^{n}{w_ix_i} - b > 0 \quad \forall x \in X_0  \quad \textup{and}\\
+      \sum_{i=1}^{n}{w_ix_i} - b < 0 \quad \forall x \in X_1
+    \end{gather}
+\end{definition}
+
+
+\subsection{The perceptron trick - intuition}
+When a point is classified there are 3 possibilities:
+\begin{enumerate}
+    \item It is correctly classified, i.e. $y = y_{pred}$.
+    \item A positive sample is misclassified, i.e. $y=1$ and $y_{pred}=0$.
+    \item A negative sample is misclassified, i.e. $y=0$ and $y_{pred}=1$.
+\end{enumerate}
+For every misclassfied point, the weights $w_1,\ w_2$ and bias $b$ need to be corrected. Before describing the perceptron correction trick, the maths of the hyperplane needs to be understood. For simplicity, we'll consider the hyperplane as a line but the observations below can be generalised.
+\begin{corollary}
+For the boundary line $w_1x_1 + w_2x_2 + b = 0$, The vector $\textbf{w} = (w_1,w_2)$ is perpendicular to it.
+\end{corollary}
+\begin{corollary} \label{cor:dist_from_origin}
+For the boundary line $w_1x_1 + w_2x_2 + b = 0$, its distance from the origin is $\frac{b}{\left|\left|\textbf{w}\right|\right|}$.
+\end{corollary}
+\begin{proof}
+\quad \\
+See \ref{app:min_dist_origin}.
+\end{proof}
+% ref https://www.cs.utah.edu/~piyush/teaching/8-9-print.pdf
+Denoting negative instances as $y=0$ and positive as $y=1$, the perceptron update trick is based on the following heuristic that handles false cases.
+\begin{itemize}
+    \item $y=1$ but the perceptron thinks that $y_{pred} = 0 \Rightarrow \textbf{w}_{old}\textbf{x} + b_{old} < 0$.
+    
+    Then the updates should be
+        \begin{gather*}
+            \textbf{w}_{new} = \textbf{w}_{old} + \textbf{x} \\
+            b_{new} = b_{old} + 1
+        \end{gather*}
+        
+    Indeed, in this case for the output of the new updates we have
+    \[
+    \begin{split}
+        \textbf{w}_{new}\cdot \textbf{x} + b_{new} 
+        &= \left( \textbf{w}_{old} + \textbf{x} \right)\textbf{x} + b_{old} + 1\\
+        &=\textbf{w}_{old}\cdot \textbf{x} + b_{old} + \textbf{x} \cdot \textbf{x} + 1\\
+        &>  \textbf{w}_{old}\cdot \textbf{x} + b_{old}
+    \end{split}
+    \]
+    Therefore the updated sum is more positive than the old, hence has better chance of being classified correctly by the step function. Geometrically, this  effect is illustated for the line below, for which $b=0$ for simplicity so the effect on the offset is not demonstrated. 
+    \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.75]{img/line_pos_correction.PNG}
+        \caption{Correction of actual positive misclassified instance.}
+        %\label{fig:my_label}
+    \end{figure}
+    For $b=0$, to classify a point $x$ as positive, we simply want $\textbf{w}\cdot \textbf{x}>0$, i.e. the angle between $x$ and $b$ to be acute. So in this case the weight vector should point towards positive instances. 
+    
+    \item $y=0$ but the perceptron thinks that $y_{pred} = 1 \Rightarrow \textbf{w}_{old}\textbf{x} + b_{old} > 0$. 
+    
+    Then the weights and offset are corrected by
+            \begin{gather*}
+            \textbf{w}_{new} = \textbf{w}_{old} - \textbf{x} \\
+            b_{new} = b_{old} - 1
+        \end{gather*}
+    Indeed, in this case for the new output
+        \[
+    \begin{split}
+        \textbf{w}_{new}\cdot \textbf{x} + b_{new} 
+        &= \left( \textbf{w}_{old} - \textbf{x} \right)\textbf{x} + b_{old} - 1\\
+        &=\textbf{w}_{old}\cdot \textbf{x} + b_{old} - \textbf{x} \cdot \textbf{x} - 1\\
+        &<  \textbf{w}_{old}\cdot \textbf{x} + b_{old}
+    \end{split}
+    \]
+    The new output is more negative than the old, as desired. Below is how the correction works geometrically (again, for $b=0$).
+        \begin{figure}[H]
+        \centering
+        \includegraphics[scale=0.75]{img/line_neg_correction.PNG}
+        \caption{Correction of actual negative misclassified instance.}
+        %\label{fig:my_label}
+    \end{figure}
+    Similarly, for $b=0$, to classify a point $\textbf{x}$ as negative we want $\textbf{w}\cdot \textbf{x} < 0$, i.e. the angle between $\textbf{x}$ and $\textbf{b}$ to be obtuse, i.e. the weight vector to point away from negative instances, as shown in the correction.
+\end{itemize}
+
+
+\subsection{Perceptron weight correction - the algorithm}
+
+In reality, the weights and bias are not updated by $\textbf{x}$ and $1$ as this is too large and causes predicition errors to the other measurements, but by small fractions of them.
+\begin{definition}
+The perceptron correction weight updates are
+\begin{gather}
+    \textbf{x}_{new} = \textbf{w}_{old} + \eta\ \textbf{x}\\
+    b_{new} = b_{old} + \eta
+\end{gather}
+$\eta$ is called the \emphasis{learning rate}.
+\end{definition}
+\begin{exmp}
+We have the decision line $3x_1+4x_2-10=0$ and the positive point $\textbf{x}=(1,1)$ that is misclassified. If the learning rate is $\eta=0.1$, how many iterations will it take to correct it? (Credits: Udacity, \TODO)
+\end{exmp}
+\begin{soln}
+Since the point to correct is $(4,5)$ and is actually negative ($y=0)$, after one update we sum and the coefficients are
+\begin{gather*}
+    w_1^{(1)} = 3 + 1\ \eta\\
+    w_2^{(1)} = 4 + 1\ \eta \\
+    b^{(1)} = -10 + \eta
+\end{gather*}
+And after $n$ updates they are:
+\begin{gather*}
+    w_1^{(n)} = 3 +  n\ \eta = 3+0.1n\\
+    w_2^{(n)} = 4 + n \ \eta = 4+0.1n \\
+    b^{(n)} = -10 + n\ \eta  = -10+0.1n
+\end{gather*}
+We want to keep correcting until:
+\begin{gather}
+    1 w_1^{(n)} + 1 w_2^{(n)} - 10 + 0.1n > 0 \Rightarrow\\
+    3+0.1n + 4+0.1n- 10+0.1n > 0 \Rightarrow \\
+    n > 10
+\end{gather}
+So at least 10 itearations are required to correct it.
+\end{soln}
+That is the basis of the perceptron algorithm -- iterate for each point, and if it is misclassified, update accordingly. It is described in pseudocode below. It can be proved that for linearly separable data the algorithm is guaranteed to converge.
+\begin{algorithm}[H]
+\caption{The final perceptron algorithm.}
+\begin{algorithmic}[1]
+\Procedure{Perceptron} {$\textbf{x}_{1\times m},\;\textbf{y}_{1\times m},\; \eta, \; N_{epochs}$}
+\State \Comment{$\textbf{x}$: a list of $m$ vectors (input data), $\textbf{y}$: label (0 or 1) for each input. Each input also has $n$ features.}
+\State \Comment{$\eta$: learning rate, $N_{epochs}$: how many epochs (iterations) we want the algorithm to run for.}
+\State $w_1,\ w_2, \ \ldots, \ w_n,\ b \leftarrow$ random values
+\For {$i=0,\ldots,N_{epochs}$}
+\For{$j=1,\ldots,m$}
+\If {$y_j=0$ and $\textbf{w}\cdot \textbf{x}_j + b > 0$} \Comment{misclassified negative point}
+\State $\textbf{w} \leftarrow \textbf{w} - \eta \ \textbf{x}_j$
+\State $b \leftarrow b - \eta$
+\ElsIf {$y_j=1$ and $\textbf{w}\cdot \textbf{x}_j + b < 0$} \Comment{misclassified positive point}
+\State $\textbf{w} \leftarrow \textbf{w} + \eta \ \textbf{x}_j$
+\State $b \leftarrow b + \eta$
+\EndIf
+\EndFor
+\EndFor
+\State \textbf{return} $\textbf{w}$, $b$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+\subsection{Algorithm implementation}
+
+An implementation that learns the weights online (updates them as it reads the data) and runs for a certain number of epochs is listed in \ref{app:perc_algo_src}. It is based on Udacity's skeleton code. In Fig. \ref{fig:perc_training_out}, where its result is visualised, the final boundary line is solid and the updates are dashed.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.5cm]{img/algo_training_out.PNG}
+    \caption{Online training results for percetron online training. Positive data are blue and negative red.}
+    \label{fig:perc_training_out}
+\end{figure}
+
+
+% http://130.243.105.49/~lilien/ml/seminars/2007_02_01b-Janecek-Perceptron.pdf !!
+% line maths: *** https://stats.stackexchange.com/questions/143895/a-challenge-with-linear-classification-and-distance-to-origin, *** https://math.stackexchange.com/questions/1029153/deriving-the-normal-distance-from-the-origin-to-the-decision-surface !!, *** https://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line !!
+
+
+
+% https://web.archive.org/web/20181003041048/https://www.cs.utah.edu/~zhe/pdf/lec-10-perceptron-upload.pdf, https://trevorcohn.github.io/comp90051-2017/slides/06_vectors_perceptron.pdf, http://mr-pc.org/t/cse5526/pdf/01b-perceptron.pdf, http://www.cs.umd.edu/class/spring2018/cmsc422-0101/slides0201/lecture_07.pdf
+%
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\appendix
+
+\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Proof of Cor. \ref{cor:dist_from_origin} (perceptron boundary line)}
+\label{app:min_dist_origin}
+
+% another proof: https://math.stackexchange.com/a/1948344
+The decision boundary has equation
+\[
+w_1x_1 + w_2x_2 + b = 0 \tag{1}
+\]
+$\textbf{x}$ is a vector from the origin to some point $(x_1,x_2)$ on the line. We are looking to minimise $\left|\left| \textbf{x}\right|\right|$ under condition (1), where $\textbf{x}=(x_1,x_2)$. Eq. (1) can be re-written as:
+\[
+\textbf{w}\cdot \textbf{x} = -b \tag{2}
+\]
+, where $\textbf{w}\cdot \textbf{x} = \left|\left| \textbf{w}\right|\right| \left|\left| \textbf{x}\right|\right|cos\left(\theta \right)$ is the dot product, $\theta$ the angle between the two vectors, and $w=(w_1,w_2)$ the weight vector perpendicular to the line. Therefore, and since $\left|\left|x\right| \right|\geq 0$,  Eq. (2) can be solved for $\left|\left|x\right| \right|$ as:
+\begin{gather*}
+\left|\left|\textbf{x}\right| \right| =  \frac{\left|b\right|}{\left|\left|\textbf{w} \right| \right| \left|\cos(\theta)\right |} \Rightarrow \\
+\left|\left|\textbf{x}\right| \right| \leq \frac{\left|b\right|}{\left|\left|\textbf{w} \right| \right|}
+\end{gather*}
+The equality is achieved when $\left| \cos(\theta) \right|= 1$, i.e. when $\textbf{x}$ and $\textbf{w}$ are parallel or anti-parallel. The minimum distance of $\textbf{x}$ from the origin is therefore $\frac{\left|b\right|}{\left|\left|\textbf{w} \right| \right|}$.\qed
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Perceptron with online training in Python.}
+\label{app:perc_algo_src}
+\inputminted{python}{src/perceptron.py}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+\end{document}
