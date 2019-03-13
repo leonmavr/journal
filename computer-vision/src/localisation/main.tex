@@ -99,7 +99,7 @@ The final step is to find compact regions where $b$ is high. If the shape of the
 \begin{equation}
     D_{x,y}^r = \left\{
 \begin{array}{ll}
-      1 & \sqrt{x^2+y^2\leq r} \\
+      1 & \sqrt{x^2+y^2} \leq r \\
       0 & \textup{otherwise}\\
 \end{array} 
 \right. 
@@ -109,7 +109,7 @@ Then the probability image $b$ can be convolved with the mask:
     b := D^r \ast b
 \end{equation}
 The $\arg \max$ function to returns the pixel $(x, y)$ with
-the maximum value of its argument, i.e. where the $R$ matrix and the $\ast$ symbol denotes convolution. Then Histogram Backprojection can be
+the maximum value of its argument, i.e. of the $R$ matrix and the $\ast$ symbol denotes convolution. Then Histogram Backprojection algorithm can be then
 written
 \begin{algorithm}[H]
 \caption{Colour matching by histogram backprojection according to Swain et al}
@@ -196,6 +196,8 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 
 
 
+\subsection{Camshift (Continuously Adaptive Mean Shift)}
+
 
 
 
@@ -209,14 +211,6 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 
 
 \subsection{Lukas-Kanade tracking}
-
-
-
-%------------------------------ New section ------------------------------%
-\section{Edge-based methods}
-
-\subsection{Hough Transform}
-
 
 
 
@@ -242,7 +236,7 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 
 % ------------------------ New appendix ------------------------ %
 \newpage
-\subsection{Histogram implementation from scratch - source code}
+\subsection{Histogram backprojection implementation from scratch - source code}
 \label{app:hist_backproj_src}
 \inputminted{python}{src/hist_backproj/backproj.py}
 
@@ -250,7 +244,7 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 
 % ------------------------ New appendix ------------------------ %
 \newpage
-\subsection{Histogram implementation using OpenCV - source code}
+\subsection{Histogram backprojection implementation using OpenCV - source code}
 \label{app:hist_backproj_src_opencv}
 \inputminted{python}{src/hist_backproj/backproj_cv.py}
 

@@ -39,6 +39,8 @@
 \usepackage[letterspace=150]{microtype} % \textls{<letterspaced text>} % 0 <= letterspace <= 1000, 1000 = M space
 \usepackage{letltxmacro}                % renew commands?
 \usepackage{minted}                     % minted package to list code
+
+
 \usepackage{subfig}
 \usepackage{eso-pic}                    % title page bg pic
 \usepackage{varwidth}
@@ -207,6 +209,10 @@
    \node[shape=circle,draw,inner sep=0pt] (char) {#1};}\ }
 
 \makeatother
+
+
+
+
 %%%%%%%%%% end of math symbols %%%%%%%%%%
 
 \newcommand{\overeq}[1]{\ensuremath{\stackrel{#1}=}} % text above = symbol
@@ -267,3 +273,6 @@
 \let\emptyset\varnothing
 %algorithmic
 \algdef{SE}[DOWHILE]{Do}{doWhile}{\algorithmicdo}[1]{\algorithmicwhile\ #1}%
+
+%%% otherwise minted goes off the page
+\setmintedinline{breaklines}
