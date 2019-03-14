@@ -39,8 +39,6 @@
 \usepackage[letterspace=150]{microtype} % \textls{<letterspaced text>} % 0 <= letterspace <= 1000, 1000 = M space
 \usepackage{letltxmacro}                % renew commands?
 \usepackage{minted}                     % minted package to list code
-
-
 \usepackage{subfig}
 \usepackage{eso-pic}                    % title page bg pic
 \usepackage{varwidth}
@@ -48,6 +46,7 @@
 \usepackage{fontawesome}                % \faQuestionCircle
 \usepackage{marvosym}                   %\Pointinghand
 \usepackage{mdframed}                   % easy outline frames
+\usepackage[many]{tcolorbox}            % colour box for theorem styles
 \usepackage{array,booktabs,calc} % table figs and text
 \usepackage{comment}                    % \begin{comment}
 \usepackage{fancyhdr}                   % page headings
@@ -78,6 +77,8 @@
 \usepackage{booktabs} % things in page margins
 \usepackage{stmaryrd } % \varoast
 \usepackage{listings} % code listings
+
+
 
 %% extra comments that I don't know where they belong:
 % list of ding tags: http://willbenton.com/wb-images/pifont.pdf
@@ -127,11 +128,39 @@
 	name=\textsc{Theorem},
 ]{theorem}
 
+\tcolorboxenvironment{theorem}{
+  boxrule=0pt,
+  boxsep=2pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
 \declaretheorem[
 	numberwithin=section,
  	style=colored,
 	name=\textsc{Corollary},
 ]{corollary}
+
+\tcolorboxenvironment{corollary}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
 
 \declaretheorem[
 	numberwithin=section,
@@ -139,11 +168,39 @@
 	name=\textsc{Lemma},
 ]{lemma}
 
+\tcolorboxenvironment{lemma}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
 \declaretheorem[
 	numberwithin=section,
 	style=colored,
 	name=\textsc{Definition},
 ]{definition}
+
+\tcolorboxenvironment{definition}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
 
 \declaretheorem[
 	numberwithin=section,
@@ -207,6 +264,7 @@
 %%
 \numberwithin{equation}{section} % section number in eq/s
 \setlength{\jot}{7pt} % spacing in split, gathered env/s
+
 
 
 %% Custom examples

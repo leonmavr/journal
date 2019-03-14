@@ -1,6 +1,7 @@
 \documentclass[a4paper]{article}
 \usepackage[utf8]{inputenc}
 
+
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % PREAMBLE
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -49,9 +50,18 @@ This is a template that includes all packages and styles I need for writing note
 \subsection{Subsection title}
 
 Here is a reference \cite{ref_example}.
-\begin{definition}
-Define my \emphasis{quantity} as \ldots
+
+Here are some custom environments, for more see \mintinline{latex}{style.tex}.
+\begin{definition}[egg]
+Define an \emphasis{egg} as \ldots
+\begin{equation}
+    egg = e^{i\, \pi}
+\end{equation}
 \end{definition}
+
+\begin{corollary}
+
+\end{corollary}
 
 An equation.
 \begin{equation}
@@ -73,6 +83,7 @@ An algorithm.
 \end{algorithmic}
 \end{algorithm}
 
+
 \subsubsection{Subsubsection title}
 
 
@@ -90,7 +101,7 @@ An algorithm.
 \subsection{Appendix Example}
 %\label{app:my_cool_appendix}
 
-\lstinputlisting[language=python,caption={A code listing.},label=src:mylabel]{src/hello.py}
+\lstinputlisting[language=python,caption={A code listing (\detokenize{src/foo_bar.py)}.}, label=src:mylabel]{src/foo_bar.py}
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
