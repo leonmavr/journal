@@ -43,17 +43,27 @@
 %------------------------------ New section ------------------------------%
 \section{Section title}
 
-Here is a reference \cite{ref_example}.
+This is a template that includes all packages and styles I need for writing notes.
 
 
 \subsection{Subsection title}
+
+Here is a reference \cite{ref_example}.
+\begin{definition}
+Define my \emphasis{quantity} as \ldots
+\end{definition}
+
+An equation.
+\begin{equation}
+    f(x,y) = x^2 + y^2
+\end{equation}
 
 An algorithm.
 \begin{algorithm}[H]
 \caption{Description}
 \begin{algorithmic}[1]
 \Procedure{AlgoName} {x, y} \Comment{comment}
-\State $x\leftarrow y + 1$
+\State $x\leftarrow e^{\pi\, i}$
 \If {something}
 \State
 \ElsIf {something else}
@@ -80,7 +90,7 @@ An algorithm.
 \subsection{Appendix Example}
 %\label{app:my_cool_appendix}
 
-
+\lstinputlisting[language=python,caption={A code listing.},label=src:mylabel]{src/hello.py}
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

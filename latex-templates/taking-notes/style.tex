@@ -53,6 +53,12 @@
 \usepackage{fancyhdr}                   % page headings
 \usepackage{mdframed}                   % boxes
 \usepackage[backend=biber,sorting=none,style=ieee]{biblatex}
+\usepackage{caption}
+%%% caption options {
+%\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{magenta!30!gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont={bf,small},textfont=small,skip=-1pt}
+%%% }
 \addbibresource{bibliography.bib}
 \usepackage{url}
 \usepackage{textcomp}
@@ -91,6 +97,9 @@
 \definecolor{DarkestPink}{rgb}{0.36, 0.0, 0.18}
 \definecolor{DarkerPink}{rgb}{0.41, 0.0, 0.21}
 \definecolor{DarkPink}{rgb}{0.55, 0.05, 0.37}
+\definecolor{lightestestpink}{RGB}{255,248,252}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegrayblue}{rgb}{0.35,0.35,0.47}
 
 
 
@@ -141,6 +150,35 @@
   	style=colored,
   	name=\textsc{Example},
 ]{exmp}
+
+\declaretheorem[
+	numberwithin=section,
+  	style=colored,
+  	name=\textsc{Solution},
+]{soln}
+
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+\lstset{style=code1}
+
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Headers (size, font, colour)
 %%
