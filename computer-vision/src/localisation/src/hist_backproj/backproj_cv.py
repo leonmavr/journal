@@ -52,12 +52,53 @@ def get_model(im):
     return hsvt
 
 
+def backproject(hsv, hsvt, rad = 9):
+    # Calculating object histogram
+    # In OpenCV, hue lies within [0,179]!
+    hsvt_hist = cv2.calcHist([hsvt],# image
+            [0, 1],                 # channel selection
+            None,                   # mask
+            [90, 128],              # no of bins
+            [0, 180, 0, 256]        # channel ranges
+            )
+    # normalize histogram to [0,255] and apply backprojection
+    # to get R  (ratio histogram) matrix -> R between 0 and 1
+    cv2.normalize(hsvt_hist, hsvt_hist, 0, 255, cv2.NORM_MINMAX)
+    R = cv2.calcBackProject([hsv],  # image
+            [0,1],                  # channel selection
+            hsvt_hist,              # histogram array
+            [0,180,0,256],          # channel ranges
+            scale = 1)
+    # convolve with circular disc
+    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (rad, rad))
+    cv2.filter2D(R, -1, disc,R)
+    # Otsu's threshold
+    _, R_thresh = cv2.threshold(R, 0, 255,  cv2.THRESH_BINARY | cv2.THRESH_OTSU)
+    # Make it 3D to AND it with the search image
+    R_thresh = cv2.merge((R_thresh, R_thresh, R_thresh))
+    return R_thresh 
+
+
+def usage():
+    str_usage = 'Run with $ python <program_name> <input_image>\n'\
+    'When your input image shows up, click 2 times to define\n'\
+    'a bounding box around  a sample of your object of interest.\n'\
+    'Then press "q" to finish the selection.'
+    print str_usage
+    sys.exit(0)
+
+
 def main():
-    im = cv2.imread(sys.argv[1]) # input image
-    cv2.namedWindow('select area')
-    cv2.setMouseCallback('select area', on_click)
+    assert len(sys.argv) > 1,\
+        "Run the program with -h or --help to print usage"
+    if sys.argv[1] == '-h' or sys.argv[1] == '--help':
+        usage()
+    else:
+        im = cv2.imread(sys.argv[1])
+    cv2.namedWindow('select area then press q')
+    cv2.setMouseCallback('select area then press q', on_click)
     while True:
-        cv2.imshow('select area', im)
+        cv2.imshow('select area then press q', im)
         k = cv2.waitKey()
         if k == ord('q'):
             break
@@ -68,38 +109,11 @@ def main():
     h = click_br[1] - click_tl[1]
     rbgt = im[click_tl[1]: click_tl[1] + h, 
             click_tl[0]: click_tl[0] + w]
-    qimshow(rbgt)
     hsvt = cv2.cvtColor(rbgt, cv2.COLOR_BGR2HSV)
-    # Calculating object histogram
-    # In OpenCV, hue lies within [0,179]!
-    hsvt_hist = cv2.calcHist([hsvt],    # image\
-            [0, 1],                         # channel selection\
-            None,                           # mask\
-            [90, 128],                      # no of bins\
-            [0, 180, 0, 256]                # channel ranges\
-            )
-    # normalize histogram to [0,255] range and apply backprojection
-    cv2.normalize(hsvt_hist, hsvt_hist, 0, 255, cv2.NORM_MINMAX)
-    dst = cv2.calcBackProject([hsv],  # image\
-            [0,1],                          # channel selection\
-            hsvt_hist,                        # histogram array\
-            [0,180,0,256],                  # channel ranges\
-            scale = 1)
-    # Now convolute with circular disc
-    disc = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5,5))
-    cv2.filter2D(dst, -1, disc,dst)
-    # Otsu's threshold
-    _, thresh = cv2.threshold(dst, 0, 255,  cv2.THRESH_BINARY | cv2.THRESH_OTSU)
-    # Make it 3D to AND it with the model image
-    thresh = cv2.merge((thresh, thresh, thresh))
-    res = cv2.bitwise_and(im,thresh)
+    R_thresh  = backproject(hsv, hsvt)
+    res = cv2.bitwise_and(im, R_thresh)
+    qimshow(res)
 
-    cv2.imshow('Original', im)
-    cv2.imshow('Result', res)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
-    # res = np.vstack((model, thresh,res))
-    # cv2.imwrite('res.jpg',res)
 
 if __name__ == '__main__':
     main()
