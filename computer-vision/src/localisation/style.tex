@@ -2,7 +2,7 @@
 % Packages
 %%
 %\usepackage{fullpage} % Package to use full page
-\usepackage[top=1in,bottom=1in,left=1in,right=0.7in,heightrounded]{geometry}
+\usepackage[top=1in,bottom=1in,left=1in,right=1in,heightrounded]{geometry}
 
 \usepackage{parskip}                    % Package to tweak paragraph skipping
 \usepackage{amsmath}                    % standard
@@ -38,9 +38,9 @@
 \AtBeginEnvironment{lemma}{\setlist[enumerate, 1]{font=\upshape,  wide=0.5em, before=\leavevmode}}
 \usepackage[letterspace=150]{microtype} % \textls{<letterspaced text>} % 0 <= letterspace <= 1000, 1000 = M space
 \usepackage{letltxmacro}                % renew commands?
-\usepackage{minted}                     % minted package to list code
-
-
+\usepackage{minted}                     % package to list code
+    % otherwise minted goes off the page
+    \setmintedinline{breaklines}
 \usepackage{subfig}
 \usepackage{eso-pic}                    % title page bg pic
 \usepackage{varwidth}
@@ -48,11 +48,18 @@
 \usepackage{fontawesome}                % \faQuestionCircle
 \usepackage{marvosym}                   %\Pointinghand
 \usepackage{mdframed}                   % easy outline frames
+\usepackage[many]{tcolorbox}            % colour box for theorem styles
 \usepackage{array,booktabs,calc} % table figs and text
 \usepackage{comment}                    % \begin{comment}
 \usepackage{fancyhdr}                   % page headings
 \usepackage{mdframed}                   % boxes
 \usepackage[backend=biber,sorting=none,style=ieee]{biblatex}
+\usepackage{caption}
+%%% caption options {
+%\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{magenta!30!gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont={bf,small},textfont=small,skip=-1pt}
+%%% }
 \addbibresource{bibliography.bib}
 \usepackage{url}
 \usepackage{textcomp}
@@ -72,6 +79,10 @@
 \usepackage{booktabs} % things in page margins
 \usepackage{stmaryrd } % \varoast
 \usepackage{listings} % code listings
+\usepackage{longtable} % table across multiple pages
+
+
+
 
 %% extra comments that I don't know where they belong:
 % list of ding tags: http://willbenton.com/wb-images/pifont.pdf
@@ -91,6 +102,9 @@
 \definecolor{DarkestPink}{rgb}{0.36, 0.0, 0.18}
 \definecolor{DarkerPink}{rgb}{0.41, 0.0, 0.21}
 \definecolor{DarkPink}{rgb}{0.55, 0.05, 0.37}
+\definecolor{lightestestpink}{RGB}{255,248,252}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegrayblue}{rgb}{0.35,0.35,0.47}
 
 
 
@@ -118,11 +132,39 @@
 	name=\textsc{Theorem},
 ]{theorem}
 
+\tcolorboxenvironment{theorem}{
+  boxrule=0pt,
+  boxsep=2pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
 \declaretheorem[
 	numberwithin=section,
  	style=colored,
 	name=\textsc{Corollary},
 ]{corollary}
+
+\tcolorboxenvironment{corollary}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
 
 \declaretheorem[
 	numberwithin=section,
@@ -130,17 +172,74 @@
 	name=\textsc{Lemma},
 ]{lemma}
 
+\tcolorboxenvironment{lemma}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
 \declaretheorem[
 	numberwithin=section,
 	style=colored,
 	name=\textsc{Definition},
 ]{definition}
 
+\tcolorboxenvironment{definition}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
 \declaretheorem[
 	numberwithin=section,
   	style=colored,
   	name=\textsc{Example},
 ]{exmp}
+
+\declaretheorem[
+	numberwithin=section,
+  	style=colored,
+  	name=\textsc{Solution},
+]{soln}
+
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+\lstset{style=code1}
+
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Headers (size, font, colour)
 %%
@@ -171,6 +270,7 @@
 \setlength{\jot}{7pt} % spacing in split, gathered env/s
 
 
+
 %% Custom examples
 %% Output - Example 1,2,...
 \newcounter{example}
@@ -187,15 +287,12 @@
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-% My own commands
+% User defined macros (math mode)
 %%
 
-% Curly braces under text. Usage: \myunderbrace{upper}{lower}
-\newcommand{\myunderbrace}[2]{\mathrlap{\underbrace{\phantom{#1}}_{#2}}
-      #1}
 
-%% Misc. custom commands
-%%%%%%%%%% math symbols %%%%%%%%%%
+% Curly braces under text. Usage: \myunderbrace{upper}{lower}
+\newcommand{\myunderbrace}[2]{\mathrlap{\underbrace{\phantom{#1}}_{#2}} #1}
 \newcommand{\setR}{\mathbb{R}} % \ouble R
 \newcommand{\setRn}{\mathbb{R}^n} %  double R^n
 \newcommand{\setN}{\mathbb{N}} % double N
@@ -204,35 +301,61 @@
 \let\emptyset\varnothing % nice - looking empty set symbol
 \newcommand{\fancyN}{\mathcal{N}} % null space
 \newcommand{\fancyR}{\mathcal{R}} % range
-% symbol in circle
-\newcommand*\circled[1]{\ \tikz[baseline=(char.base)]{
-   \node[shape=circle,draw,inner sep=0pt] (char) {#1};}\ }
 
-\makeatother
+\newcommand{\ba}{\textbf{a}}
+\newcommand{\bw}{\textbf{w}}
+\newcommand{\bx}{\textbf{x}}
+\newcommand{\by}{\textbf{y}}
+\newcommand{\bz}{\textbf{z}}
+\newcommand{\bb}{\textbf{b}}
+\newcommand{\bA}{\textbf{A}}
+\newcommand{\bB}{\textbf{B}}
+\newcommand{\bC}{\textbf{C}}
+\newcommand{\bI}{\textbf{I}}
+\newcommand{\bO}{\textbf{0}}
+% double bars as in norm
+%\newcommand{\norm}[1] {\left|\left| #1 \right| \right|} 
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\newcommand{\trans}[1]{#1^{\top}}
 
+\newcommand{\mean}[1]{\bar{#1}}
+\newcommand{\var}{\sigma^2}
 
+\newcommand{\partdevx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevxx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevxn}[1]{\frac{\partial^n #1}{\partial x^n}}
+\newcommand{\partdevy}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevyy}[1]{\frac{\partial #1}{\partial y}}
+\newcommand{\partdevyn}[1]{\frac{\partial^n #1}{\partial y^n}}
 
-
-%%%%%%%%%% end of math symbols %%%%%%%%%%
-
-\newcommand{\overeq}[1]{\ensuremath{\stackrel{#1}=}} % text above = symbol
-\newcommand{\norm}[1] {\lVert #1 \rVert} % double bars as in norm
-\newcommand{\npsym}{%
+% text above = symbol
+\newcommand{\overeq}[1]{\ensuremath{\stackrel{#1}=}} 
+\newcommand{\greatersmaller}{%
   \mathrel{\ooalign{\raisebox{.6ex}{$>$}\cr\raisebox{-.6ex}{$<$}}}
 } % greater and smaller symbols on top of each other, same line
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% User defined macros (non math)
+
 \newcommand{\qedblack}{$\hfill\blacksquare$} % black square end of line
 \newcommand{\qedwhite}{\hfill \ensuremath{\Box}} % white square end of line
 \newcommand{\hquad}{\hskip0.5em\relax}% half quad space
 %\newcommand{\TODO}{\textcolor{red}{\bf TODO!}\;}
+
 \newcommand{\TODO}[1][]{%
     \ifthenelse{\equal{#1}{}}{\textcolor{red}{\bf TODO!}\;}{\textcolor{red}{\textbf {TODO:} #1}\; }%
 }
 \newcommand{\B}[1]{\textbf{\textup{#1}}} % bold and upright
 \renewcommand{\labelitemi}{\scriptsize$\textcolor{DarkPink}{\blacksquare}$} % itemize - squares instead of bullets
 \newcommand{\emphasis}[1]{\textls{#1}}
+
 \LetLtxMacro{\originaleqref}{\eqref}
 \renewcommand{\eqref}{Eq.~\originaleqref}
 \renewcommand*{\eqref}[1]{Eq.~\originaleqref{#1}}
+
+
+
+
 
 % background images
 %%%%%%%
@@ -274,5 +397,3 @@
 %algorithmic
 \algdef{SE}[DOWHILE]{Do}{doWhile}{\algorithmicdo}[1]{\algorithmicwhile\ #1}%
 
-%%% otherwise minted goes off the page
-\setmintedinline{breaklines}

@@ -194,6 +194,347 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 \subsection{Mean Shift Tracking}
 
 
+\subsubsection{Mean Shift algorithm idea}
+
+% ref https://ieeexplore.ieee.org/document/400568/
+Mean shift is a non-parametric feature-space analysis technique for locating the maxima of a density function, a so-called mode-seeking algorithm. In image processing, it's used for tracking.
+
+% ref http://campar.in.tum.de/twiki/pub/Chair/TeachingWs12TDCV/mean_shift.pdf
+Given some points $\bx_1, \bx_2, \ldots, \bx_n$ with $d$ dimensions (``features''), for each data point, mean shift defines a window around it
+and computes the mean of data point. Then it shifts the centre of window to the mean and repeats the algorithm till the window stops moving. In image processing, feature space is often the colour space. Table \ref{tab:mean_shift_steps} illustrates the iterations until the algorithm converges.
+
+Mean shift is a nonparametric iterative algorithm. It considers each point sampled from a probability distribution, i.e. each point is most likely found at its actual measured position, but it can also be in a neighbourhood around it.
+
+% ref: fig http://campar.in.tum.de/twiki/pub/Chair/TeachingWs12TDCV/mean_shift.pdf
+
+\begin{longtable}{ccc}
+\caption{Mean shift update steps shown on a very high level -- in this case the new centre is simply the centroid, until converge (last row).} \label{tab:mean_shift_steps}
+\endfirsthead % required
+\endhead % required
+\toprule
+Current centre (blue) & Mean shift vector & New centre (yellow)\\
+\midrule
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_01.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_03.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_02.PNG} \\
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_05.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_07.PNG} &   \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_08.PNG} \\
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_09.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_11.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_12.PNG} \\
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_13.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_15.PNG} &
+  \includegraphics[width=0.32\textwidth] {img/mean_shift/ROI_densest_15.PNG}
+\end{longtable}
+
+\faQuestionCircle \; How do we find the peak towards which the circle should move?
+
+\faCheckCircle \; The circle should move towards the densest point of the distribution of all points within the ROI. The peak is found by superimposing all the individual probability distributions around each point and finding the $N$ highest maxima of the result ($N$ is the number of classes we want to have).
+% TODO: fig http://robot-develop.org/wp-content/uploads/2012/03/seg3.pdf
+
+\faQuestionCircle \; How do we convert a set of discrete input points to a continuous density function so that we can find the maxima (Fig. \ref{fig:discr_points_to_cont_line})?
+\begin{figure}[H]
+    % ref http://robot-develop.org/wp-content/uploads/2012/03/seg3.pdf
+    \centering
+    \includegraphics[height=4cm]{img/mean_shift/points_to_cont_green_line.PNG}
+    \caption{The green curve is what we roughly want to generate from the 1D input points. The arrows simply show the path gradient ascent would follow to locate the maxima.}
+    \label{fig:discr_points_to_cont_line}
+\end{figure}
+% ref http://robot-develop.org/wp-content/uploads/2012/03/seg3.pdf
+\faCheckCircle \; Let us define a kernel function.
+\begin{definition}
+A \emphasis{kernel} is a real-valued function of the points $\bx_1,\, \bx_2,\, \ldots, \, \bx_n$ that satisfies the following properties:
+\begin{enumerate}
+    \item $K$ is maximum at $\textbf{0}$, non increasing, and decays away from the maximum.
+    \item $K$ is radially symmetric.
+    \item $K(\bx) \geq 0$.
+    \item $\int_{\setR^d} K(\bx)\, d\bx=1$
+\end{enumerate}
+\label{def:kernel_func}
+\end{definition}
+
+Then for each input point, its kernel function should look roughly as follows.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2.0cm]{img/mean_shift/black_points_kernel_functions.PNG}
+    \caption{The kernel functions $K(\bx - \bx_i)$, where $\bx_i$ are the input points.}
+    \label{fig:my_label}
+\end{figure}
+If we allocate each point $\bx_i$ its own kernel $K(\bx - \bx_i)$, then by summing all $N$ of them and diving by a constant $C$ to normalise the result we can get a probability density function (PDF):
+\begin{equation}
+  f(\bx) = \frac{1}{C}\sum \limits _{i=1} ^{N} {K(\bx - \bx_i)}   
+\end{equation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3cm]{img/mean_shift/black_points_pdf.PNG}
+    \caption{The sum of individual kernel functions functions $K(\bx - \bx_i)$.}
+    %\label{fig:my_label}
+\end{figure}
+$f(\bx)$ approximates the probability that feature $\bx$ is observed given the data points. The maxima of $f$ (the ``modes'' of the pdf) correspond to the clusters in the data. As shown in Fig. \ref{fig:discr_points_to_cont_line}, a way to reach the peak of the PDF $f$ is by incrementing the mean by $\nabla f(\bx)$. A very rough algorithm for Mean Shift would therefore be.
+
+\begin{algorithm}[H]
+\caption{Mean shift on a very high level}
+\label{alg:first_draft_mean_shift}
+\begin{algorithmic}[1]
+\Procedure{MeanShiftIdea} {$\bx_1,\, \bx_2, \, \ldots, \, \bx_N$} 
+\For{$i=1,\ldots,N$}
+\State $\bx \leftarrow \bx_i$
+\While{no convergence} \Comment{gradient ascent for each point individually}
+\State $\bx \leftarrow \bx_i + \nabla f(\bx) = \bx_i + \frac{1}{C}\sum \limits_{i}{\nabla K(\bx - \bx_i)}$
+\EndWhile
+\EndFor
+\State \textbf{return} $\bx$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+
+
+\subsubsection{Mean Shift terminology and notation}
+
+Before the maths is presented, this is notation that will be used.
+\begin{itemize}
+    \item $d$ -- the dimension of the input column vector, the entries of this vector are also called ``features''.
+    \item $\bx_i$ -- the data points.
+    \item ``Kernel'' $K(\bx)$ -- the function that assigns weight to every point of interest. For example, it can be Gaussian, flat, etc.
+    \item ``Bandwidth'' $h$ -- the radius of the region of interest (ROI).
+    \item ``PDF'' f(\bx) -- probability density function.
+\end{itemize}
+
+
+\subsubsection{Mathematical analysis}
+
+A basic requirement for the kernel function, as stated in Def. \ref{def:kernel_func} is radial symmetry, i.e.
+\begin{equation}
+    K(\bx) = c_d k(\norm{x}^2)
+\end{equation}
+, where $c_d$ acts as the normalisation constant and is the volume of the $d$-dimensional sphere, such that $K(\bx)$ integrates to $1$. Some functions that can serve as the basis $k$ for the kernel are
+\begin{equation}
+        \textup{Epanechnikov}\quad k_E(\bx) = \left\{
+\begin{array}{ll}
+      1-\norm{x}^2 & \norm{x} \leq 1 \\
+      0 & \textrm{otherwise}\\
+\end{array} 
+\right. 
+    \label{eq:ep_kernel}
+    \end{equation}
+    \begin{equation}
+        \textup{Uniform} \quad k_U(\bx) = \left\{
+\begin{array}{ll}
+      1 & \norm{x} \leq 1 \\
+      0 & \textrm{otherwise}\\
+\end{array} 
+\right. 
+    \end{equation}
+    \begin{equation}
+        \textup{Gaussian} \quad k_N(\bx) = \exp(-\frac{1}{2}\norm{x}^2)
+    \end{equation}
+It can be proven that the pdf function that approximates kernel density given inputs $\bx_i,\ldots, \bx_n$, where $\bx_i \in \setR^d$ is
+\begin{equation}
+    \hat{f}(\bx) = \frac{1}{nh^d}\sum \limits_{i=1}^{n}{K\left(\frac{\bx -\bx_i}{h} \right)}
+\end{equation}
+Assuming that the kernel $K(\bx)$ is differentiable, the gradient of the kernel density is
+\begin{equation}
+    \hat{\nabla}f(\bx) := \nabla \hat{f}(\bx) = \frac{1}{h^d}\sum\limits_{i=1}^{n}{\nabla K\left(\frac{\bx -\bx_i}{h} \right)}
+\end{equation}
+% ref http://cmp.felk.cvut.cz/cmp/courses/33DZOzima2007/slidy/meanShiftSeg.pdf
+Computing the gradient, the derivative is
+\begin{align}
+    \nabla \hat{f}(\bx) &= \frac{2c_d}{nh^{d+2}} \sum \limits_{i=1} ^{n}{(\bx - \bx_i) k^{\prime}\left(\norm{\frac{\bx - \bx_i}{h}}^2\right)} \\
+    &= \frac{2c_d}{nh^{d+2}}\left(\sum \limits_{i=1}^{n}{g_i} \right) 
+    \underbrace{\left( \frac{\sum\limits_{i=1}^{n}{\bx_i g_i}}{\sum\limits_{i=1}^{n}{g_i}} - \bx\right)}_{\textup{mean shift vector}} ,\\
+    g(r) &= k^{\prime}(r), \quad r := \norm{\bx}, \quad g_i = g(\norm{(\bx -\bx_i)/h}^2)
+    \label{eq:mean_shift_vector}
+\end{align}
+
+% FIX IT!!!! http://cmp.felk.cvut.cz/cmp/courses/33DZOzima2007/slidy/meanShiftSeg.pdf and http://service.hidebux.com/index.php?q=n9XX1Z9gZ9SmlaaokJqY18qf0qdj0dWdZNygXsbUp9qcz9eU2qGk0ZiXqmOVZmSTlGOWZqjHymlj1ZSX, http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/TUZEL1/MeanShift.pdf
+\begin{definition} [mean shift vector]
+Referring to \eqref{eq:mean_shift_vector}, 
+$\sum \limits_{i=1}^{n}{g_i}$ is yet another kernel estimation and the second term $M(\bx)  = \sum\limits_{i=1}^{n}{\bx_i g_i} / \sum\limits_{i=1}^{n}{g_i} - \bx $ is the \emphasis{mean shift vector}.
+\end{definition}
+% ref http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/TUZEL1/MeanShift.pdf
+It always points toward the direction of the maximum increase in the density therefore we want to shift the current estimation $\bx$ by it in each iteration. The mean shift vector must be $\textbf{0}$ at optimum, i.e. the algorirthm stops at $\bx = \frac{\sum\limits_{i=1}^{n}{\bx_i g_i}}{\sum\limits_{i=1}^{n}{g_i}}$. This is equivalent to draft Alg. \ref{alg:first_draft_mean_shift} converging. Given this knowledge about the gradient, the latter algorithm is rewritten as follows.
+% ref http://robot-develop.org/wp-content/uploads/2012/03/seg3.pdf, http://cmp.felk.cvut.cz/cmp/courses/33DZOzima2007/slidy/meanShiftSeg.pdf
+\begin{algorithm}[H]
+\caption{Mean shift algorithm}
+\label{alg:mean_shift}
+\begin{algorithmic}[1]
+\Procedure{MeanShift} {$\bx_1,\, \bx_2, \, \ldots, \, \bx_n$} 
+\For{$i=1,\ldots,n$}
+\State $\bx \leftarrow \bx_i$
+\While{no convergence} \Comment{gradient ascent for each point individually}
+\State $\bx \leftarrow \bx + M(\bx) = 
+ \frac{\sum \limits_{i=1}^{n}{\bx_i g\left(\norm{\frac{\bx - bx_i}{h}}^2 \right)}}%/
+{\sum\limits_{i=1}^{n}{g\left(\norm{\frac{\bx - \bx_i}{h}}^2 \right)}},\quad g(\norm{\bx}) = k^{\prime}(\norm{\bx})$
+\EndWhile
+\EndFor
+\State \textbf{return} $\bx$
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+ \textit{guaranteed to converge}.
+% ref http://robot-develop.org/wp-content/uploads/2012/03/seg3.pdf
+The update step is not as complicated as it seems. For example for the kernel
+\[
+k(\norm{\bx}) = \left\{
+\begin{array}{ll}
+      1-\norm{x} & \norm{x} \leq 1 \\
+      0 & \textrm{otherwise}\\
+\end{array} 
+\right. 
+\]
+, its derivative w.r.t. the distance $\norm{\bx}$ is
+\[
+g(\norm{\bx}) = \left\{
+\begin{array}{ll}
+      -1 & \norm{x} \leq 1 \\
+      0 & \textrm{otherwise}\\
+\end{array} 
+\right. 
+\]
+Comparing the argument of $g$ with $1$ gives us the data points of interest therefore the ``mean'' part of $M(\bx)$ is:
+\begin{align}
+ \frac{\sum \limits_{i=1}^{n}{\bx_i g\left(\norm{\frac{\bx - bx_i}{h}}^2 \right)}}%/
+{\sum\limits_{i=1}^{n}{g\left(\norm{\frac{\bx - \bx_i}{h}}^2 \right)}}= \frac{-\sum\limits_{\norm{\bx - \bx_i} < h}{\bx_i}} {-\sum\limits_{\norm{\bx - \bx_i} < h}1}=
+\frac{\sum\limits_{\norm{\bx - \bx_i} < h}{\bx_i}}{n_h}
+\label{eq:mean_shift_mean_upd}
+\end{align}
+$n_h$ is simply the number of inside the kernel, for which $\norm{\bx - \bx_i} < h$ and $\sum\limits_{\norm{\bx - \bx_i} < h}{\bx_i}$ is just the average of the data points within a radius $h$ of $\bx$! Regarding the convergence of the algorithm the following can be proved.
+\begin{theorem}
+If the kernel function $k(\bx)$ is convex and monotonically decreasing then the update of $\bx$ converges and the pdf $\hat{f}(\bx)$ increases.
+\end{theorem}
+For the Epanechnikov kernel, convergence is reached in finite number of steps. Finally, mean shift runs in $\mathcal{O}(n^2T)$, where $n$ is the number of input points and $T$ the number of iterations.
+
+
+
+
+
+
+
+
+% cont here http://campar.in.tum.de/pub/benz2014clust/benz2014clust.poster.pdf, http://campar.in.tum.de/twiki/pub/Chair/TeachingWs12TDCV/mean_shift.pdf , https://bzdww.com/article/168933/, http://cmp.felk.cvut.cz/cmp/courses/33DZOzima2007/slidy/meanShiftSeg.pdf, http://homepages.inf.ed.ac.uk/rbf/CVonline/LOCAL_COPIES/TUZEL1/MeanShift.pdf, https://books.google.de/books?id=bXzAlkODwa8C&pg=PA258&lpg=PA258&dq=mean+shift++kernel+function+derivative&source=bl&ots=g_064_jEzE&sig=ACfU3U1enuWtaZzqKxcZ-L-T21T8EcasKQ&hl=en&sa=X&ved=2ahUKEwixv8Sd9q7hAhWFJlAKHXraBAM4ChDoATAJegQICRAB#v=onepage&q=mean%20shift%20%20kernel%20function%20derivative&f=false
+% conv proof: https://pdfs.semanticscholar.org/3753/29683956d3cea5b501d161766bc84a4fd608.pdf
+
+
+\subsubsection{Mean Shift as a tool for segmentation}
+
+When we want to segment an image, it is usually converted from RGB to another colour space such as HSV or LUV. In this case, suppose the image is in LUV.
+
+Then the feature space is $(l, u, v, x, y)$. To perform segmentation, we apply \textit{two different} mean shifts in the 5-dimensional space as we want to segment pixels based on their location and colour. For each pixel $(x_i,y_i)$ of intensity color $(l_i, u_i, v_i)$, find the corresponding mode $c_{col}$. All of the pixels $(x_i,y_i)$  corresponding to the same
+mode $c_{col}$ are grouped into a single region. At the same time, mean shift is performed in the 2D space $xy$ and all of the corresponding pixels $(x_i,y_i)$ are grouped into a single mode $c_{pos}$. The kernel in this case is the product of the position kernel and the colour kernel,
+\begin{equation}
+    K_{pos,col}(\bx) = \frac{c}{h_{col}^3 h_{pos}^2}\,
+    k\left(\frac{\norm{\bx_{pos}}^2}{h_{pos}^2} \right)
+    k\left(\frac{\norm{\bx_{col}}^2}{h_{col}^2} \right)
+\end{equation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/mean_shift/mean_shift_5d.PNG}
+    \caption{Mean shift in the LUV space.}
+\end{figure}
+
+\subsubsection{Mean Shift as a tracker}
+
+
+The idea behind using it as a tracker is the following. Given a frame that contains the object of interest (OOI), we want to successfively move the window of radius $h$ towards the ``centre'' of the object. How is the centre defined?
+
+% ref https://docs.opencv.org/3.4.1/db/df8/tutorial_py_meanshift.html
+After selecting a sample of the OOI, backprojection from the previous section helps create a greyscale. salience (likelikehood) frame (see $b$ matrix in backprojection section). In this frame, the whiter the pixel, the more likely it is to belong to the OOI.
+
+Then, mean shift can be performed in 3D - $(x,y,i)$, where $i$ is the salience intensity to chase the object and output its $(x,y)$.
+
+
+\subsubsection{Implementation from scratch}
+
+Below are the main features of my own adaptation of mean shift.
+\begin{itemize}
+    \item Mean shift is performed in the $xy$ space so the ``mode'' (converge) centre is 2D.
+    \item If it performed in $xy$ space, which points are considered? The candidate points are the result of backprojecting a sample of the OOI to the frame, create a likelihood frame $b$, as described in Section 1.1. Then they are automatically thesholded, which yields a BW frame. For that frame, the white points are likely to belong to the OOI and the black are irrelevant. So we want to generate a pdf from those white points and find its centre of density.
+    \item The chosen mean shift kernel if $k(r) = 1 - r, \; r \leq 1, \; r = \norm{x}$. The radius of interest can be chosen by the user but defaulted to some small value anyway. Therefore the update step of the m.s. vector $x$ is simple -- it is simply the centroid of all points up to distance $h$ around $x$ as derived in \ref{eq:mean_shift_mean_upd}.
+\end{itemize}
+My implementation code is listed in \ref{app:hist_backproj_src}. The program is standalone and expect a video path and a radius from the user. Below are some representative outputs for a football sequence. For that particular scane, the player was successfully tracked for the majority of the frames.
+
+\begin{multicols}{3}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/mean_shift/out_my_ms1.png}
+    \caption{Initial step; grabbing a sample of the player to track (green box).}
+    %\label{fig:my_label}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/mean_shift/out_my_ms2.png}
+    \caption{An intermediate tracking step (blue circle).}
+    %\label{fig:my_label}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/mean_shift/out_my_ms3.png}
+    \caption{Player keeps being tracked right after being blocked by another player.}
+    %\label{fig:my_label}
+\end{figure}
+\columnbreak
+\end{multicols}
+
+
+The algorithm is robust given that the sample represents reasonably well the OOI. It is not robust when the scale of the OOI changes, e.g. in car scenes when a car to be tracked car is initially in the background and in the end approaches the camera. Then mean shift variations that are able to adapt the radius $h$ need to be considered and there's a good amount of literature on that.
+
+
+\subsubsection{Implementation in OpenCV}
+
+% ref https://docs.opencv.org/3.3.0/db/df8/tutorial_py_meanshift.html
+Mean shift in OpenCV consists of the following main stages:
+\begin{enumerate}
+    \item Set up a target; i.e. grab a sample of the OOI. Once again, the OOI shouldn't be in RGB, but in a colour space that decouples hue and illumiation.
+    \item Provide an initial window -- essentially initialise the mean shift tracking vector $x$ and provide a radius $h$ to define the area around $\bx$ where points for the update of $\bx$ will be considered.
+    \item Perform backprojection of the target on the current frame, generating a greyscale image. Perform mean shift on the greyscale backprojected image. 
+\end{enumerate}
+After grabbing the ROI (in HSV), the OpenCV approach also filters only certain H (0 to 180 -- maximum is 180), S (60 to 255 -- maximum is 255), V (32 to 255 -- maximum is 255) bands in order to remove potential noise:
+\begin{minted}{python}
+mask = cv2.inRange(hsv_roi, np.array((0., 60.,32.)), np.array((180.,255.,255.)))
+\end{minted}
+Mean shift is performed, for instance, as:
+\begin{minted}{python}
+cv2.meanShift(probImage, track_window, criteria) -> retval, track_window
+\end{minted}
+\begin{itemize}
+    \item \mintinline{python}{probImage}: greyscale backprojected frame.
+    \item \mintinline{python}{track_window}: the updated tracking window as \mintinline{python}{x, y, w, h} (essentially the updated m.s. vector).
+    \item \mintinline{python}{term_crit}: termination criteria, e.g. to set them to 10 iterations or window displacement no more than 1 pixel do \mintinline{python}{( cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 1)}.
+    \item \mintinline{python}{retval}: A boolean whether the algorithm was successful.
+    \item \mintinline{python}{track_window}: The updated tracking window in the same format as the old one.
+\end{itemize}
+The code provided by OpenCV's documentation has been lazily re-written and made interactive as listed in \ref{app:mean_shift_opencv}. The user can define the bounding box around the object of interest and then press \mintinline{python}{q} to finalise the selection and start the algorithm.
+
+
+
+
+\subsubsection{Mean Shift pros and cons}
+% ref http://www.cs.ucf.edu/~bagci/teaching/computervision16/Lec11.pdf
+\begin{multicols}{2}
+    \begin{itemize}
+        \item[\textcolor{DarkPink}{\ding{51}}] Does not assume spherical clusters.
+        \item[\textcolor{DarkPink}{\ding{51}}] Just a single parameter (window size).
+        \item[\textcolor{DarkPink}{\ding{51}}]
+        Finds variable number of modes.
+        \item[\textcolor{DarkPink}{\ding{51}}]
+        Robust to outliers.
+    \end{itemize}
+    
+    \columnbreak
+    \begin{itemize}
+        \item[\textcolor{DarkPink}{\ding{55}}] 
+        Output depends on window size.
+        \item[\textcolor{DarkPink}{\ding{55}}]
+        Computationally expensive (however, not impossible to use in real time).
+        \item[\textcolor{DarkPink}{\ding{55}}]
+        Does not scale well with dimension of feature space.
+    \end{itemize}
+\end{multicols}
+
+
 
 
 \subsection{Camshift (Continuously Adaptive Mean Shift)}
@@ -236,9 +577,11 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 
 % ------------------------ New appendix ------------------------ %
 \newpage
-\subsection{Histogram backprojection implementation from scratch - source code}
+
+
+\subsection{Histogram backprojection implementation from scratch -- source code}
 \label{app:hist_backproj_src}
-\inputminted{python}{src/hist_backproj/backproj.py}
+\lstinputlisting[language=python,caption={Histogram backprjection from scratch (\detokenize{src/hist_backproj/backproj.py)}.}, label=src:mylabel]{src/hist_backproj/backproj.py}
 
 
 
@@ -246,7 +589,23 @@ The code listing in \ref{app:hist_backproj_src_opencv} works similarly with the 
 \newpage
 \subsection{Histogram backprojection implementation using OpenCV - source code}
 \label{app:hist_backproj_src_opencv}
-\inputminted{python}{src/hist_backproj/backproj_cv.py}
+\lstinputlisting[language=python,caption={Histogram backprjection using OpenCV's \mintinline{python}{calcBackProject} (\detokenize{src/hist_backproj/backproj_cv.py)}.}]{src/hist_backproj/backproj_cv.py}
+%\inputminted{python}{src/hist_backproj/backproj_cv.py}
 
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{My mean shift implementation from scratch -- source code}
+\label{app:mean_shift_mine}
+\lstinputlisting[language=python,caption={Mean shift using OpenCV's \mintinline{python}{meanShift} (\detokenize{src/mean_shift/my_mean_shift.py)}.}]{src/mean_shift/my_mean_shift.py}
+%\inputminted{python}{src/hist_backproj/backproj_cv.py}
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Mean Shift implementation using OpenCV - source code}
+\label{app:mean_shift_opencv}
+\lstinputlisting[language=python,caption={Mean shift using OpenCV's \mintinline{python}{meanShift} (\detokenize{src/mean_shift/mean_shift_cv.py)}.}]{src/mean_shift/mean_shift_cv.py}
+%\inputminted{python}{src/hist_backproj/backproj_cv.py}
 
 \end{document}
