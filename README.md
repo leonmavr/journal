@@ -29,3 +29,9 @@ Each topic is readable from one pdf and its Latex source is provided.
 [topic2]
 ...
 ```
+
+## Instructions
+Each topic can be read from its pdf file. Notes follow the note-taking template. For Latex, the bibliography backend is `bibtex` and they should be able to be compiled by:
+```
+$ python compile.py <file_name_without_extension>
+```
