@@ -35,3 +35,7 @@ Each topic can be read from its pdf file. Notes follow the note-taking template.
 ```
 $ python compile.py <file_name_without_extension>
 ```
+If warnings should be ignored, then the following can be used:
+```
+$ yes "" | python compile.py <file_name_without_extension>
+```
