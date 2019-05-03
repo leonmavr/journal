@@ -60,27 +60,39 @@ CS base     0xffff0000
 The job of these register values is to form the next instruction on the address but, which in this case is called \emphasis{reset vector}. Reset vector is part (one of the two) of the BIOS ROM. In turn, the reset vector contains some simple code which jumps to the main BIOS, where the CPU enters in \emphasis{real mode}. 
 
 \subsection{Real mode -- entering the BIOS}
-In real mode (App. \TODO), the registers can only address 1 MB ($2^{20} bytes$)of memory. Becuase the 8086 registers are 16-bit, each can address only $2^{16}$ bytes (64 kB). One register cannot achieve that, therefore two are used, and the method to obtain the physical address is called \emphasis{memory segmentation} (App. \TODO). Memory segmentation is used to make use of all the address space available. All memory is divided into small, fixed-size segments of 65536 bytes (64 KB). Since we cannot address memory above 64 KB with 16-bit registers, an alternate method was devised. The physical address is obtained given a segment selector register (REG) and an offset register (OFF) as:
+In real mode (App. \ref{app:segm}), the registers can only address 1 MB ($2^{20} bytes$)of memory. Because the 8086 registers are 16-bit, each can address only $2^{16}$ bytes (64 kB). One register cannot achieve that, therefore two are used, and the method to obtain the physical address is called \emphasis{memory segmentation} (App. \ref{app:segm}). Memory segmentation is used to make use of all the address space available. All memory is divided into small, fixed-size segments of 65536 bytes (64 KB). Since we cannot address memory above 64 KB with 16-bit registers, an alternate method was devised. The physical address is obtained given a segment selector register (REG) and an offset register (OFF) as:
 \begin{equation}
 	PHY=16\cdot SEG + OFF
 \end{equation}
 
-To prevent addressing locations higher than $2^{20}$ bytes, only the first 20 bits of the data address bus are used, called lines A0-A19. Line A20 therfore has special importance and is disabled in real mode (App. \TODO). Now the BIOS starts, as mentioned before in real mode.
+To prevent addressing locations higher than $2^{20}$ bytes, only the first 20 bits of the data address bus are used, called lines A0-A19. \emphasis{Line A20} therefore has special importance and is disabled in real mode (\ref{app:modes}). Now the BIOS starts, as mentioned before in real mode.
 
 \subsection{BIOS structure and flow}
-After initializing and checking the hardware, the BIOS needs to find a bootable device. A boot order is stored in the BIOS configuration, controlling which devices the BIOS attempts to boot from. When attempting to boot from a hard drive, the BIOS tries to find a boot sector. On hard drives partitioned with an \emphasis{MBR partition layout} (App. \TODO), the boot sector is stored in the first 446 bytes of the first sector, where each sector is 512 bytes. The final two bytes of the first sector are 0x55 and 0xaa (signature bytes), which designates to the BIOS that this device is bootable. If these bytes are read, then the BIOS will jump to address 0x7c00, transferring control to the bootloader.
+After initializing and checking the hardware, the BIOS needs to find a bootable device. A boot order is stored in the BIOS configuration, controlling which devices the BIOS attempts to boot from. When attempting to boot from a hard drive, the BIOS tries to find a boot sector. On hard drives partitioned with an \emphasis{MBR partition layout} (App. \ref{app:mbr}), the boot sector is stored in the first 446 bytes of the first sector, where each sector is 512 bytes. The final two bytes of the first sector are \mintinline{latex}{0x55} and \mintinline{latex}{0xaa} (signature bytes), which designates to the BIOS that this device is bootable. If these bytes are read, then the BIOS will jump to address \mintinline{latex}{0x7c00}, transferring control to the bootloader.
 
 \subsection{Writing a bootloader}
 We will write the first part of the BIOS following the instructions from Alex Parker's tutorial \cite{parkertut}.  
 % ref http://3zanders.co.uk/2017/10/13/writing-a-bootloader/
-Let’s get hello world printing to the screen. To do this we’re going to use the ‘Write Character in TTY mode’ BIOS Interrupt Call and the load string byte instruction lobsb which loads byte at address ds:si into al. Here goes:
+The boot sector of the x86 BIOS is always located at the magic number address \mintinline{latex}{0x7c00}.  A typical memory layout after boot is illustrated below.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=6cm]{img/real_mom_mem_layout.PNG}
+    \caption{Typical memory layout (real mode) after boot \cite{lecnotesblunde}.}
+\end{figure}
+The tasks the bootloader code does are the following.
+\begin{enumerate}
+    \item Specify start address; in Nasm, we instruct the program to start at this magic address by \mintinline{latex}{org 0x7c00}.
+    \item Disable hardware interrupts, such as those from peripherals (\mintinline{latex}{nasm}).
+    \item Parse the string and call an interrupt (\mintinline{latex}{int 10h}) to print it character by character.
+    \item When done, pad the remaining bytes expect the last two with \mintinline{latex}{512 - offsetFromBeginningOfSection - 2} zeros. Finally, define the signature bytes  \mintinline{latex}{0xaa} and \mintinline{latex}{0x55}.
+\end{enumerate}
 
 \lstinputlisting[language=nasm,style=nasm,caption={Hello world bootloader. (\detokenize{src/boot.nasm)}.}, label=src:bot]{src/boot.nasm}
 
 This is compiled by nasm (Nasm assembler details in the code explained in App \TODO) by:
-\begin{verbatin}
+\begin{verbatim}
 $ nasm -f bin boot.nasm -o boot.bin
-\end{verbatin}
+\end{verbatim}
 The executable code is padded with zeros and ends with the signature bytes as desired, which is seen by running 
 \begin{verbatim}
 $ hexdump boot.bin
@@ -113,6 +125,7 @@ The result is:
 \newpage
 \subsection{The need of memory segmentation in 8086}
 %\label{app:my_cool_appendix}
+\label{app:segm}
 
 \subsubsection{Virtual to physical address}
 % ref http://www.ques10.com/p/32752/what-are-the-advantages-of-memory-segmentation-of-/
@@ -143,20 +156,20 @@ The physical memory is divided into 4 segments, each which has a fixed base addr
 \end{exmp}
 \begin{soln}
 Base address is multiplied by 16. Write it in binary and left shift it by 4 to find the product.
-	\begin{minted}{python}
-		SEG = 1000 H
-		1000 H 	= 0001 0000 0000 b
-		1000 H * 16 =
-				= 0001 0000 0000 b << 4
-				= 0001 0000 0000 0000 b
-	\end{minted}
-	Now add to it the offset \mintinline{python}{20 H = 10 0000 b}
-	\begin{minted}{python}
-				0001 0000 0000 0000 b
-		 	+	0000 0000 0010 0000 b
-			  = 0001 0000 0010 0000 b
-			  = 10020 H
-	\end{minted}
+	\begin{verbatim}
+        SEG = 1000 H
+        1000H 	= 0001 0000 0000b
+        1000H * 16 =
+                   = 0000 0001 0000 0000b << 4
+                   = 0001 0000 0000 0000b
+	\end{verbatim}
+	Now add to it the offset \mintinline{latex}{20H = 10 0000b}
+	\begin{verbatim}
+                0001 0000 0000 0000b
+            +   0000 0000 0010 0000b
+              = 0001 0000 0010 0000b
+              = 10020H
+	\end{verbatim}
 	That's the final physical address.
 	\qedblack
 \end{soln}
@@ -190,9 +203,10 @@ As mentioned in the previous section, a segment is a logical memmory unit that c
 
 
 \newpage
-\subsection{Transition from real to protected mode}
+\subsection{Transition from real to protected mode and address line A20}
+\label{app:modes}
 
-When the system boots up and enters BIOS, it runs in \emphasis{real mode}. In real mode, the system only has access to 1 MB of memory therefore needs a 20-bit data bus (lines A0-19). Predecessors of the 8086 were only using 1 MB of RAM, so a 20-bit data address would suffice to run applications. When these applications were ported to newer architectures than can access more than 1 MB of RAM, the line A20 had to be turned off for compability reasons.
+When the system boots up and enters BIOS, it runs in \emphasis{real mode}. In real mode, the system only has access to 1 MB of memory therefore needs a 20-bit data bus (lines A0-19). Predecessors of the 8086 were only using 1 MB of RAM, so a 20-bit data address would suffice to run applications. When these applications were ported to newer architectures than can access more than 1 MB of RAM, the line A20 had to be turned off for compatibility reasons.
 
 % prot mode ref https://www.byclb.com/TR/Tutorials/microprocessors/ch2_1.htm
 Real mode prevents the registers from pointing to physical addresses larger than 1 MB. That means that whatever address is generated by $SEG*16+OFF$ is always truncated to its lower 20 bits ($2^{20}$ = 1 MB). Real mode therefore enables lines A0-19 and keeps A20 disabled, since the highest accessible address in real mode is $(2^{16}-1)\cdot 16+(2^{16}-1) = 2^{20} - 2^4 + 2^{16} - 1 < 2^{21} $, which fits in 21 bits. In \emphasis{protected mode}, A20, 21, \ldots, depending on the available memory are enabled. Other tasks are also permormed, such as disabling BIOS interrupts, enabling the Global Descriptor Table with segment descriptors suitable for code, data, and stack. More details about how protected mode starts in \TODO[ref]. Let's see an example.
@@ -202,7 +216,8 @@ For example, when \mintinline{latex}{0xFFFF:0x000F=0xFFFFF}, which fits in 20 bi
 
 
 \newpage
-\section{Location and role of reset vector}
+\subsection{Location and role of reset vector}
+\label{app:reset_vec}
 
 % ref https://stackoverflow.com/a/32721444
 After power up, all x86 CPUs are in real mode but with a strange behaviour until a CS assignment is found! As already mentioned, for the 80386 and later CPUs, the following data are defined in the registers during after power up:
@@ -216,7 +231,7 @@ When fetching a new instruction (being in whatever mode: real, protected, etc) i
 Next_Instruction_Address_on_Bus= CS_segment_start_address + EIP
 \end{minted}
 Substututing the CS and EIP values, we get that the boot instruction is \mintinline{latex}{FFFF0000H + 0000FFF0H = FFFFFFF0H}. This is 16 bytes below 4 GM, so have we left real mode? This calculated address only contains  far jump to the memory location mapped to the system BIOS entry point (0x0000: 0x000F0000h).
-The value where we jump, if \mintinline{latex}{CS=XYZW H}, is (use the left shift formula) \mintinline{latex}{000X YWZ0 + CSselector}, which is whithin the 1 MB area. For example, \mintinline{latex}{CS=0xf000, IP=0xe05b}, the the next ip (instruction pointer) is   \mintinline{latex}{0xfe05b = 0xf000*16 + 0xe05b} (real mode). The jump is illustrated below.
+The value where we jump, if \mintinline{latex}{CS=XYZW H}, is (use the left shift formula) \mintinline{latex}{000X YWZ0 + CSselector}, which is within the 1 MB area. For example, \mintinline{latex}{CS=0xf000, IP=0xe05b}, the the next ip (instruction pointer) is   \mintinline{latex}{0xfe05b = 0xf000*16 + 0xe05b} (real mode). The jump is illustrated below.
 % ref example https://tc.gts3.org/cs3210/2016/spring/l/lec02.pdf
 
 \begin{figure}[H]
@@ -234,7 +249,8 @@ This behaviour is to assure that the power-up code will always be at the last co
 
 
 \newpage
-\section{The MBR partition}
+\subsection{The MBR partition}
+\label{app:mbr}
 
 After jumping in the BIOS entry point, the BIOS starts. A lot of devices use MBR layout for the boot code.
 
@@ -247,7 +263,7 @@ Traditionally, a hard drive is formatted into 512 byte sectors (although larger 
 When hard disk starts, it is used to transfer system control right to the certain operating system partition which is user-specified and registered in partition table. The content of MBR is written into the certain sector by partitioning software when it partitions. MBR doesn't belong to any operating system and doesn't change with the changes of operating systems. More details about the MBR booting process in the next section.
 
 
-\subsection{How does the x86 MBR BIOS boot?}
+\subsubsection{How does the x86 MBR BIOS boot?}
 % ref https://www.chromium.org/chromium-os/chromiumos-design-docs/disk-format?tmpl=%2Fsystem%2Fapp%2Ftemplates%2Fprint%2F&showPrintDialog=1
 Legacy boot for x86 Linux has three steps:
 \begin{enumerate}
@@ -257,7 +273,7 @@ Legacy boot for x86 Linux has three steps:
 \end{enumerate}
 
 
-\subsection{The structure of MBR}
+\subsubsection{The structure of MBR}
 
  The ``master boot record'' has only 512 bytes and can't put too much. Its main function is to tell the computer where to find the operating system. It consists of three parts:
 
@@ -271,7 +287,7 @@ Legacy boot for x86 Linux has three steps:
 The code (bytes 1-446) This code searches the Partition Table to find the first partition that is marked as an "active"or boot partition. Among them, the second part of the ``partition table'' is to divide the hard disk into several areas. 
 
 
-\subsection{More about the partition table}
+\subsubsection{More about the partition table}
 
 % ref http://www.ntfs.com/partition-table.htm
 The partition table is a 64-byte data structure located in the same sector as the Master Boot Record (cylinder 0, head 0, sector 1). The Partition Table conforms to a standard layout that is independent of the operating system. Each Partition Table entry is 16 bytes long, making a maximum of four entries available. Each entry starts at a predetermined offset from the beginning of the sector, as follows:
@@ -289,12 +305,13 @@ This is why MBR can only support up to four partitions. Recall that the last two
 
 
 
+%-------------------- Appendix --------------------%
 \newpage
-\section{Nasm assembly -- the \$ and \$\$ symbols}
+\subsection{Nasm assembly -- some tips}
 
-The bootloader code used some Nasm 8086 assembly instructions whose usage may not be too obvious. This section explains how to use them.
+The bootloader code used some Nasm 8086 assembly instructions whose usage may not be too obvious. This appendix explains how to use them.
 
-\subsection{The structure of a Nasm program}
+\subsubsection{The structure of a Nasm program}
 
 Memory segments (sections) need to be explicitely declared in a Nasm program. At least the text section is required.
 \begin{figure}[H]
@@ -312,23 +329,23 @@ Data segment contains initialised data (variables), BSS segment contains unitial
 More examples found here \cite{nasmtut2}.
 
 
-\subsection{The \$ notation}
+\subsubsection{The \$ notation}
 
 \$ denotes the address of the current instruction, to be specific \$ evaluates to the assembly position at the beginning of the line containing the expression. 
 
-\subsection{Uses of \$ -- string length}
+\subsubsection{Uses of \$ -- string length}
 
 \$ can be used measures the length of a string when defining the variables in the .data section. Simply subtract from it the address of the last defined variable.
-\begin{minted}{nasm}
+\begin{verbatim}
 SECTION .data
 msg     db 'Hello World!', 0Ah  
 msg_len equ $ - msg
-\end{minted}
+\end{verbatim}
 equ is equivalent to the define macro in C, so it would just replace \mintinline{latex}{msg_len} with whatever is on the right hand side and db allocates space in memory. The complete ``Hello world'' program that uses the \$ notation is listed below.
 \lstinputlisting[language=nasm,style=nasm,caption={Hello world in nasm using the \$ for string length. (\detokenize{src/hello.nasm)}.}, label=src:hello]{src/hello.nasm}
 The latter code exists with segmentation error. To exit properly, the right interrupt needs to be used as listed here \cite{nasmtut} but we don't care about it in this case. 
 
-\subsection{Uses of \$ -- jump to address}
+\subsubsection{Uses of \$ -- jump to address}
 
 \$ can also be used to instruct the EIP (Extended Instruction Pointer register, Extended meaning 32-bit) where to jump to relatively to the current instruction. As \$ stores the EIP (address of ``here''), doing \mintinline{latex}{jmp $+offset} jumps a number of lines lower in the code and  \mintinline{latex}{jmp $-offset} jumps a number of line higher in the code. Doing \mintinline{nasm}{jmp $} results in an infinite loop. To sum up, it's an alternative way of using the \mintinline{latex}{goto} instruction.
 
@@ -337,39 +354,41 @@ However, jumping by using \$ isn't very practical as to jump to a certain locati
 \lstinputlisting[language=nasm,style=nasm,caption={Some code that performs jump using the \$ notation (\detokenize{src/jump.nasm)}.}, label=src:jump]{src/jump.nasm}
 
 
-\subsection{The \$\$ symbol}
+\subsubsection{The \$\$ symbol}
 
 From \cite{nasmdoc}; \$\$ evaluates to the beginning of the current
-section (.text, .data, etc.) and since \$ evaluates the (absolute) address of the ``here'', \mintinline{latex}{$ - $$} calculates how far we are in the current section.
+section (.text, .data, etc.) and since \$ evaluates the (absolute) address of the ``here'', \mintinline{latex}{$-$$} calculates how far we are in the current section.
 
-\subsection{\mintinline{latex}{times} instruction}
+\subsubsection{\mintinline{latex}{times} instruction}
 
 Again, from \cite{nasmdoc}; the \mintinline{latex}{times} prefix causes the instruction to be assembled multiple times. For example, to fill 64 zeros in the memory: 
-\begin{minted}{asm}
+\begin{verbatim}
 zerobuf:        times 64 db 0
-\end{minted}
+\end{verbatim}
 ut  \mintinline{latex}{times} is more versatile than that. The argument to \mintinline{latex}{times} is not just a numeric constant, but a numeric expression. It can evaluate mathematical operations including the address of ``here'' (\$). For example, to pad a string with the ``.'' character until it's 32 bytes long, the following can be done.
 
-\begin{minted}{nasm}
+\begin{verbatim}
 msg     db     'in the loop!', 0Ah
         times 32-$+msg db '.'
 msg_len equ    $-msg
-\end{minted}
+\end{verbatim}
 
 Note that because 8086 processor model is \emphasis{little endian}, the last defined bytes will be stored first. So the snippet above will \textit{prepend} ``.'' characters before the string.
 
 The snippet below builds on \mintinline{latex}{jump.asm} and prints prepends dots until the string to be printed is 32 bytes (in this case 32 characters). It continuously prints \mintinline{latex}{...................in the loop!}.
 
-\lstinputlisting[language=nasm,style=nasm,caption={A usage of the times instruction; pad a variable up to a length (\detokenize{src/times.nasm)}.}, label=src:times]{src/times.nasm}
+\lstinputlisting[language=nasm,style=nasm,caption={A usage of the \mintinline{latex}{times} instruction; pad a variable up to a length (\detokenize{src/times.nasm)}.}, label=src:times]{src/times.nasm}
 
 Finally, \mintinline{latex}{times} can be used to repeat simple instructions by making trivial unrolled loops \cite{nasmdoc}, for instance:
 
-\begin{minted}{asm}
+\begin{verbatim}
 times 100 movsb
-\end{minted}
+\end{verbatim}
 
 
-\subsection{Nasm compiling tips}
+%-------------------- Appendix --------------------%
+\subsubsection{Nasm compiling tips}
+\label{app:nasm_tips}
 
 The following commands were used for the \mintinline{latex}{src/*.nasm} files to produce debuggable executable files.
 \begin{minted}{bash}
