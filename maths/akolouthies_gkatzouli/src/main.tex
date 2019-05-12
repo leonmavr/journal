@@ -1,0 +1,547 @@
+\documentclass[a4paper]{article}
+\usepackage{geometry}
+\geometry{
+ a4paper,
+ total={170mm,257mm},
+ left=20mm,
+ top=20mm,
+ right=20mm,
+ bottom=20mm
+ }
+\usepackage{amsmath} % standard
+    \numberwithin{equation}{section} % eqs by section
+\usepackage{amssymb} % standard - Double R symbol etc.
+\usepackage{amsthm} % eessent
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsthm} % standard - theorem, definition, etc.
+\usepackage{multicol} % multiple columns for numbering
+\usepackage{enumitem} % standard - enumerate styles
+\usepackage[english,greek]{babel}
+\usepackage[utf8x]{inputenc}
+\usepackage{mdframed}
+\usepackage[skins]{tcolorbox}
+\usepackage{parskip}
+\usepackage{float} % place figures where exactly you want them with [H]
+\usepackage{pifont} % ding symbols
+\usepackage{rotating} % rotate characters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\pbox}[1]{\begin{tcolorbox}[enhanced,size=fbox,
+    fontupper=\large,drop shadow southwest,sharp corners,colback=white]
+#1\vspace{0.15cm}\end{tcolorbox}}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\definecolor{lightpink}{rgb}{0.92.,0.8,0.84} % bg color, r,g,b <= 1
+\definecolor{darkerpink}{rgb}{0.41, 0.0, 0.21}
+\definecolor{darkpink}{rgb}{0.55, 0.05, 0.37}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcounter{set}
+\setcounter{set}{2}
+\newcounter{problem}[set]
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newcommand{\problem}[1]{\refstepcounter{problem}{\vspace{0.2cm}\noindent\large \bfseries \fcolorbox{lightpink}{lightpink}{Άσκηση~\arabic{problem}.~\textbf{(#1)}}}~}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\renewcommand{\a}{\alpha}
+\renewcommand{\b}{\beta}
+\newcommand{\n}{\nu}
+\newcommand{\N}{\mathbb{N}}
+\newcommand{\NN}{\mathbb{N}^{*}}
+\newcommand{\forallN}{\; \, \forall \nu \in \mathbb{N}^{*}}
+\newcommand{\gsin}{\eta \mu \,}
+\newcommand{\gcos}{\sigma \upsilon \nu \,}
+\newcommand{\uparrowtail}{\vcenter{\hbox{\rotatebox{80}{$\rightarrowtail$}}}}
+\newcommand\downarrowtail{%
+  \vcenter{\hbox{\rotatebox{280}{$\rightarrowtail$}}}%
+}
+
+
+
+\begin{document}
+
+
+
+
+
+
+\title{Λύσεις ασκήσεων από τις Ακολουθίες του Γκατζούλη}
+\maketitle
+
+\selectlanguage{greek}
+
+
+
+\section{Ασκήσεις από το βιβλίο}
+
+
+\pbox{
+\problem{σ.123/ 7.}Να εξεταστούν ως προς μονοτονία οι ακολουθίες
+\begin{enumerate}[label=\roman*)]
+\setcounter{enumi}{3}
+\item $(\delta_\nu)$ με $\delta_1=5,\, {{\delta }_{\nu +1}}=\frac{2+{{\delta }_{\nu }}}{5+{{\delta }_{\nu }}}  ,\;\nu \in {{\mathbb{N}}^{*}}$ .
+\setcounter{enumi}{5}
+\item $(\psi_\nu)$ με ${{\psi }_{1}}=\lambda \geq 0,\ \ {{\psi }_{\nu +1}}=\frac{4{{\psi }_{\nu }}-3}{3}\;\nu \in {{\mathbb{N}}^{*}}$. 
+\end{enumerate}
+%\fcolorbox{darkpink}{white}{μονοτονία}
+} % pbox
+
+%%% sol
+\begin{enumerate}[label=\roman*)]
+\setcounter{enumi}{3}
+\item $\delta_1=5,\;\delta_2=\tfrac{7}{10} < \delta_1$. Προφανώς $\delta_\nu > 0 \; \forall \, \nu \in {{\mathbb{N}}^{*}}$.
+\[
+\delta_{\nu+1} < \delta_\nu \Leftrightarrow \frac{2+\delta_\nu}{5+\delta_n}<\delta_\nu 
+\]
+Εύκολα βλέπουμε ότι $\tfrac{2+x}{5+x}<x\; \forall \, x>0$ άρα η $\delta_\nu$ είναι γνησίως φθίνουσα.
+\setcounter{enumi}{5}
+\item Χρησιμοποιούμε το κριτήριο της διαφοράς.
+\begin{gather*}
+{{\delta }_{\nu }}={{\psi }_{\nu +1}}-{{\psi }_{\nu }}=\frac{4{{\psi }_{\nu }}-3}{3}-{{\psi }_{\nu }}=\frac{{{\psi }_{\nu }}-3}{3},\ \ {{\delta }_{\nu +1}}=\frac{{{\psi }_{\nu +1}}-3}{3}=\frac{4\left( {{\psi }_{\nu }}-3 \right)}{9} \\
+\therefore \delta_\nu\ \delta_{\nu+1} = \frac{4{{\left( {{\psi }_{\nu }}-3 \right)}^{2}}}{27}\ge 0
+\end{gather*}
+Άρα η $\delta_\nu$ μπορεί να είναι μονότονη ή γνησίως μονότονη. Aν είναι γνησίως μονότονη
+\begin{itemize}
+\item και $\psi_2 < \psi_1$ τότε είναι γνησίως φθίνουσα. $\psi_2 < \psi_1 \Leftrightarrow \tfrac{4\lambda - 3}{3} < \lambda \Leftrightarrow \lambda < 3$.
+\item και $\psi_2 > \psi_1$ τότε είναι γνησίως αύξουσα. $\psi_2 > \psi_1 \Leftrightarrow \lambda > 3$.
+\end{itemize}
+Για $\lambda=3$ έχουμε ότι είναι σταθερή αφού
+\begin{itemize}
+\item $\psi_1=\lambda=3,\; \psi_2 = (4\cdot 3 - 3)/3 = 3, \; \ldots,\; \psi_\nu=3$.
+\end{itemize}
+\end{enumerate}
+%%% end sol
+
+
+
+\pbox{
+\problem{σ.124/ 11.}Αν για μια ακολουθία ισχύει $\alpha_{2\nu - 1} < \alpha_{2\nu} < \alpha_{2\nu + 1} \forallN$ να αποδείξετε ότι η $(\alpha_\nu)$ είναι γνησίως αύξουσα.
+}% pbox
+%%%% λύση
+Με εφαρμογή  του κριτήριου διαφοράς
+\[
+{{\delta }_{\nu }}{{\delta }_{\nu +1}}=\left( {{\alpha }_{2\nu }}-{{\alpha }_{2\nu -1}} \right)\left( {{\alpha }_{2\nu +1}}-{{\alpha }_{2\nu }} \right)>0
+\]
+Άρα γνησίως μονότονη και λόγω της διάταξης στην εκφώνηση γνησίως αύξουσα.
+%%% λύση
+
+
+
+\pbox{
+\problem{σ.124/ 13.}Να μελετήσετε ως προς μονοτονία τις ακολουθίες:
+\begin{enumerate}[label=\roman*)]
+\setcounter{enumi}{3}
+\item $(\alpha_\nu)$ με $\alpha_\nu = \sqrt{\nu+2} - \sqrt{\nu+4}$
+\item $(\beta_\nu)$ με ${{\beta }_{\nu }}=\sqrt[3]{\nu +1}-\sqrt[3]{\nu }$
+\end{enumerate}
+}% pbox 
+%%% λυση
+\begin{align*}
+\begin{split}
+{{\alpha }_{\nu }}=\sqrt{\nu +2}-\sqrt{\nu +4},\ \ {{\alpha }_{\nu -1}}=\sqrt{\nu +1}-\sqrt{\nu +3}
+\end{split}
+\end{align*}
+\[
+\begin{split}
+\therefore {{\alpha }_{\nu }}-{{\alpha }_{\nu -1}}&=\sqrt{\nu +2}-\sqrt{\nu +4}+\sqrt{\nu +3}-\sqrt{\nu +1} \\
+&= \frac{\left( \sqrt{\nu +2}-\sqrt{\nu +4} \right)\left( \sqrt{\nu +2}+\sqrt{\nu +4} \right)}{\sqrt{\nu +2}+\sqrt{\nu +4} }+\frac{\left( \sqrt{\nu +3}-\sqrt{\nu +1} \right)\left( \sqrt{\nu +3}+\sqrt{\nu +1} \right)}{ \sqrt{\nu +3}+\sqrt{\nu +1} }\\
+&= -\frac{2}{\sqrt{\nu +2}+\sqrt{\nu +4}}+\frac{2}{\sqrt{\nu +3}+\sqrt{\nu +1}}
+\end{split} 
+\]
+Αλλά η $\gamma_\nu=\sqrt{\nu}$ eίναι γνησίως αύξουσα άρα $\sqrt{\nu +2} > \sqrt{\nu +1},\; \sqrt{\nu +4}>\sqrt{\nu +3}$ οπότε με πρόσθεση:
+\[
+\begin{gathered}
+\sqrt{\nu +2}+\sqrt{\nu +4} > \sqrt{\nu +3} + \sqrt{\nu +1} \Rightarrow \\
+\frac{1}{\sqrt{\nu +2}+\sqrt{\nu +4}} < \frac{1}{\sqrt{\nu +3} + \sqrt{\nu +1} } \Rightarrow \\
+-\frac{2}{\sqrt{\nu +2}+\sqrt{\nu +4}} + \frac{2}{\sqrt{\nu +3} + \sqrt{\nu +1} } > 0
+\end{gathered}
+\]
+Που σημαίνει ότι $\alpha_\nu - \alpha_{\nu-1} > 0$ άρα η $\alpha_\nu$ είναι γνησίως αύξουσα.
+%%% λύση 
+
+\pbox{
+\problem{σ.132/ 5.} Να αποδείξετε ότι οι παρακάτω ακολουθίες είναι μονότονες και φραγμένες:
+\begin{enumerate}[label=\roman*)]
+\item $(\alpha_\nu)$ με $\alpha_\nu = \frac{\nu+1}{3^\nu + 1}$
+\item $(\beta_\nu)$ με $\beta_\nu = \frac{\nu!}{1\cdot 3 \cdot \ldots \cdot (2\nu - 1)}$
+\item \url{https://math.stackexchange.com/questions/2464504/checking-the-nature-of-the-sequence-x-n-frac-left-lfloor-xn-right-rfloor?rq=1}
+\end{enumerate}
+}
+
+
+\begin{enumerate}[label=\roman*)]
+\item Από την ανισότητα του \selectlanguage{english}Bernouli\selectlanguage{Greek}, $(1+\alpha)^\nu \geq 1 + \alpha\nu \ \ \forall \, \alpha \geq -1$ άρα $3^\nu \geq (1+2)^\nu = 1 + 2\nu$ άρα
+\[
+0<\alpha_\nu=\frac{\nu +1}{{{3}^{\nu }}}\le \frac{\nu +1}{1+2\nu }<\frac{\nu +1}{1+\nu }=1
+\]
+Κριτήριο πηλίκου για μονοτονία:
+\[
+\frac{{{\alpha }_{\nu +1}}}{{{\alpha }_{\nu }}}=\frac{\frac{\nu +2}{{{3}^{\nu +1}}}}{\frac{\nu +1}{{{3}^{\nu }}}}=\frac{\nu +2}{3\nu +3}<1\Rightarrow {{\alpha }_{\nu +1}}<{{\alpha }_{\nu }}
+\]
+Άρα είναι κάτω φραγμένη από το 0, άνω από το 1 και γνησίως φθίνουσα.
+\item Κριτήριο πηλίκου για μονοτονία:
+\[
+\frac{{{\beta }_{\nu +1}}}{{{\beta }_{\nu }}}=\frac{\frac{\left( \nu +1 \right)!}{1\cdot 3\cdot \ldots \cdot \left( 2\nu +1 \right)}}{\frac{\nu !}{1\cdot 3\cdot \ldots \cdot \left( 2\nu -1 \right)}}=\frac{\nu +1}{2\nu +1}<1
+\]
+Επίσης (η απόδειξη έπεται με περιπτώσεις για $\nu$ άρτιο και περιττό): 
+\[
+\beta_\nu = \frac{\nu!}{1\cdot 3 \cdot \ldots \cdot (2\nu - 1)} < \frac{1\cdot 2\cdot \ldots \cdots \nu}{1\cdot 3 \cdot \ldots \cdot (2\nu - 1)} < 1
+\]
+\end{enumerate}
+
+
+\pbox{
+\problem{σ.132/ 6.} Να αποδείξετε ότι δεν είναι φραγμένες οι ακολουθίες
+\begin{enumerate}[label=\roman*)]
+\item $(\alpha_\nu)$ me $\alpha_\nu = 2\nu^2 + \nu$
+\item $(\beta_\nu)$ me $\beta_\nu = \frac{3{{\nu }^{2}}+\nu +1}{\sqrt{{{\nu }^{2}}+2}}$
+\item ${(\gamma_\nu)}$ me $(\gamma_\nu)=(-2)^\nu$
+\item ${(\delta_\nu)}$ me $(\delta_\nu)=e^{\nu^2+\nu+2}$
+\end{enumerate}
+}
+
+\begin{enumerate}[label=\roman*)]
+\item Για να δείξουμε ότι δεν είναι φραγμένη, αρκεί να δείξουμε ότι:
+\[
+\nexists \theta \in \mathbb{R}: \; \left| \alpha_\nu \right| = \left|2\nu^2 + \nu \right| = 2\nu^2 + \nu \leq \theta \; \forall \nu > \nu_0,\; \nu, \nu_0 \in \NN  
+\]
+Για $\nu_0 =[\theta], \; \nu=\nu_0 + 1 = [\theta]+1 > \nu_0$, όπου $[.]$ το ακέραιο μέρος, έχουμε:
+\[
+ \left|2\nu^2 + \nu \right|=2([\theta]+1)^2 + [\theta]+1 > [\theta]+1 > \theta
+\]
+, αφού $[\theta]\geq \theta$
+\item Me τον ίδιο τρόπο, αρκεί να δείξουμε ότι:
+\[
+\nexists \theta \in \mathbb{R}: \; \left| \beta_\nu \right| = \left|\frac{3{{\nu }^{2}}+\nu +1}{\sqrt{{{\nu }^{2}}+2}}\right| = \frac{3{{\nu }^{2}}+\nu +1}{\sqrt{{{\nu }^{2}}+2}} \leq \theta \; \forall \nu > \nu_0,\; \nu, \nu_0 \in \NN  
+\]
+Πράγματι, έχουμε:
+\[
+\begin{split}
+\frac{3{{\nu }^{2}}+\nu +1}{\sqrt{{{\nu }^{2}}+2}}>\frac{3{{\nu }^{2}}+\nu }{\sqrt{{{\nu }^{2}}+2}}
+&=\frac{\sqrt{{{\left( 3{{\nu }^{2}}+\nu  \right)}^{2}}}}{\sqrt{{{\nu }^{2}}+2}}=\sqrt{\frac{9{{\nu }^{4}}+6{{\nu }^{3}}+{{\nu }^{2}}}{{{\nu }^{2}}+2}}\\
+&>\sqrt{\frac{9{{\nu }^{4}}+6{{\nu }^{3}}+{{\nu }^{2}}}{{{\nu }^{2}}}}=\sqrt{{{\left( 3\nu +1 \right)}^{2}}}=3\nu +1
+\end{split}
+\]
+Άρα για $\nu = \left[\tfrac{\theta}{3}\right]$ έχουμε
+\[
+\beta_\nu = \frac{3{{\nu }^{2}}+\nu +1}{\sqrt{{{\nu }^{2}}+2}} > 3\left[\frac{\theta}{3}\right]+1 \geq 3\frac{\theta}{3}+1 > \theta
+\]
+, που σημαίνει ότι δεν είναι φραγμένη.
+\item
+\item
+\end{enumerate}
+
+\pbox{
+\problem{σ.133/ 7.} Έστω οι ακολουθίες $(\alpha_\nu),(\beta_\nu)$. Αν η ακολουθία $(\alpha_\nu)$ είναι φραγμένη και η ακολουθία $(\beta_\nu)$ είναι κάτω φραγμένη με κάτω φράγμα αρνητικό να αποδείξετε ότι η ακολουθία $(\gamma_\nu)$ me $\gamma_\nu=\frac{\alpha_1+\alpha_2+\ldots + \alpha_\nu}{\beta_1+\beta_2+\ldots+\beta_\nu}$ είναι φραγμένη.
+} %pbox
+Έχουμε $\alpha_\nu \leq \theta_1 \forallN$ και αν $\theta_2$ το κάτω φράγμα της $(\beta_\nu)$ τότε $\beta_\nu > \theta_2 > 0 \forallN$ άρα:
+\[
+\left| {{\gamma }_{\nu }} \right|=\frac{\left| {{\alpha }_{1}}+{{\alpha }_{2}}+\ldots +{{\alpha }_{\nu }} \right|}{\left| {{\beta }_{1}}+{{\beta }_{2}}+\ldots +{{\beta }_{\nu }} \right|}\le \frac{\left| {{\alpha }_{1}} \right|+\left| {{\alpha }_{2}} \right|+\ldots +\left| {{\alpha }_{\nu }} \right|}{\left| {{\beta }_{1}}+{{\beta }_{2}}+\ldots +{{\beta }_{\nu }} \right|}\le \frac{\nu {{\theta }_{1}}}{\left| {{\beta }_{1}}+{{\beta }_{2}}+\ldots +{{\beta }_{\nu }} \right|}
+\]
+Επίσης $\beta_1 \geq \theta_2,\;\beta_2 \geq \theta_2,\ldots,\beta_\nu \geq \theta_2, \;\, \theta_2>0$ άρα:
+\[
+\begin{gathered}
+\frac{\nu {{\theta }_{1}}}{\left| {{\beta }_{1}}+{{\beta }_{2}}+\ldots +{{\beta }_{\nu }} \right|}=\frac{\nu {{\theta }_{1}}}{{{\beta }_{1}}+{{\beta }_{2}}+\ldots +{{\beta }_{\nu }}}\le \frac{\nu {{\theta }_{1}}}{\nu {{\theta }_{2}}}=\frac{{{\theta }_{1}}}{{{\theta }_{2}}} \\
+\therefore \gamma_\nu \leq \frac{{{\theta }_{1}}}{{{\theta }_{2}}} 
+\end{gathered}
+\]
+
+
+
+\pbox{
+\problem{σ.242/ 5.}
+Να μελετήσετε ως προς σύγκλιση την ακολουθία $\a_\n$ με $\a_1=\a, \ \a\in \left( 0, \frac{1}{4}\right)$ και $\a_{\n + 1} = \a + \a_\n^2,\  \n \in \NN$.
+} % pbox
+
+Μετά από μερικές παρατηρήσεις για $\alpha=1/8,\ \alpha=1/5$ κλπ., η ακολουθία φαίνεται να είναι γν. αύξουσα και να ισχύει $\alpha_{\nu} < 2\alpha \quad \forall \nu \in \N^{\ast}$.
+
+Θα δείξουμε ότι $\alpha_{\nu} < 2\alpha \ \forall \n \in \NN$. Προφανώς 
+$\a _1 < 2\a $. Έστω $\a_\n<2\a$. Τότε $\a_{n+1} = \a_\n^2 + \a < (2\a)^2 + \a<2\alpha$. Πράγματι, $(2\alpha)^2 + \a < 2\a \Leftrightarrow \a(4\a - 1) <0$, που ισχύει από τα δεδομένα της άσκησης, παίρνουμε $\a_{n+1} < 2\a$. Αποδείχθηκε ότι:
+\begin{equation*}
+	\a_\n < 2\a \quad \forall \n \in \NN
+\end{equation*}
+Άρα η ακολουθία είναι άνω φραγμένη.
+
+Θα αποδείξουμε ότι είναι και γν. αύξουσα.
+\[
+	\begin{gathered}
+	\a_{\n+1} > \a_\n \Leftrightarrow \\
+	\a + \a_\n^2 > \a_\n \Leftrightarrow \\
+	\a_\n(\a_\n - 1) > -\a \tag{\ding{72}}
+	\end{gathered}
+\]
+Αλλά
+\[
+\begin{gathered}
+    \a_\n(\a_\n - 1) > 2\a(2\a - 1) > -\a \Leftrightarrow \tag{\ding{72}\ding{72}} \\
+    2\a(2\a - 1) > -\a \Leftrightarrow \\
+    4\a^2 - \a = \a(4\a - 1) > 0
+\end{gathered}
+\]
+, που ισχύει. Λόγω της (\ding{72}\ding{72}) ισχύει και η (\ding{72}) άρα και
+\begin{equation*}
+    \a_{\n+1} > \a_\n
+\end{equation*}
+Τελικά η ακολουθία είναι γν. αύξουσα και άνω φραγμένη, άρα συγκλίνουσα.
+
+
+\pbox{
+\problem{σ.242/ 5.}
+Δίνονται οι ακολουθίες $\alpha_\nu$ και $\beta_nu$ με $\alpha_1=\alpha>0$, $\beta_1=\beta>0$, $\alpha < \beta$ και
+\begin{equation*}
+    \alpha_{\nu + 1} = \frac{\alpha_\nu + \beta_\nu}{2}, \; \nu \in \NN, \quad \beta_{\nu+1} =\sqrt{\frac{\alpha_\nu^2 + \beta_\nu^2}{2}}, \; \nu \in \NN
+\end{equation*}
+Na αποδείξετε ότι:
+\begin{enumerate}[label=\roman*)]
+    \item Για κάθε θετικό ακέραιο $\nu$ ισχύει $\alpha_\nu < \beta_\nu$
+    \item $\alpha_\nu, \; \beta_\nu$ συγκλίνουσες,
+    \item $\lim \, \alpha_\nu = \lim \, \beta_\nu$
+\end{enumerate}
+
+} % pbox
+
+\begin{enumerate}[label=\roman*)]
+    \item Ισχύει $\alpha_\nu = \alpha < \beta_\nu = \beta$. Αν $\alpha_\nu < \beta_\nu$ για κάποιο $\nu > 1$ τότε
+    \begin{gather*}
+        \alpha_{\nu + 1} < \beta_{\nu + 1} \Leftarrow\\
+        \frac{\alpha_\nu + \beta_\nu}{2} < \sqrt{\frac{\alpha_\nu^2 + \beta_\nu^2}{2}} \Leftarrow\\
+        (\alpha_\nu + \beta_\nu)^2 < 2(\alpha_\nu^2 + \beta_\nu^2) \Leftarrow\\
+        (\alpha_\nu - \beta_\nu)^2 > 0
+    \end{gather*}
+    , που είναι αληθής από υπόθεση. Άρα
+    \begin{equation}
+        \alpha_\nu < \beta_\nu \;\; \forall \nu \in \NN \tag{1}
+    \end{equation}
+    
+    \item 
+    Για την $\alpha_\nu$:
+    \begin{equation*}
+        \alpha_{\nu + 1} = \frac{\alpha_\nu + \beta_\nu}{2} > \frac{\alpha_\nu + \alpha_\nu}{2} = \alpha_\nu \tag{2}
+    \end{equation*}
+    , δηλαδή γν. αύξουσα. Για τη $\beta_\nu$ από (1) λόγω της (2):
+    \begin{gather*}
+    0 < \a = \a_{1}   < \ldots < \alpha_\nu < \beta_\nu
+    \end{gather*}
+    Δηλαδή $\beta_\nu$ κάτω φραγμένη και θετική. Για την μονοτονία της:
+    \begin{gather*}
+        \beta_{\nu+1} =\sqrt{\frac{\alpha_\nu^2 + \beta_\nu^2}{2}} < \sqrt{\frac{\beta_\nu^2 + \beta_\nu^2}{2}} = \beta_\nu \;\; \forall \nu \in \NN
+    \end{gather*}
+     Τελικά $\beta_\nu$ συγκλίνουσα. Αρκεί να δείξουμε ότι η $\a_\nu$ είναι και άνω φραγμένη. Ξανά από (1):
+    \[
+        \alpha_{\nu + 1} = \frac{\alpha_\nu + \beta_\nu}{2}  < \frac{\beta_\nu + \beta_\nu}{2} = \beta_\nu < \beta_{\nu - 1} < \ldots < \beta_1 = \beta
+    \]
+    Άρα και η $\a_\n$ συγκλίνουσα.
+    
+    \item 
+    Έστω $x:=\lim\, \a_\n = \lim\, \a_{\n + 1}$, $y:=\lim\, \b_\n = \lim\, \b_{\n + 1}$. Από την υπόθεση:
+    \begin{gather*}
+         \alpha_{\nu + 1} = \frac{\alpha_\nu + \beta_\nu}{2} \xRightarrow[ \; ]{\nu \rightarrow \infty} \\
+         x = \frac{x+y}{2} \Rightarrow \\
+         x = y
+    \end{gather*}
+
+\end{enumerate}
+
+
+
+\pbox{
+\problem{σ.242/ 12.}
+ Να μελετηθεί ως προς σύγκλιση η ακολουθία $\a_\n$ με
+ \[
+ \a_1 = 1, \quad \a_{\n + 1} = \sqrt[\leftroot{-1}\uproot{1}3]{\a_\n^2 + 4}, \quad \nu \in \NN
+ \]
+} % pbox
+Υπολογίζουμε $\a_2 = \sqrt[\leftroot{-1}\uproot{1}3]{1^2 + 4}\approx 1.71, \ \a_3 = \sqrt[\leftroot{-1}\uproot{1}3]{1.71^2 + 4}\approx 1.91, \ \ldots$. Θα δείξουμε ότι ένα άνω φράγμα είναι το $2$. Ήδη ιχύει $\a_1<2$. Aν $\a_\n<2$ για κάποιο $\n$ τότε
+\[
+\quad \a_{\n + 1} =
+\sqrt[\leftroot{-1}\uproot{1}3]{\a_\n^2 + 4} < 
+\sqrt[\leftroot{-1}\uproot{1}3]{2^2 + 4} = 2
+\]
+Άρα $\a_\n < 2 \; \forall \n \in \NN$. Απομένει να δείξουμε ότι $\a_\n$ γν. αύξουσα.
+\begin{gather*}
+\a_{\n+1} > \a_\n \Leftarrow \\
+\sqrt[\leftroot{-1}\uproot{1}3]{\a_\n^2 + 4} > \a_\nu \Leftarrow \\
+\a_\n^2 + 4 > \a_\n^3 \Leftarrow \\
+\a_\n^2 - 4 > \a_\n^3 - 8 \Leftarrow \\
+(\a_\n - 2)(\a_\n + 2) > (\a_\n - 2)(\a_n^2 + 2\a_\n + 4) \Leftarrow \\
+(\a_\n - 2)(\a_\n^2 + \a_\n + 2) <0
+\end{gather*}
+Δείξαμε ήδη ότι $\a_\n - 2 < 0$ και ισχύει $\a_\n^2 + \a_\n + 2 > 0$ άρα πράγματι $\a_{\n+1} > \a_\n$. Τελικά $\a_\n$ συγκλίνουσα. Παίρνουμε όρια στην αναδρομική σχέση και αν $x:= \lim \, \a_\n$ τότε:
+\[
+x = \sqrt[\leftroot{-1}\uproot{1}3]{x^2 + 4} \Leftrightarrow x = 2
+\]
+Άρα το $2$ είναι και το όριο της.
+
+\pbox{
+
+\problem{σ.243/ 13.}
+Δίνεται η ακολουθία $\a_\n$ με $\a_\n = \ln \left(\frac{\n^2+2\n+1}{\n^2+2\n} \right)$ και η ακολουθία $\b_\n$ με $\b_\n = \a_1 + \a_2 + \ldots + \a_\n$. Να αποδείξετε ότι η ακολουθία $\b_\n$ είναι μονότονη και φραγμένη και έπειτα να βρείτε το όριο της.
+} % pbox
+\[
+\a_\n = \ln\left(1 + \frac{1}{\n^2+2\n} \right)
+\]
+Θα αποδείξουμε ότι $\a_\n$ γν. φθίνουσα ($\downarrowtail$). Θεωρούμε τις ακολουθίες $\a_{1\n} = \ln \n,\ \a_{2\n} = \frac{1}{\n^2+2\n}$. $\a_{2\n} \downarrowtail$ και $\a_{1\n} \uparrowtail$ άρα $\a_\n \downarrowtail$. Το κάτω φράγμα της $\a_\n$ είναι 0:
+\[
+{{\nu }^{2}}+2\nu +1>{{\nu }^{2}}+2\nu \Rightarrow \frac{\n^2+2\n+1}{\n^2+2\n} > 1 \Rightarrow {{\alpha }_{\nu }}>0
+\]
+Το ίδιο και το όριο της $\lim \a_\n = \lim\ln \left(\frac{\n^2+2\n+1}{\n^2+2\n} \right)=0$. 
+
+Η $\beta_\n$ είναι γν. φθίνουσα ($\downarrowtail$) ως άθροισμα γν. φθίνουσων, προφανώς κάτω φραγμένη από το 0 και έχει όριο
+\[
+\lim \b_\n = \lim\a_1 + \lim\a_2 + \ldots + \lim\a_\n = 0
+\]
+
+
+\pbox{
+\problem{σ.257/ 5.}
+Να βρεθούν τα όρια των ακολουθιών
+\begin{enumerate}[label=\roman*)]
+    \item $\a_\n = \left(1-\frac{2}{\n^2} \right)^{3\n}$
+    \item $\b_\n = \left(1+ \frac{2}{\n}^2 \right)^{\n-1}$
+    \item $\gamma_\n = \left(\frac{2\n^2+1}{2\n^2+3} \right)^{\n+2}$
+    \item $\delta_\n = \left(\frac{\n+1}{\n + \sqrt{2}}\right)^{\n+1}\cdot \left( \frac{2\n + \sqrt{3}}{2\n+6}\right)^{2\n-1}$
+\end{enumerate}
+} % pbox
+Χρησιμοιούμε ότι
+\begin{gather*}
+    e = \lim \left(1 + \frac{1}{n}\right)^n \tag{1}
+\end{gather*}
+\begin{gather*}\lim {{\left( 1+\frac{\alpha }{\nu } \right)}^{\nu }}=\lim {{\left( 1+\frac{1}{\frac{\nu }{\alpha }} \right)}^{\nu }}\overset{\frac{\nu }{\alpha }=\mu }{\mathop{\underset{\begin{smallmatrix} 
+ \nu \to \infty  \\ 
+ \mu \to \infty  
+\end{smallmatrix}}{\mathop{=}}\,}}\,\lim {{\left( 1+\frac{1}{\mu } \right)}^{\mu \alpha }}={{\left[ \lim {{\left( 1+\frac{1}{\mu } \right)}^{\mu }} \right]}^{\alpha }}={{e}^{\alpha }} \tag{2}
+\end{gather*}
+
+\begin{enumerate}[label=\roman*)]
+    \item
+    \[
+    \lim {{\left( 1-\frac{2}{{{\n}^{2}}} \right)}^{\n}}=\lim {{\left( 1-\frac{\sqrt{2}}{\n} \right)}^{\n}}{{\left( 1+\frac{\sqrt{2}}{\n} \right)}^{\n}}\ 
+    \overset{(2)}{\mathop{=}} \,{{e}^{-\sqrt{2}}}{{e}^{\sqrt{2}}}=1
+    \]
+    \[
+    \therefore \lim \left( {{\a}_{\n}} \right)=\lim {{\left( 1-\frac{2}{{{\n}^{2}}} \right)}^{3\n}}=1
+    \]
+    \item 
+    \[
+    \lim \left( {{\beta }_{\n}} \right)={\lim{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{\n-1}}={\lim{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{\n}}/\lim\left( 1+\frac{2}{{{\n}^{2}}} \right)
+    \]
+    Για το δεύτερο
+    \[
+    \lim\left( 1+\frac{2}{{{\n}^{2}}} \right) = 1
+    \tag{3}
+    \]
+    Για το πρώτο
+    \[
+    \lim {{\left[ {{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}} \right]}^{\frac{1}{\n}}}=\lim \sqrt[\n]{{{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{n}^{2}}}}}=\lim \sqrt[\n]{{{e}^{2}}}
+    \]
+    \[
+    \therefore \lim {{\left[ {{\left( 1+\frac{2}{{{n}^{2}}} \right)}^{{{n}^{2}}}} \right]}^{\frac{1}{n}}}=1 \tag{4}
+    \]
+    \[
+    \lim \sqrt[\n]{{{e}^{2}}}\ \ \overset{\sigma .\ 170}{\mathop{=}}\,1
+    \]
+    $(3),\, (4) \Rightarrow \lim \beta_\n = 1$.
+    
+    \item
+    \[{{\left( \frac{2{{\n}^{2}}+1}{2{{\n}^{2}}+3} \right)}^{\n+1}}=\frac{{{\left( 1+\frac{1}{2{{\n}^{2}}} \right)}^{\n}}}{{{\left( 1+\frac{3}{{{\n}^{2}}} \right)}^{\n}}}\frac{1+\frac{1}{2{{\n}^{2}}}}{1+\frac{3}{{{\n}^{2}}}}\]
+    \[\lim \left( 1+\frac{1}{2{{\n}^{2}}} \right)=\lim \left( 1+\frac{3}{{{\n}^{2}}} \right)=1 \tag{5}\]
+    
+    \[\lim {{\left( 1+\frac{1}{2{{\n}^{2}}} \right)}^{\n}}=1, \quad \lim {{\left[ {{\left( 1+\frac{\frac{1}{2}}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}} \right]}^{\frac{1}{\n}}}=\lim \sqrt[n]{{{e}^{\frac{1}{2}}}}=1 \tag{6}\]
+    
+    \[\lim {{\left( 1+\frac{3}{{{\n}^{2}}} \right)}^{\n}}=\ldots=\lim \sqrt[\n]{{{e}^{3}}}=1 \tag{7}\]
+    
+    \[\left( 5 \right),\left( 6 \right),\left( 7 \right)\Rightarrow \lim \left( {{\gamma }_{\n}} \right)=\lim {{\left( \frac{2{{\n}^{2}}+1}{2{{\n}^{2}}+3} \right)}^{\n+1}}=1\]
+    
+    
+\end{enumerate}
+
+\pbox{
+\problem{σ.257/ 6.}
+Να βρεθούν τα όρια των ακολουθιών
+\begin{enumerate}[label=\roman*)]
+    \item $\a_\n = \left(\frac{1}{2} + \frac{1}{\n} \right)^{3\n}$
+    \item $\a_\n = \left(2 - \frac{\n}{\n+1} \right)^\n$
+    \item $\a_\n = \left(1 + \frac{2\n-1}{2\n+3} \right)^{2\n-1}$
+    \item $\a_\n = \left(\frac{\n+1}{\n+\sqrt{2}} \right)^{\n+1} \left(\frac{2\n + \sqrt{3}}{2\n + 6} \right)^{2\n-1}$
+\end{enumerate}
+} % pbox
+\begin{enumerate}[label=\roman*)]
+\item
+\item
+Θέτουμε $\n+1=\mu \;\ \therefore\ \underset{n\to \infty }{\mathop{\lim }}\,\mu =\infty $, τότε η $\a_\n$ ξαναγράφεται
+\[
+\a_\n = \left(2 - \frac{\mu - 1}{\mu} \right)^{\mu-1} = \left(1 + \frac{1}{\mu} \right)^{\mu-1} 
+\]
+\[
+\therefore \lim \left( {{\alpha }_{n}} \right)=\lim \left[ {{\left( 1+\frac{1}{m} \right)}^{m}}/\left( 1+\frac{1}{m} \right) \right]=e/1=e
+\]
+
+\item Χρησιμοποιούμε την ανισότητα Bernouli
+\begin{equation}
+    (1+x)^{\n} = 1 + \n x \quad \forall \n \in \N, \, x \geq -1
+\end{equation}
+\begin{gather*}
+    \a_\n = {{\left( 1+\frac{2\n-1}{2\n+3} \right)}^{2\n-1}}>1+\frac{{{\left( 2\n-1 \right)}^{2}}}{2\n+3} \Rightarrow \\
+    \lim \a_\n >  \lim \left(1+\frac{{{\left( 2\n-1 \right)}^{2}}}{2\n+3} \right) = \infty
+\end{gather*}
+
+\item 
+\[{{\alpha }_{n}}={{\left( \frac{\nu +1}{\nu+\sqrt{2}} \right)}^{\nu +1}}{{\left( \frac{2\nu +\sqrt{3}}{2\nu+6} \right)}^{2\nu -1}}\]
+Θεωρούμε
+\[{{\alpha }_{1n}}={{\left( \frac{\nu +1}{\nu +\sqrt{2}} \right)}^{\nu +1}},\ \ {{\alpha }_{2\nu }}={{\left( \frac{2\nu +\sqrt{3}}{2\nu +6} \right)}^{2\nu -1}}\]
+Για την $\a_{1\n}$
+\[\mu:=\n+\sqrt{2},\ \ \lim \left( \mu \right)=\infty \]
+\[\therefore {{\left( \frac{\mu -\sqrt{2}+1}{\mu } \right)}^{\mu -\sqrt{2}+1}}={{\left( 1+\frac{1-\sqrt{2}}{\mu } \right)}^{\mu -\sqrt{2}+1}}\]
+
+\[\therefore \lim \left( {{\alpha }_{{{1 }_{\nu}}}} \right)=\lim {{\left( 1+\frac{1-\sqrt{2}}{\mu } \right)}^{\mu }}{{\left( 1+\frac{1-\sqrt{2}}{\mu } \right)}^{-\sqrt{2}+1}}=\lim {{\left( 1+\frac{1-\sqrt{2}}{\mu } \right)}^{\mu }}={{e}^{1-\sqrt{2}}}\cong 0.661\]
+
+Για την $\a_{2\n}$
+\[\mu :=2\nu +6,\ \ \lim \left( \mu  \right)=\infty \]
+
+\[\therefore {{\left( \frac{2\nu +\sqrt{3}}{2\nu +6} \right)}^{2\nu -1}}={{\left( \frac{\mu +\sqrt{3}-6}{\mu } \right)}^{\mu -7}}=\frac{{{\left( 1+\frac{\sqrt{3}-6}{\mu } \right)}^{\mu }}}{{{\left( 1+\frac{\sqrt{3}-6}{\mu } \right)}^{7}}}\]
+
+\[\therefore \lim \left( {{\alpha }_{2\nu }} \right)={{e}^{\sqrt{3}-6}}\cdot 1\cong 0.014\]
+
+Τελικά
+\[\lim \left( {{\alpha }_{\nu }} \right)=\lim \left( {{\alpha }_{1\nu }} \right)\lim \left( {{\alpha }_{2\nu }} \right)\cong 0.093\]
+
+\end{enumerate}
+
+
+
+
+
+
+
+
+\section{Άλλες ασκήσεις}
+
+\pbox{
+\problem{\href{https://math.stackexchange.com/questions/1187550/a-n-sequence-a-1-sqrt6-for-n-geq-1-and-a-n1-sqrt6a-n-show?rq=1}{πηγή}} Δίνεται η ακολουθία $\a_\n$ με $\a_1=\sqrt{6}$ για $\n \geq 1$ και $\a_{\n+1}=\sqrt{6+\a_\n}$. Δείξτε ότι συγκλίνει και ότι βρείτε το όριο της.
+} % pbox
+
+Mε επαγωγή για μονοτονία. Ισχύει $\a_2 \geq \a_1$. Υποθέτουμε ότι $\a_n \geq \a_{n-1}$. Τότε
+\[
+\a_{n+2} = \sqrt{6+\a_{n+1}} \geq \sqrt{6+\a_{n}} = \a_{n+1}
+\]
+Άρα αύξουσα. Με επαγωγή για άνω φράγμα το 3. Ισχύει $\a_1 \leq 3$. Aν $\a_\n \leq 3$ τότε
+\[
+\a_{\n+1} = \sqrt{6+\a_\n} \leq \sqrt{6+3} = 3
+\]
+Άρα συγκλίνουσα, συνεπώς έχει ένα όριο $L$. Για να βρεθεί, παίρνουμε όρια στην αναδρομική της υπόθεσης.
+\[
+L = \sqrt{6+L} \Rightarrow L = 3
+\]
+
+
+%\begin{itemize}
+    %\item \url{https://math.stackexchange.com/questions/1778926/challenge-problem-show-this-sequence-is-convergent/1778947}
+    %\item \url{https://www.whitman.edu/mathematics/calculus/calculus_11_Sequences_and_Series.pdf}
+    %\item \url{http://home.iitk.ac.in/~psraj/mth101/lecture_notes/lecture2.pdf}
+    %\item \url{https://math.stackexchange.com/questions/2414472/problem-about-a-recursive-sequence}
+    %\item \url{https://math.stackexchange.com/questions/172305/find-lim-n-rightarrow-infty-sqrtna-n1-%E2%88%92-a-n-where-a-n-frac1?rq=1}
+    %\item \url{https://math.stackexchange.com/questions/1187550/a-n-sequence-a-1-sqrt6-for-n-geq-1-and-a-n1-sqrt6a-n-show?rq=1}
+    %\item \url{https://math.stackexchange.com/questions/267489/prove-sqrta-n-b-n-and-frac12a-nb-n-have-same-limit?rq=1}
+%\end{itemize}
+
+
+%selectlanguage{english}
+
+\end{document}
