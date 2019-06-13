@@ -1,0 +1,713 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Processes in Linux}
+
+\subsection{Process ID and parent ID}
+
+\begin{definition}[pid]
+Each process in a Linux system is identified by its unique process ID, sometimes
+referred to as \textup{\texttt{pid}}. The \textup{\texttt{pid}} does not change during the lifetime of a process \cite{bookmitchell}.
+\end{definition}
+Process IDs are 32-bit or 64-bit integers that are assigned sequentially by Linux as new processes are created. Each process own a unique \texttt{pid}.
+
+Every process also has a parent process except the special \texttt{init} process. \texttt{init} is the grandfather of all processes on the system because all other processes run under it.\marginnote{The init process.} Every process can be traced back to \texttt{init}, and it always has a \texttt{pid} of 1. The kernel itself has a \texttt{pid} of 0. A process tree is shown below. Modern Linux systems have replaced \texttt{init} process with \texttt{systemd} (System Management Daemon) \cite{webdelight}. 
+\begin{figure}[H]
+    % ref System Management Daemon
+    \centering
+    \includegraphics[height=7.5cm]{img/pid_tree.png}
+    \caption{An example process tree with init as the parent \cite{webdelight}.}
+\end{figure}
+
+Thus, you can think of the processes on a Linux
+system as arranged in a \textit{tree}, with the \texttt{init} process at its root.The parent process ID, or \texttt{ppid}, is simply the process ID of the process’s parent.
+When referring to process IDs in a C or C++ program, always use the \texttt{pid\_t
+typedef}, which is defined in \texttt{<sys/types.h>}. A program can obtain the process ID of
+the process it’s running in with the \texttt{getpid()} system call, and it can obtain the process
+ID of its parent process with the \texttt{getppid()} system call.
+
+\lstinputlisting[language=c,caption={Get process and parent ID on Linux (\detokenize{src/get_pid.c)}.}, label=src:mylabel]{src/get_pid.c}
+If we run the program multiple times under the same shell, the with the \texttt{pid}  will change but the \texttt{ppid} will remain the same as it will be the shell's (parent) \texttt{pid}.
+
+Processing in Linux can be viewed during using the \texttt{ps} command and killed using the \texttt{kill} or \texttt{killall}. See manual for more details.
+
+
+
+
+\subsection{Creating processes}
+
+\subsubsection{The \texttt{fork} and \texttt{exec} method}
+
+The preferred method to create process in Unix is the \texttt{fork} and \texttt{exec}. This method takes more than one step. \texttt{fork} makes a child process that is \textit{almost} an exact copy of its parent. The new process gets a different PID and has as its PPID the PID of the process that created it.
+
+Because the two processes are now running exactly the same code, they can tell which is which by the return code of fork - the child gets 0, the parent gets the PID of the child. \marginnote{Child and parent are distinguished by the return value of \texttt{fork()}.}  Then using one of the \texttt{exec} family calls, the current process it replaced with a new program. \texttt{exec} loads the program into the current process space and runs it from the entry point \cite{stflowforkexec}.
+
+The two calls are not required to be used together. It's perfectly acceptable for a program to fork itself without execing if, for example, the program contains both parent and child code \cite{stflowforkexec}.
+
+
+
+
+\subsubsection{The fork() system call}
+
+% see https://www.geeksforgeeks.org/wait-system-call-c/
+% see https://www.geeksforgeeks.org/difference-fork-exec/
+Fork system call creates a new process, called \emphasis{child process}, which is a copy of the current process (except of their return values) and runs \textit{concurrently} with it. \marginnote{\texttt{fork()} ``returns twice''} The program starts running concurrently at the code location where fork was called. The parent process waits for the child to finish and then resumes.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=12cm]{img/fork_details.png}
+    \caption{How fork works in user space and kernel space.}
+\end{figure}
+
+The following diagram illustrates the typical fork/exec operation where the bash shell is used to list a directory with the ls command \cite{stflowforkexec}:
+\newpage
+\begin{verbatim}
++--------+
+| pid=7  |
+| ppid=4 |
+| bash   |
++--------+
+    |
+    | calls fork
+    V
++--------+             +--------+
+| pid=7  |    forks    | pid=22 |
+| ppid=4 | ----------> | ppid=7 |
+| bash   |             | bash   |
++--------+             +--------+
+    |                      |
+    | waits for pid 22     | calls exec to run ls
+    |                      V
+    |                  +--------+
+    |                  | pid=22 |
+    |                  | ppid=7 |
+    |                  | ls     |
+    V                  +--------+
++--------+                 |
+| pid=7  |                 | exits
+| ppid=4 | <---------------+
+| bash   |
++--------+
+    |
+    | continues
+    V
+\end{verbatim}
+
+
+\subsubsection{fork() code and example}
+The fork system call does not take an argument. As previously mentioned, the process that invokes the fork() is known as the parent and the new process is called the child. It returns an integer.
+\begin{verbatim}
+#include <sys/types.h>
+#include <unistd.h>
+pid_t fork(void);
+\end{verbatim}
+\marginnote{Fork's return indicates failure or not.}To differentiate whether its called for the parent or child, it returns different values for each, particularly:
+% see https://www.geeksforgeeks.org/fork-system-call/
+\begin{enumerate}
+    \item \texttt{fork\_return == -1}: \texttt{fork()} failed and there is no child.
+    \item \texttt{fork\_return == 0} returned to the newly created child process.
+    \item \texttt{fork\_return > 0}: returned to parent or caller. The value contains process ID of newly created child process
+\end{enumerate}
+
+\begin{exmp}
+Predict the output of the following snippet of code. \textup{
+\lstinputlisting[language=c,caption={How process IDs are assigned to child and parent (\detokenize{src/fork_child_parent.c)}.}, label={src:fork-child-parent}]{src/fork_child_parent.c}
+} % textup
+\end{exmp}
+The output is:
+\begin{verbatim}
+The main program process ID is 5000
+This is the parent process,  with id 5000
+The child's process ID is 5001
+This is the child process,  with ID 5001
+\end{verbatim}
+
+\subsubsection{(Optional) More fork() examples}
+
+Predict the output of the following examples.
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Forked hello world (\detokenize{src/fork_hello.c)}.}, label=src:mylabel]{src/fork_hello.c}
+}
+\end{exmp}
+\begin{verbatim}
+Hello world!
+Bye world!
+Bye world!
+\end{verbatim}
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Forked hello world multiple times (\detokenize{src/fork_hellox3.c)}.}, label=src:mylabel]{src/fork_hellox3.c}
+} % textup
+\end{exmp}
+\begin{verbatim}
+Hello world!
+Hello world!
+Hello world!
+Hello world!
+Hello world!
+Hello world!
+Hello world!
+Hello world!
+\end{verbatim}
+
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Accessing the same variable with two processes (\detokenize{src/fork_values2.c)}.}, label=src:mylabel]{src/fork_values2.c}
+} % textup
+\end{exmp}
+\begin{verbatim}
+Initially, x = 1 at address 0xa7d99060
+Parent has x = 0 at 0xa7d99060
+Child has x = 2 at 0xa7d99060
+\end{verbatim}
+
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Forked condition (\detokenize{src/fork_tree.c)}.}, label=src:mylabel]{src/fork_tree.c}
+} % textup
+\end{exmp}
+
+Fig. \ref{fig:fork_tree_sol} illustrates the execution flow. The first \texttt{fork()} in the if statement creates one parent (return value positive) and a child (return 0). For the parent, the OR is true, so it directly enters the block, where it forks again. The child needs to evaluate the second fork and enters the block only for the parent as only the parent satisfies the OR. The final printed output is
+\begin{verbatim}
+1 1 1 1 1
+\end{verbatim}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.25cm]{img/fork_tree_sol.png}
+    \caption{Solution to forked condition.}
+    \label{fig:fork_tree_sol}
+\end{figure}
+
+
+
+
+\subsection{The exec call}
+
+
+\subsubsection{The exec family}
+% ref https://richard.esplins.org/static/downloads/linux_book.pdf p74
+The exec functions replace the program running in a process with another program.
+When a program calls an exec function, that process immediately ceases executing that
+program and begins executing a new program from the beginning, assuming that the
+exec call doesn't encounter an error.
+
+There are several variations of the exec function. The name base is exec followed by one of the following letters.
+% see https://www.geeksforgeeks.org/exec-family-of-functions-in-c/
+% se http://www.it.uu.se/education/course/homepage/os/vt18/module-2/exec/
+% see http://openbook.rheinwerk-verlag.de/linux_unix_programmierung/Kap07-009.htm
+% see https://ece.uwaterloo.ca/~dwharder/icsrts/Tutorials/fork_exec/
+\begin{itemize}
+    \item \texttt{int execl ( const char *path, const char *arg, ... );}
+    \item \texttt{int execlp( const char *file, const char *arg, ... );}
+    \item \texttt{int execle( const char *path, const char *arg, ..., char *const envp[] );}
+    \item \texttt{int execv ( const char *path, char *const argv[] );}
+    \item \texttt{int execvp( const char *file, char *const argv[] );}
+    \item \texttt{int execve( const char *file, char *const argv[], char *const envp[] )}
+\end{itemize}
+% ref https://ece.uwaterloo.ca/~dwharder/icsrts/Tutorials/fork_exec/
+%see https://stackoverflow.com/questions/5769734/what-are-the-different-versions-of-exec-used-for-in-c-and-c
+All definitions are found in \texttt{<unistd.h>}. \marginnote{\texttt{exec()} returns (-1) only if it fails.}The \texttt{exec()} functions only return if an error has occurred. The return value is \texttt{-1}, and \texttt{errno} is set to indicate the error. Each system call is the word exec followed by either l or v and then possibly followed by either e or p. If exec is followed by
+\begin{itemize}
+    \item \texttt{l} , then it expects the arguments as a NULL-terminated \textit{list}, e.g. \texttt{path, arg0, arg1, ..., argn}. The first argument (\texttt{path} or \texttt{file}) describes the program path or file (depending on the p option). \marginnote{\texttt{l}: list} The second, \texttt{arg0} described how the newly spawned process should be named. For example, if \texttt{path = "/bin/ls"}, it would make sense to have \texttt{arg0 = "ls"} but we could also set \texttt{arg0 = "potato"}. \text{arg1, arg2, ..., argm} are in the form of pointers to \texttt{char}. They are the command line options to the program, e.g. in this case they could be \text{"-l", "/"}. The last argument must always be \texttt{NULL} (\texttt{(char* ) 0}). 
+    \item \texttt{v}, it is similar but expects the arguments as an \textit{array} of \texttt{char*} (vector). Again, the first argument is the path to the program to execute or the file (depending on the p option) and the second the array of \texttt{char*}. \marginnote{\texttt{v}: vector} In this case, if we wanted to execute the same \texttt{ls -l /} command, we would pass \texttt{\{"/bin/ls", "ls", "-l", "/", NULL\}} to \texttt{execv}.
+\end{itemize}
+If it is further followed by
+\begin{itemize}
+    % ref http://vitaly_filatov.tripod.com/ng/tc/tc_000.64.html
+    \item \texttt{e}, then it expects  \texttt{char* envp} after the NULL-terminated arguments to the program. \texttt{envp} points to an array of pointers that in turn point to strings
+    that define environment variables. \marginnote{\texttt{e}: environ
+    ment} These strings usually have the form:  \texttt{ENVVAR=value} where \texttt{ENVVAR} is the name of the environment
+    variable and \texttt{value} is the string value to set it to.  The \texttt{envp} array is \textit{also} terminated by a NULL pointer.  If \texttt{envp} is NULL, then the
+    child process acquires the environment of the calling process. For example, we could have
+    % ref http://openbook.rheinwerk-verlag.de/linux_unix_programmierung/Kap07-009.htm
+    \begin{verbatim}
+    char * environment [4];
+    environment [0]="SHELL=/bin/csh";
+    environment [1]="LOGNAME=heino";
+    environment [2]="OSTYPE=LiNuX";
+    environment [3]=NULL;
+    \end{verbatim}
+    % ref https://stackoverflow.com/questions/21558937/i-do-not-understand-how-execlp-works-in-linux9
+    \item \texttt{p}, it will search for the file using the current environment \marginnote{\texttt{p}: PATH} variable PATH, which usually includes /bin/, /usr/bin/, etc.
+\end{itemize}
+Their differences are summarised in the table below.
+\begin{figure}[H]
+    % ref https://zodml.org/sites/default/files/Advanced_Programming_in_the_UNIX_Environment%2C_3rd_Edition.pdf p288
+    \centering
+    \includegraphics[height=3cm]{img/exec_family_table.png}
+    \caption{The 6 exec functions}
+\end{figure}
+
+\subsubsection{exec basic examples}
+
+
+Some basic examples that show the usage of  the exec family are listed below.
+% see also https://zodml.org/sites/default/files/Advanced_Programming_in_the_UNIX_Environment%2C_3rd_Edition.pdf p288
+
+
+%%% table of code
+\lstset{
+  language=C,
+  basicstyle=\small,
+  breaklines=true,
+  backgroundcolor=\color{white}
+ }
+
+\begin{tabular}{0.5\textwidth|0.5\textwidth}
+\textbf{execl.c } &  \textbf{execv.c}\\
+\begin{lstlisting}
+#include <unistd.h>    // exec*
+
+int main () {
+	/* Executes ls -l / */
+	char* cmd = "/bin/ls";// executable
+	char* argv0 = "ls";   // name to use
+	char* argv1 = "-l";   // cmd arg
+	char* argv2 = "/";    // cmd arg
+	char* argv3 = NULL;   // terminator
+
+	return execl (cmd, argv0,  argv1,
+	argv2, NULL);
+}
+\end{lstlisting}&
+
+\begin{lstlisting}
+#include <unistd.h>    // exec*
+
+int main () {
+	/* Executes ls -l / */
+	char* cmd = "/bin/ls";
+	char* argv[4];
+	argv[0] = "ls";
+	argv[1] = "-l";
+	argv[2] = "/";
+	argv[3] = NULL;
+
+	return execv(cmd,  argv);
+}
+\end{lstlisting}\\
+
+\textbf{execlp.c} & \textbf{execvp.c} \\
+\begin{lstlisting}
+#include <unistd.h>    // exec*
+
+int main () {
+	/* Executes ls -l / */
+	char* cmd = "ls";     // executable
+	char* argv0 = "ls";   // name to use
+	char* argv1 = "-l";   // cmd arg
+	char* argv2 = "/";    // cmd arg
+	char* argv3 = NULL;   // terminator
+
+	return execlp (cmd, argv0,  argv1,
+	argv2, NULL);
+}
+\end{lstlisting}&
+\begin{lstlisting}
+#include <unistd.h>    // exec*
+
+int main () {
+	/* Executes ls -l / */
+	char* cmd = "ls";
+	char* argv[4];
+	argv[0] = "ls";
+	argv[1] = "-l";
+	argv[2] = "/";
+	argv[3] = NULL;
+
+	return execvp (cmd,  argv);
+}
+\end{lstlisting}\\
+
+\textbf{execle.c} & \textbf{execve.c }\\
+\begin{lstlisting}
+#include <unistd.h>
+#include <stdio.h>
+
+int main() {
+	/* Executes env given some arguments
+	in  envp */
+	char* fpath = "/bin/sh";
+    char* arg[] = { fpath, "-c", "env",
+                    NULL };
+    char* envp[] =
+    {
+        "HOME=/",
+        "PATH=/bin:/usr/bin",
+		"USER=leo", 
+		"TERM=xterm", 
+		NULL
+    };
+    execle(fpath, arg[0], arg[1], 
+        arg[2], NULL, envp);
+    fprintf(stderr, "Oops!\n");
+    return -1;
+}
+
+\end{lstlisting}&
+\begin{lstlisting}
+#include <unistd.h>
+#include <stdio.h>
+
+int main() {
+	/* Executes env given some arguments   
+	in  envp */
+	char* fpath = "/bin/sh";
+    char* arg[] = { fpath, "-c", "env", 
+                    NULL };
+    char* envp[] =
+    {
+        "HOME=/",
+        "PATH=/bin:/usr/bin",
+		"USER=leo", 
+		"TERM=xterm", 
+       	NULL 
+    };
+    execve(fpath, arg, envp);
+    fprintf(stderr, "Oops!\n");
+    return -1;
+}
+
+\end{lstlisting}\\
+\end{tabular} 
+%%% table of code end
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+\lstset{style=code1}
+
+In the \texttt{exece} examples, we do not expect to hit the ``Oops!'' message as the program image will be replace with the one called by \texttt{exece} unless an error occurs. Also, the system will append some additional environment variables to the defined ones, so the output looks something like:
+\begin{verbatim}
+PWD=/tmp
+HOME=/
+TERM=xterm
+USER=leo
+SHLVL=0
+PATH=/bin:/usr/bin
+_=/bin/env
+\end{verbatim}
+The bug below demonstrates why it's always good to check if \texttt{exec} executed without errors.
+\begin{exmp}
+What's wrong with this code?
+% ref https://github.com/angrave/SystemProgramming/wiki/Process-Control%2C-Part-1%3A-Wait-macros%2C-using-signals
+\textup{
+\lstinputlisting[language=c,caption={How many processes are created? (\detokenize{src/exec_fork_bug.c)}.}, ]{src/exec_fork_bug.c}
+} % textup
+\end{exmp}
+\marginnote{It's a good practice to \texttt{exit} after \texttt{exec} in case it fails.}We misspelled \texttt{ehco}, so we can't \texttt{exec} it. The first time, instead of being replaced with another program, the child will continue and get forked in 2. Then the two children will do the same and get forked in $4,\ldots, ... 2^{10}$ processes, ``fork bombing'' out machine. How could we prevent this? Put an exit right after exec so in case exec fails we won't end up fork bombing our machine.
+
+
+
+\subsubsection{The \texttt{fork-exec} pattern}
+
+A common pattern to run a subprogram within a program is first to fork the process
+and then exec the subprogram. This allows the calling program to continue execution
+in the parent process while the calling program is replaced by the subprogram in the child process
+
+The code below demonstrates how to replace the child with another program which runs the \texttt{ls -l /} command.
+
+
+
+\lstinputlisting[label={src:fork-exec},language=c,caption={Using fork followed by exec (\detokenize{src/fork-exec.c)}.}, ]{src/fork-exec.c}
+
+The output of this looks something like:
+\begin{verbatim}
+done with main program
+total 52
+lrwxrwxrwx   1 root root     7 Dec  6  2018 bin -> usr/bin
+drwxr-xr-x   3 root root  4096 Apr  4 22:30 boot
+drwxr-xr-x  21 root root  3580 Jun  5 17:53 dev
+<-- omitted -->
+\end{verbatim}
+Notice that the output of ls (child) appears \textit{after} the parent has terminated.
+
+% see https://github.com/angrave/SystemProgramming/wiki/Forking,-Part-2:-Fork,-Exec,-Wait
+% see https://www.softprayog.in/programming/creating-processes-with-fork-and-exec-in-linux
+
+
+
+\subsection{Controlling processes with signals}
+
+\TODO
+% see https://www.geeksforgeeks.org/signals-c-language/
+% https://www.thegeekstuff.com/2012/03/catch-signals-sample-c-code/
+% https://gist.github.com/aspyct/3462238
+
+
+
+
+\subsection{Waiting for process termination}
+
+
+\subsubsection{Why wait for children to complete?}
+
+If we run the code in Listing \ref{src:fork-exec}, it is not certain whether the child or parent will finish first and in general, this cannot be predicted when we use the fork-exec model. That’s because the child process, in which ls is run, is scheduled independently of the parent process.
+
+In some situations, though, it is desirable for the parent process to wait until one or
+more child processes have completed.This can be done with the wait family of system
+calls. \marginnote{Why use the wait functions?}These functions allow you to wait for a process to finish executing, and enable
+the parent process to retrieve information about its child’s termination.
+
+% signals more: https://www.linuxjournal.com/article/3985,
+% https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/19/lec.html
+Another reason why wait should be used by the parent is because When a process ends via \texttt{exit} or \texttt{return}, all of the memory and resources associated with it are deallocated so they can be used by other processes. However, the process's entry in the process table remains. When a process terminates, the kernel asynchronously sends a SIGCHLD \emphasis{signal} (software interrupt) to the parent. The parent can read the child's exit status by executing the wait system call, which reads the SIGCHLD signal. Parent, on receipt of SIGCHLD reaps the status of the child from the process table.
+
+% see https://books.google.de/books?id=aOh1DwAAQBAJ&pg=PA369&lpg=PA369&dq=linux+why+does+parent+have+to+wait+for+children&source=bl&ots=s1gnbguML1&sig=ACfU3U2Xhcdebz4wznuLMNZsu11eJyPdvA&hl=en&sa=X&ved=2ahUKEwjmtqHgh-HiAhWGL1AKHZzsDLk4ChDoATABegQIBBAB#v=onepage&q=linux%20why%20does%20parent%20have%20to%20wait%20for%20children&f=false
+When we use the fork-exec model and a child process runs, Unix allocates it memory (for opened files etc.) and a PID in the process table. When the child terminates, the system flushes and closes all opened files and data structures and sends an asynchronous SIGCHLD signal to the parent but does not remove the child's PID entry from the process table. Without using wait(), the parent fails to catch the SIGCHLD hence does not remove the terminated child's PID from the process table. That PID corresponds to a dead process (\emphasis{zombie process}). In the shell, zombie processes can be listed with the \texttt{ps Z} command.
+
+Zombie processes shouldn't exist because the amount of kernel memory although they take insignificant memory, they reserve (dead) PID entries. A way to kill a zombie process is by killing its parent. 
+
+On the other hand, if the parent terminates while its children are running, then its "zombie" children (if any) are adopted by init. init automatically performs a wait to remove the zombies. This type of zombie processes are called \emphasis{orphans}.
+
+The figure below shows how a healthy fork-exec-wait cycle should look like.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=9.5cm]{img/fork-exec-wait cycle.png}
+    \caption{fork-exec-wait model overview.}
+\end{figure}
+
+
+
+\subsubsection{Creating and observing a zombie process}
+
+In Listing \ref{src:fork-child-parent}, the parent doesn't call \texttt{wait}. As a result, a zombie child process is created for a breif amount of time from the moment the child terminates till the parent returns. To observe, add the header
+\begin{verbatim}
+#include <wait.h>
+\end{verbatim}
+add the line
+\begin{verbatim}
+sleep(100);
+\end{verbatim}
+after the if-else statement. Then for the next 100 seconds, a zombie will be created. Run the program and in another terminal get the child's PID:
+\begin{verbatim}
+<-- omitted -->
+This is the child process,  with ID 8630
+\end{verbatim}
+Run \texttt{ps Z} in another terminal to list the zombie processes and 8630 should be in them:
+\begin{verbatim}
+-                                8630 pts/0    S+     0:00 ./a.out
+\end{verbatim}
+
+
+
+\subsubsection{The \texttt{wait} system call}
+% https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/14/lec.html
+The \texttt{wait()} system call is used by a parent process to wait for the status of the child to change. wait() suspends the execution of the calling process until one of its child processes exits or a signal is received. A child process may terminate due to any of these:
+\begin{itemize}
+    \item It calls exit();
+    \item It returns (an int) from main
+    \item It receives a signal (from the OS or another process) whose default action is to terminate. 
+\end{itemize}
+
+
+\subsubsection{The \texttt{wait} family of functions}
+There are the \texttt{wait, waitpid, waitid, wait3, wait4} in the wait family, but we will only concern ourselves with the first two:
+
+% see http://man7.org/linux/man-pages/man2/wait.2.html
+% see https://webdocs.cs.ualberta.ca/~tony/C379/C379Labs/Lab3/wait.html
+% see http://poincare.matf.bg.ac.rs/~ivana/courses/ps/sistemi_knjige/pomocno/apue/APUE/0201433079/ch08lev1sec6.html
+\begin{verbatim}
+#include <sys/types.h>
+#include <sys/wait.h>
+
+pid_t wait(int *wstatus);
+pid_t waitpid(pid_t pid, int *wstatus, int options);
+\end{verbatim}
+% ref https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.3.0/com.ibm.zos.v2r3.bpxbd00/rtwaip.htm:
+Regarding the arguments, the values they can take are for \texttt{pid\_t pid} \marginnote{\texttt{wait} and \texttt{waitpid} calls}
+\begin{itemize}
+    \item $<-1$, meaning wait for any child process whose process group ID is equal to the absolute value of pid.
+    \item $-1$, meaning wait for any child process.
+    \item 0, meaning wait for any child process whose process group ID is
+              equal to that of the calling process.
+    \item $> 0$, meaning wait for the child whose process ID is equal to the value of pid.
+\end{itemize}
+\texttt{int *wstatus}:
+\begin{itemize}
+    \item Points to a location where \texttt{waitpid()} can store a status value. This status value is zero if the child process explicitly returns zero status. Otherwise, it is a value that can be analysed with the certain \textit{status analysis macros} described later.
+\end{itemize}
+\texttt{int options}:
+\begin{itemize}
+    \item \texttt{WNOHANG}: Return immediately if no child has exited.
+    \item \texttt{WUNTRACED}: Also return if a child has stopped. Status for traced children which have stopped is provided even if this option is not specified.
+    \item \texttt{WCONTINUED}: Also return if a stopped child has been resumed by delivery of \texttt{SIGCONT}.
+\end{itemize}
+%ref https://zodml.org/sites/default/files/Advanced_Programming_in_the_UNIX_Environment%2C_3rd_Edition.pdf 238
+\marginnote{If an error had occured after waiting, we know it from the return value}Return value (same for both):
+\begin{itemize}
+    \item process ID if OK,
+    \item if non-blocking option and no zombies around,
+    \item or -1 on error.
+\end{itemize}
+As mentioned before the return status of the child in \texttt{waitpid} is stored in \texttt{int\& wstatus} and does not directly provide useful information but can be analysed with the \texttt{WIF*} macros. The top row shows what the macro means if it evaluates to true and the bottom how its exit code is interpreted.
+
+% see https://www.gnu.org/software/libc/manual/html_node/Process-Completion-Status.html
+\begin{enumerate}
+    \item \texttt{WIFEXITED(status) == true} then the child exited normally
+and \texttt{WEXITSTATUS(status)} is the return code when child exits.
+    \item \texttt{WIFSIGNALED(status) == true} then the child exited because a signal was not caught and 
+\texttt{WTERMSIG(status)} gives the number of the terminating signal.
+    \item \texttt{WIFSTOPPED(status) == true} then the child is stopped and 
+\texttt{WSTOPSIG(status)} is gives the number of the stop signal
+\end{enumerate}
+
+To summarise, \texttt{waitpid} is more flexible as is allows a process to be made non-blocking via \texttt{options} and can select which child process to wait via \texttt{pid}.
+
+
+
+
+\subsubsection{Practical examples of \texttt{wait()} call}
+
+
+% see also https://github.com/angrave/SystemProgramming/wiki/Process-Control,-Part-1:-Wait-macros,-using-signals
+
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Waiting for child and getting its status (\detokenize{src/fork_exec_wait.c)}.}, label=src:mylabel]{src/fork_exec_wait.c}
+}
+\end{exmp}
+Output:
+\begin{verbatim}
+total 2080564
+drwxr-xr-x   2 root root       4096 Mai 13 11:48 bin
+drwxr-xr-x   3 root root       4096 Mai 23 10:06 boot
+drwxrwxr-x   2 root root       4096 Aug 30  2018 cdrom
+drwxr-xr-x  18 root root       3960 Jun 13 09:06 dev
+<-- omitted -->
+the child process exited normally, with exit code 0
+\end{verbatim}
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Status code of multiple children (\detokenize{src/wait_pid_array.c)}.}, label=src:mylabel]{src/wait_pid_array.c}
+}
+\end{exmp}
+Output:
+\begin{verbatim}
+Child 5315 terminated with status: 100
+Child 5316 terminated with status: 101
+Child 5317 terminated with status: 102
+Child 5318 terminated with status: 103
+Child 5319 terminated with status: 104
+\end{verbatim}
+
+
+
+\begin{exmp}
+\textup{
+\lstinputlisting[language=c,caption={Status code of multiple children (\detokenize{src/fork_sync.c)}.}, label=src:mylabel]{src/fork_sync.c}
+}
+\end{exmp}
+Output:
+\begin{verbatim}
+HP: hello from parent
+HC: hello from child
+Bye
+CT: child has terminated
+Bye
+\end{verbatim}
+In this case, when the parent sees the \texttt{wait()}, it pauses its execution and wait's for the child's if branch to finish. The following diagram explains the flow.
+% ref https://www.cs.cmu.edu/afs/cs/academic/class/15213-f10/www/lectures/12-exceptions.pdf
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=1.75cm]{img/fork_sync_diagram.PNG}
+    \caption{Synchronising child and parent in the example.}
+\end{figure}
+
+
+
+% https://zodml.org/sites/default/files/Advanced_Programming_in_the_UNIX_Environment%2C_3rd_Edition.pdf 239
+% https://www.usna.edu/Users/cs/aviv/classes/ic221/s16/lec/14/lec.html
+% https://www.linuxtechi.com/learn-use-fork-vfork-wait-exec-system-calls-linux/
+% https://www.geeksforgeeks.org/wait-system-call-c/
+% http://www.it.uu.se/education/course/homepage/os/vt18/module-2/process-management/
+% https://stackoverflow.com/questions/8959809/c-wait3-int-status-or-int-stat-loc
+
+%see https://www.cs.cmu.edu/~213/code/15-ecf-signals/forks.c
+
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\appendix
+
+%\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+%\newpage
+%\subsection{Appendix Example}
+%\label{app:my_cool_appendix}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+\end{document}
