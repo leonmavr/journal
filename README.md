@@ -7,6 +7,8 @@ This repository contains reference notes on different topics such as computer vi
 - [ ] computer vision - face recognition and Haar classifier
 - [ ] machine learning - CNNs with Pytorch
 - [ ] C - integer casting rules
+- [x] Unix systems programming - processes
+- [ ] Unix systems programming - shared memory, pipes
 
 ## Repository structure
 Each topic is readable from one pdf and its Latex source is provided.
