@@ -6,7 +6,7 @@ This repository contains reference notes on different topics such as computer vi
 - [ ] computer vision - features
 - [ ] computer vision - face recognition and Haar classifier
 - [ ] machine learning - CNNs with Pytorch
-- [ ] C - integer casting rules
+- [x] C - integer promotion rules
 - [x] Unix systems programming - processes
 - [ ] Unix systems programming - shared memory, pipes
 
