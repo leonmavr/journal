@@ -161,7 +161,6 @@
 \begin{enumerate}[label=\roman*)]
 \item $(\alpha_\nu)$ με $\alpha_\nu = \frac{\nu+1}{3^\nu + 1}$
 \item $(\beta_\nu)$ με $\beta_\nu = \frac{\nu!}{1\cdot 3 \cdot \ldots \cdot (2\nu - 1)}$
-\item \url{https://math.stackexchange.com/questions/2464504/checking-the-nature-of-the-sequence-x-n-frac-left-lfloor-xn-right-rfloor?rq=1}
 \end{enumerate}
 }
 
@@ -429,10 +428,10 @@ x = \sqrt[\leftroot{-1}\uproot{1}3]{x^2 + 4} \Leftrightarrow x = 2
     \]
     Για το πρώτο
     \[
-    \lim {{\left[ {{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}} \right]}^{\frac{1}{\n}}}=\lim \sqrt[\n]{{{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{n}^{2}}}}}=\lim \sqrt[\n]{{{e}^{2}}}
+    \lim {{\left[ {{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}} \right]}^{\frac{1}{\n}}}=\lim \sqrt[\n]{{{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}}}=\lim \sqrt[\n]{{{e}^{2}}}
     \]
     \[
-    \therefore \lim {{\left[ {{\left( 1+\frac{2}{{{n}^{2}}} \right)}^{{{n}^{2}}}} \right]}^{\frac{1}{n}}}=1 \tag{4}
+    \therefore \lim {{\left[ {{\left( 1+\frac{2}{{{\n}^{2}}} \right)}^{{{\n}^{2}}}} \right]}^{\frac{1}{\n}}}=1 \tag{4}
     \]
     \[
     \lim \sqrt[\n]{{{e}^{2}}}\ \ \overset{\sigma .\ 170}{\mathop{=}}\,1
@@ -465,12 +464,12 @@ x = \sqrt[\leftroot{-1}\uproot{1}3]{x^2 + 4} \Leftrightarrow x = 2
 \begin{enumerate}[label=\roman*)]
 \item
 \item
-Θέτουμε $\n+1=\mu \;\ \therefore\ \underset{n\to \infty }{\mathop{\lim }}\,\mu =\infty $, τότε η $\a_\n$ ξαναγράφεται
+Θέτουμε $\n+1=\mu \;\ \therefore\ \underset{\n\to \infty }{\mathop{\lim }}\,\mu =\infty $, τότε η $\a_\n$ ξαναγράφεται
 \[
 \a_\n = \left(2 - \frac{\mu - 1}{\mu} \right)^{\mu-1} = \left(1 + \frac{1}{\mu} \right)^{\mu-1} 
 \]
 \[
-\therefore \lim \left( {{\alpha }_{n}} \right)=\lim \left[ {{\left( 1+\frac{1}{m} \right)}^{m}}/\left( 1+\frac{1}{m} \right) \right]=e/1=e
+\therefore \lim \left( {{\alpha }_{\n}} \right)=\lim \left[ {{\left( 1+\frac{1}{\mu} \right)}^{\mu}}/\left( 1+\frac{1}{\mu} \right) \right]=e/1=e
 \]
 
 \item Χρησιμοποιούμε την ανισότητα Bernouli
@@ -530,6 +529,16 @@ Mε επαγωγή για μονοτονία. Ισχύει $\a_2 \geq \a_1$. Υ�
 L = \sqrt{6+L} \Rightarrow L = 3
 \]
 
+\pbox{
+\problem{\href{https://math.stackexchange.com/questions/2464504/checking-the-nature-of-the-sequence-x-n-frac-left-lfloor-xn-right-rfloor?rq=1}{πηγή}}
+Η ακολουθία $x_\n$ με $x_\n = \frac{\left \lfloor{x\n}\right \rfloor }{\n}$ συνγκλίνει; Αν ναι, ως προς ποιον αριθμό; $\left \lfloor{.}\right \rfloor$ δηλώνει το ακέραιο μέρος.
+}
+Από τον ορισμό του ακέραιου μέρους, όπου $\{ . \}$ το δεκαδικό:
+\begin{gather*}
+x_\n = \frac{x\n - \{x\n \} }{\n} =x -  \frac{\{xn \}}{n}\\
+\therefore \lim x_\n = x
+\end{gather*}
+, αφού $0 \leq  \{x\n \} < 1 $.
 
 %\begin{itemize}
     %\item \url{https://math.stackexchange.com/questions/1778926/challenge-problem-show-this-sequence-is-convergent/1778947}
