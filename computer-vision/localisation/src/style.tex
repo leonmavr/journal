@@ -262,6 +262,10 @@
 {.2ex \@plus.2ex }
 {\normalfont\small\sffamily\bfseries\textcolor{DarkestPink}}}                        
 
+\makeatletter
+\let\oldPYGdefault\PYGdefault
+\def\PYGdefault#1#2{\hbox{\oldPYGdefault{#1}{#2}}\allowbreak{}}
+\makeatother
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Numberings, counters and spacings
@@ -316,15 +320,16 @@
 % double bars as in norm
 %\newcommand{\norm}[1] {\left|\left| #1 \right| \right|} 
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
-\newcommand{\trans}[1]{#1^{\top}}
+\newcommand{\trans}{^{\top}}
 
 \newcommand{\mean}[1]{\bar{#1}}
 \newcommand{\var}{\sigma^2}
 
 \newcommand{\partdevx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevt}[1]{\frac{\partial #1}{\partial t}}
 \newcommand{\partdevxx}[1]{\frac{\partial #1}{\partial x}}
 \newcommand{\partdevxn}[1]{\frac{\partial^n #1}{\partial x^n}}
-\newcommand{\partdevy}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevy}[1]{\frac{\partial #1}{\partial y}}
 \newcommand{\partdevyy}[1]{\frac{\partial #1}{\partial y}}
 \newcommand{\partdevyn}[1]{\frac{\partial^n #1}{\partial y^n}}
 
@@ -397,3 +402,5 @@
 %algorithmic
 \algdef{SE}[DOWHILE]{Do}{doWhile}{\algorithmicdo}[1]{\algorithmicwhile\ #1}%
 
+%%% otherwise minted goes off the page
+\setmintedinline{breaklines}

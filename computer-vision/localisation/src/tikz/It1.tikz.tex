@@ -1,0 +1,92 @@
+\usetikzlibrary{calc}
+
+\definecolor{DarkPink}{rgb}{0.55, 0.05, 0.37}
+
+\newcommand*{\GridSize}{8}
+
+\newcommand*{\ColorCells}[1]{% #1 = list of x/y/color
+  \foreach \x/\y/\color/\text in {#1} {
+    \node [fill=\color, draw=black, thick ,minimum size=1cm, line width=.8pt] 
+      at (\x-.5,\GridSize+0.5-\y) [text=black] {\text};
+    }%
+}%
+
+\tikzset{near start abs/.style={xshift=1cm}}
+%%%%%
+
+
+%\listfiles
+\scalebox{0.42}{ %%% scale it
+\begin{tikzpicture}
+    \begin{scope}[thick,local bounding box=name]
+    
+         \ColorCells{       
+            1/1/black!28/10,
+            1/2/black!28/10,
+            1/3/black!28/10,
+            1/4/black!28/10,
+            1/5/black!28/10,
+            1/6/black!28/10,
+            1/7/black!28/10,
+            1/8/black!28/10,
+            2/1/black!28/10,
+            2/2/black!28/10,
+            2/3/black!28/10,
+            2/4/black!28/10,
+            2/5/black!28/10,
+            2/6/black!28/10,
+            2/7/black!28/10,
+            2/8/black!28/10,
+            3/1/black!30/0,
+            3/2/black!30/0,
+            3/3/black!12/150,
+            3/4/black!12/150,
+            3/5/black!12/150,
+            3/6/black!12/150,
+            3/7/black!30/0,
+            3/8/black!30/0,
+            4/1/black!30/0,
+            4/2/black!30/0,
+            4/3/black!12/150,
+            4/4/black!12/150,
+            4/5/black!12/150,
+            4/6/black!12/150,
+            4/7/black!26/30,
+            4/8/black!26/30,
+            5/1/black!30/0,
+            5/2/black!30/0,
+            5/3/black!12/150,
+            5/4/black!12/150,
+            5/5/black!12/150,
+            5/6/black!12/150,
+            5/7/black!25/40,
+            5/8/black!25/40,
+            6/1/black!30/0,
+            6/2/black!30/0,
+            6/3/black!12/150,
+            6/4/black!12/150,
+            6/5/black!12/150,
+            6/6/black!12/150,
+            6/7/black!25/40,
+            6/8/black!25/40,
+            7/1/black!30/0,
+            7/2/black!30/0,
+            7/3/black!26/30,
+            7/4/black!26/30,
+            7/5/black!25/40,
+            7/6/black!25/40,
+            7/7/black!25/40,
+            7/8/black!25/40,
+            8/1/black!30/0,
+            8/2/black!30/0,
+            8/3/black!26/30,
+            8/4/black!26/30,
+            8/5/black!25/40,
+            8/6/black!25/40,
+            8/7/black!25/40,
+            8/8/black!25/40
+         }
+    \draw [draw=magenta!60!black,fill=magenta, fill opacity=0.2,ultra thick](1,7) rectangle (4,4);
+    \end{scope}
+\end{tikzpicture}
+} %%% case

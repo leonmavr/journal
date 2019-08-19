@@ -549,10 +549,603 @@ The code provided by OpenCV's documentation has been lazily re-written and made 
 
 \subsection{Optical Flow}
 
+\subsubsection{What's the goal of optical flow?}
+
+% ref https://dsp.stackexchange.com/questions/1703/what-does-the-smoothing-optical-flow-mean
+Optical flow attempts to specify how much each image pixel moves between two (or more) adjacent images $H(x,y)$ and $I(x,y)$ between time $t$ and $t+dt$. It does not always correspond to the object's physical motion, but it is the \textit{apparent motion}. It attempts to represent the flow for each pixel a displacement vector $(u,\, v)$.
+
+% ref https://courses.cs.washington.edu/courses/cse455/16wi/notes/14_Optical_Flow.pdf
+Optical flow is ideally but not always caused by the object's motion. Three factors generation motion in imaging process -- light, object, camera. Varying either of them causes motion, e.g.
+\begin{enumerate}
+    \item Static camera, moving objects (surveillance)
+    \item Moving camera, static scene (3D capture)
+    \item Moving camera, moving scene (sports, movie)
+    \item Static camera, moving objects, moving light (time lapse)
+\end{enumerate}
+Because we deal with motion through frames, we consider the coordinates and the intensity as a function of time, e.g. $x:=x(t),\ y:=y(t), I := I\left(x(t),y(t),t\right)$.
+
+\subsubsection{The aperture problem}
+
+The optical flow does not have a global view of the image and the object in it but it only sees a segment of it through a so-called \emphasis{aperture}. Estimating the motion of a body from just a part of it rarely yields the correct motion vector.
+
+% ref http://www.sci.utah.edu/~acoste/uou/3dcv/project4/ArthurCOSTE_project4.pdf
+Let's consider two cases of Euclidean space motion -- (1) a rectangle moving horizontally and (2) a rectangle rotating around its bottom left vertex. The displacement vectors for each case are shown below.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.85]{img/opt_flow/rect_camera.PNG}
+    \caption{The two types of motion examined w.r.t. the camera position.}
+\end{figure}
+
+\begin{multicols}{2}
+ \begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/rect_translation.PNG}
+    \caption{Translation of a rectangle in the $xy$ space.}
+\end{figure}   
+  
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/rect_rotation.PNG}
+    \caption{Translation of a rectangle in the $xy$ space.}
+\end{figure}
+\end{multicols}
+In the first case (translation), looking through an aperture (window) at the right edge, one would estimate that the rectangle moves NW (Fig. \ref{fig:aperture_translation}). 
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/aperture_translation.png}
+    \caption{Aperture problem for translation. Left column; object and aperture at $t$, right column; at $t+dt$.}
+    \label{fig:aperture_translation}
+\end{figure}
+
+In the second case, the aperture reconstructs the motion of the bottom edge but not of the top (Fig. \ref{fig:aperture_rotation}).
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/aperture_rotation.PNG}
+    \caption{Aperture problem for rotation.}
+    \label{fig:aperture_rotation}
+\end{figure}
+A solution to solve this issue is by considering a corner of the object, which is a better ``feature point''. This  will allow us to disambiguate the local displacement estimation.
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/aperture_corner.PNG}
+    \caption{Use of a corner to resolve aperture problem in translation.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=0.8]{img/opt_flow/aperture_corner2.PNG}
+    \caption{Use of a corner to resolve aperture problem in rotation.}
+\end{figure}
+As we can see analysing motion from a corner of the object is a good solution to disambiguate
+the aperture problem. So the solution is to find corner features where the motion is unambiguous.
+An other solution is to consider at the same time multiple location on edges to find the accurate
+motion by gathering information from various parts of the objects assuming that we are under the
+rigid body assumption which gives to each local part of the object the same global motion.
 
 
-\subsection{Lukas-Kanade tracking}
+\subsubsection{Theoretical assumptions -- brighness constancy}
 
+
+We assume the following three key points before we formulate the problem:
+\begin{enumerate}
+    \item As the object moves from one frame to the next, the intensity of its points remains roughly the same (\emphasis{brightness constancy}).
+    \item Points do not move very far between consecutive frames, so the optical flow vector $(u,v)$ must be small (\emphasis{small motion}).
+    \item Points move like their neighbours (\emphasis{spatial coherence, a.k.a. velocity smoothness}).
+\end{enumerate}
+In this section, explore what can be derived from constraints (1) and (2). We want to find the optical flow vector for each pixel, defined as;
+\begin{definition}
+% ref https://vision.in.tum.de/research/optical_flow_estimation
+\emphasis{Optical flow} describes a vector field, where a displacement vector is assigned to certain pixel position, that points to where that pixel can be found in another frame.
+\end{definition}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.25cm]{img/opt_flow/small_motion.PNG}
+    \caption{Two successive frames.}
+\end{figure}
+% see detailed, not ref yet: http://www.cs.cmu.edu/~16385/s17/Slides/14.1_Brightness_Constancy.pdf
+We consider the brightness as a function of $x,y$ and time $t$. We consider two consecutive frames between times $t$ and $t+dt$ ($dt$ is essentially the fps time, e.g. $20 \, ms$). Let the optical flow \textit{velocity} be $(u,v)$. For an infinitesimal $dt$, the optical flow \textit{displacement} vector is $(u\:dt,v\:dt)$.
+% re fhttp://www.cs.cmu.edu/~16385/s17/Slides/14.1_Brightness_Constancy.pdf
+\begin{definition}
+For a really small space-time step, the brightness of an object between two consecutive frames is the same
+\begin{equation}
+    I(x,y,t) = I(x+udt, y+vdt,t+dt )
+    \label{eq:brightness_const}
+\end{equation}
+\end{definition}
+Taking Taylor series around location and time $x=x_0=x(t_0),\: y=y_0, \: t=t_0$ (note that $x=x(t), \ y=y(t)$) to approximate $I(x+udt, y+vdt,t+dt )$ in \eqref{eq:brightness_const}:
+\begin{gather}
+I(x_0,y_0,t_0) + \left.\partdevx{I}\partdevt{x}\right|_{x=x0} + \left.\partdevy{I}\partdevt{y}\right|_{y=y0} + \left.\partdevt{I}\right|_{t=t0} = I(x_0,y_0,t_0) \Rightarrow \nonumber \\
+\left.\partdevx{I}\right|_{x=x0}u + \left.\partdevy{I}\right|_{y=y0}v + \left.\partdevt{I}\right|_{t=t0} =0 \Rightarrow \\
+I_xu + I_yv + I_t = 0 \label{eq:opt_flow_unknowns}
+\end{gather}
+Recall that $(u,v) =( \partdevt{x},\partdevt{y})$ is the optical flow velocity. It's not important in this tutorial, but note that the last equation is alternatively written as
+\begin{gather}
+    \begin{bmatrix}I_x \\ I_y \end{bmatrix}\begin{bmatrix}u & v \end{bmatrix} + I_t = 0 \Rightarrow \\
+    \begin{bmatrix}u & v \end{bmatrix} = -\frac{I_t}{I_x^2 + I_y^2}\begin{bmatrix}I_x & I_y \end{bmatrix} \Rightarrow \label{eq:vec_grad_vec} \\
+    \left(\nabla \textit{I}(x,y,t)\right)^T\cdot \begin{bmatrix}u & v \end{bmatrix} + I_t= 0
+\end{gather}
+\begin{corollary}
+\eqref{eq:vec_grad_vec} also tells us that the optical flow velocity vector $(u,v)$ is paralllel to the intensity gradient vector $(I_x,I_y)$.
+\end{corollary}
+
+
+% see https://dsp.stackexchange.com/questions/40722/prewitt-operator-and-central-difference
+In \eqref{eq:opt_flow_unknowns}, $I_x, I_y$ and $I_t$  are known and computed at some coordinate $(x_0,y_0,t_0)$ are $u,v$ are to be found. In that equation, the derivatives are continuous and calculated over $dt$. In practice, we adapt their definitions in the discrete domain, were $dt$ corresponds to the transition from frame $n$ to $n+1$ and $dx$ or $dy$ is the distance between the two pixels. The spatial partial derivatives for a pixel\footnote{For the whole image, one way to efficiently compute  $I_x$ is \emphasis{convolution} with the $\begin{bmatrix} 1 & 0 & -1\end{bmatrix}$ kernel and $I_y$ with the $\begin{bmatrix} 1 & 0 & -1\end{bmatrix}^T$ but this is out of scope of this tutorial.} can be computed, e.g. using the \emphasis{central definition}\footnote{Strictly, the image gradient (let's say in $x$) using the central definition of the discrete partial derivative is defined as $I_x = \tfrac{I(x+1,y) - I(x-1,y)}{2}$. However, if gradient magnitudes remain comparable in the same relative way, division by 2 is unnecessary. Another reason it's often ignored is the sometimes costly division and rounding to integer operation.} as simply the intensity difference between the E/W or N/S neighbours of the current pixel:
+\begin{equation}
+    I_x = I(x+1,y,t) - I(x-1,y,t), \quad I_y =I(x,y+1,t) - I(x,y-1,t)
+\end{equation}
+The time derivative is computed as
+\begin{equation}
+    I_t = I(x,y,t) - I(x,y,t-1)
+\end{equation}
+The figures below illustrate this. 
+\vspace{3cm}
+\begin{multicols}{2}
+ \begin{figure}[H]
+    \centering
+    \input{tikz/It1.tikz.tex}
+    \caption{$I(x,y,t-1)$}
+\end{figure}
+ \columnbreak
+ \begin{figure}[H]
+    \centering
+    \input{tikz/It2.tikz.tex}
+    \caption{$I(x,y,t)$}
+\end{figure}
+\end{multicols}
+
+\begin{multicols}{3}
+ 
+  \begin{figure}[H]
+    \centering
+    \input{tikz/Ixdiff.tikz.tex}
+    \caption{$I_y(x,y,t)$}
+\end{figure}
+ \columnbreak
+ 
+  \begin{figure}[H]
+    \centering
+    \input{tikz/Iydiff.tikz.tex}
+    \caption{$I_x(x,y,t)$}
+\end{figure}
+ \columnbreak
+ 
+  \begin{figure}[H]
+    \centering
+    \input{tikz/Itdiff.tikz.tex}
+    \caption{$I(x,y,t) - I(x,y,t-1)$}
+\end{figure}
+\end{multicols}
+For example, given the sequence $I(x,y,t-1)$ \footnote{Image values, such as $I_x$ are tyipically represented by an 8-bit integer (\mintinline{latex}{uint8}). In this case we allow them to be negative without attempting to convert to the $[0,255]$ range for simplicity.} and $I(x,y,t)$ in the figures below, for the top left pixel in under the aperture we'd have the optical flow equation:
+\begin{gather*}
+I_x(1,1,t)u + I_y(1,1,t)v + I_t(1,1)= 0 \Rightarrow \\
+100u + 100v + 140 = 0
+\end{gather*}
+
+\eqref{eq:opt_flow_unknowns} is called \emphasis{optical flow constraint equation} and there are a few more things it can tell us.
+
+In \eqref{eq:opt_flow_unknowns}, we have \textit{two unknowns and one equation}. The equations also tells that the component of optical flow perpendicular to the image gradient (parallel to the edge) cannot be measured. Indeed, if $(u,v)$ satisfies it and $(u\prime,v\prime)$ is parallel to the edge, therefore $\nabla I \cdot \begin{bmatrix}u\prime & v\prime \end{bmatrix} = 0$, then also $\nabla I \cdot \begin{bmatrix}u+u\prime & v+v\prime \end{bmatrix}^T + I_t = 0$. Therefore \textit{only the component of optical flow perpendicular to the edge can be determined}.
+\begin{multicols}{2}
+ \columnbreak
+\end{multicols}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.0cm]{img/opt_flow/opt_flow_edge.PNG}
+    \caption{Implication of brighness constraint equation -- optical flow along edge.}
+    %\label{fig:my_label}
+\end{figure}
+
+From another point of view, \eqref{eq:opt_flow_unknowns}  is rewritten as
+\begin{equation}
+    v = -\frac{I_x}{I_y}u - \frac{I_t}{I_y}
+\end{equation}
+tells that optical flow given just the brightness constraint lies anywhere in a straight line in the $(u,v)$ space as illustrated below.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.75cm]{img/opt_flow/opt_flow_straight_line.png}
+    \caption{Caption}
+    \label{fig:my_label}
+\end{figure}
+Suppose we have an optical flow that lies on the tip of $\boldsymbol{\rho}$ vector. Then if we decompose it in two vectors -- one normal to the line ($textbf{d}$) and one parallel ($\textbf{p}$), we have that the normal vector also points to the same optical flow lines. $d$ can be computed by the formula
+\begin{equation}
+    d =\frac{I_t}{\sqrt{I_x^2 + I_y^2}}
+\end{equation}
+In general, all vectors $(u,v)$ that line in the same optical flow line  can be decomposed as $d+p\prime$, where $p\prime$ is different and they have the same \emphasis{normal flow}.
+\begin{corollary}
+Only the \emphasis{normal flow} component $\textbf{d}$ of the optical flow can be estimated given the brightness constancy constraint.
+\label{cor:opt_flow_line}
+\end{corollary}
+\begin{exmp}
+% ref http://www.cs.umd.edu/~djacobs/CMSC426/OpticalFlow.pdf
+Suppose we look through a $3\times3$ apperture at the following part of an image: 
+\[
+I(x,y,t) = \begin{bmatrix}1 & 1 & 1\\ 2 & 2 & 2\\3 & 3 &3 \end{bmatrix}
+\]
+Suppose that the optical flow is $(u,v)=(1,1)$. Therefore from the brighness constancy constraint for the new image $I(x,y,t+1)$ we have $I(x+1,y+1,t+1) = I(x,y,t+1)\Rightarrow I(x+1,y+1,t+1) = \begin{bmatrix} ? & ? & ?\\ 1 & 1 & 1\\ 2 & 2 & 2\end{bmatrix}$. Find (again, assuming it's not known) the optical flow from \eqref{eq:brightness_const} given images $I(x,y,t)$ and $I(x,y,t+1)$.
+\end{exmp}
+\begin{soln}
+We will try to estimate it only for one pixel as the rest are similar, e.g. for the pixel at $(3,3)$:
+\[
+I(3,3,t) = 3, \; I(3,3,t+1) = 2 \Rightarrow I_t(3,3) = -1
+\]
+Also (assuming the $I_x(x,y) := I(x,y) - I(x-1,y)$ def/n for the discrete derivative), 
+\[
+I_x(3,3) = 3-3=0, \quad I_y(3,3) = 3-2=1
+\]
+So from the constraint equation:
+\[
+I_xu + I_yv + I_t = 0 \Rightarrow 0 + v = 1
+\]
+Therefore only one component of the optical flow can be estimated.
+\end{soln}
+
+
+The next sections describe how we can precisely determine the optical flow by introducing additional constraints.
+
+
+
+\subsubsection{(Optional) The aperture problem and barber's pole illusion}
+
+
+% see https://books.google.de/books?id=ZpnJDgAAQBAJ&pg=PA557&lpg=PA557&dq=barbers+pole+aperture+component+parallel+to+edge&source=bl&ots=XgKx1BiKtJ&sig=ACfU3U3gvGQWhn67_awTmuzuhMavV87Kxw&hl=en&sa=X&ved=2ahUKEwjZwIG3_7jiAhXGxqQKHQZACegQ6AEwC3oECAgQAQ#v=onepage&q=barbers%20pole%20aperture%20component%20parallel%20to%20edge&f=true
+Imagine observing a group of straight lines translating vertically through a small aperture (Fig. \ref{fig:line_motion}). Imagine the same group of lines moving horizontally as shown in the same figure.. In both cases, the perceived motion is diagonally, particularly perpendicularly to the line orientation. That happens to be the intensity gradient too, as predicted by Corollary \ref{cor:opt_flow_line}. Because the line ends extend beyond the field of view, the actual direction of motion cannot be determined. In Fig. \ref{fig:line_motion}, although the line moves differently in each case, the eye is tricked into detecting the same motion perpendicular to the orientation.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=6cm]{img/opt_flow/lines_motion.png}
+    \caption{(a) A straight line translating vertically at three time points. The line ends extend beyond the receptive field. The component of motion parallel to the line's orientation cannot be detected. (b) Only the component of motion perpendicular to the line orientation can be detected. (c) A line translating horizontally through the blue receptive field. (d) Because its ends are not visible, only the component of motion perpendicular to its orientation can be detected.}
+    \label{fig:line_motion}
+\end{figure}
+When looking at a barber pole, although it spins around the $z$ axis, therefore its stripes translate horizontally, it gives the perception that they move vertically. However, we saw that looking at a small part of the stripes through an aperture, they seem to move perpendicularly to their orientation -- not necessarily vertically. We will see that the key contributor to the apparent motion is the \textit{shape of the cylinder}. 
+
+Imagine we are looking at a cylinder stripe through three apertures -- one at each edge and one on a central stripe (Fig \ref{fig:barbers_pole} (b)). Then the two apertures at the edge resolve the ambiguity due to their motion relative to the edge. Combining all three sensors together, we get an upwards motion.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.5cm]{img/opt_flow/barbers_pole.png}
+    \caption{The barber pole illusion. (a) It rotates about a central axis, however the observers perceive a vertical motion. (b) The visible endpoints at the edge apertures appear translate vertically (black arrows). For the central aperture, because of the aperture problem, its motion is ambiguous (grey arrows), as only the component perpendicular to the orientation can be determined. The visual system relies on the unambiguous vertical motion of the line endings. (d) The shape of the pole (or aperture) determines the direction in which the stripes appear to translate. If a rectangular window is oriented horizontally, then the stripes will appear to translate horizontally because most of the visible endpoints appear to translate this way. If the stripes translate behind  square aperture, then the conflicting motions of the endpoints will be superimposed to the direction perpendicular to the line, which will give the illusion of diagonal motion, just like in case of a circular aperture.}
+    \label{fig:barbers_pole}
+\end{figure}
+Therefore the solution to unambiguous tracking is to track multiple ``good'' features together.
+
+
+
+
+\subsection{Lucas-Kanade method}
+
+% ref https://pdfs.semanticscholar.org/eec7/4fa786195ed9a8c754c989aa6b6eabf86ecd.pdf
+They key assumption behind Lucas-Kanade is \emphasis{spatial coherence}. Spatial coherence is the assumption that \textit{nearby pixels will move together}, typically because they are part of the same object.
+
+The spatial coherence constraint is applied to a pixel using a window of size $k\times k$. The assumption is that the neighbouring pixels in this window will have the same $(u,v)$. For example, in a $5\times5$ window and for each point $\textbf{p}_i$ in it (assuming greyscale input image), \eqref{eq:vec_grad_vec} applies 25 times:
+
+\begin{gather}
+I_t\left(\textbf{p}_i\right) + \nabla I\left(\textbf{p}_i\right)\begin{bmatrix}
+ u & v\end{bmatrix} = 0 \Rightarrow \\
+\underbrace{ \begin{bmatrix} 
+ I_x\left(\textbf{p}_1 \right) & I_y\left(\textbf{p}_1 \right) \\
+ I_x\left(\textbf{p}_2 \right) & I_y\left(\textbf{p}_2 \right) \\
+ \vdots & \vdots \\
+ I_x\left(\textbf{p}_{k\times k} \right) & I_y\left(\textbf{p}_{k\times k} \right)
+ \end{bmatrix} }
+ _{\bA}
+ \begin{bmatrix}
+ u \\ v
+ \end{bmatrix} = 
+ \underbrace{- \begin{bmatrix}
+ I_t\left(\textbf{p}_1 \right)\\
+ I_t\left(\textbf{p}_2 \right) \\
+ \vdots \\
+ I_t\left(\textbf{p}_{k \times k} \right)
+ \end{bmatrix}}
+ _{\textbf{b}}
+\end{gather}
+This produces an overly-constrained system of linear equations of the form $\textbf{Ad} = \textbf{b}$, i.e. we want to find a solution that minimises $\norm{\textbf{Ad} -\textbf{b}}^2$. it can be proven that the system can be rewrtitten
+\[
+(\textbf{A}^T\textbf{A})\textbf{d} = \textbf{A}^T\textbf{b}
+\]
+, where
+\begin{equation}
+    \textbf{A}^T\textbf{A} = 
+    \begin{bmatrix}
+        \sum\limits_{i=1}^{i=k^2}I_x\left(\textbf{p}_i\right)I_x\left(\textbf{p}_i\right) & \sum\limits_{i=1}^{i=k^2}I_x\left(\textbf{p}_i\right)I_y\left(\textbf{p}_i\right) \\
+        \sum\limits_{i=1}^{i=k^2}I_y\left(\textbf{p}_i\right)I_x\left(\textbf{p}_i\right) & \sum\limits_{i=1}^{i=k^2}I_y\left(\textbf{p}_i\right)I_y\left(\textbf{p}_i\right)
+    \end{bmatrix}, \quad
+    \textbf{A}^T\textbf{b} = -
+    \begin{bmatrix}
+    \sum\limits_{i=1}^{i=k^2}I_x\left(\textbf{p}_i\right)I_t\left(\textbf{p}_i\right)   \\ 
+    \sum\limits_{i=1}^{i=k^2}I_y\left(\textbf{p}_i\right)I_t\left(\textbf{p}_i\right) 
+    \end{bmatrix}
+\end{equation}
+Finally, provided the invertability,  the solution  is:
+\begin{equation}
+    \textbf{d} := \begin{bmatrix}
+    u & v
+    \end{bmatrix}^T =  (\textbf{A}^T\textbf{A})^{-1}\textbf{A}^T\textbf{b}
+    \label{eq:harris_lin_sq_sol}
+\end{equation}
+For the system to be solved, the following conditions must apply:
+\begin{enumerate}
+    \item $\textbf{A}^T\textbf{A}$ must be invertible.
+    \item $\textbf{A}^T\textbf{A}$ should not be too small to cope with noise (i.e. the window patch for which $I_x, I_y$, hence $\textbf{A}$ is should have a strong texture). Mathematically, this implies that eigenvalues $\lambda_1, \lambda_2$ of $\textbf{A}^T\textbf{A}$ should not be too small \footnote{I have found that for windows of size approx. $13\times 13$ ``not too small'' means $\mathcal{O}(10^3)$ -- at least a few thousands.}.
+	\item $\textbf{A}^T\textbf{A}$ should be well-conditioned, i.e. the condition number \footnote{For an explanation and derivation of the condition number, see \ref{app:cond_number}.} of $\bA$ $\kappa(\bA) = \lambda_1 / \lambda_2$ should not be too large ($\lambda_1$ is the larger eigenvalue). A good rule of thumb for ``too large'' is at the $10^3$ to $10^6$ scale.
+\end{enumerate}
+Under these conditions, there is no aperture problem and $\textbf{A}^T\textbf{A}$ is solvable. An interesting fact that relates $\bA^T\bA$ to the input image is that it can be written as:
+\begin{gather}
+    \textbf{A}^T\textbf{A} = 
+    \begin{bmatrix}
+    \sum I_x I_x & \sum I_xI_y \\
+    \sum I_y I_x & \sum I_y I_y
+    \end{bmatrix} = 
+    \sum \begin{bmatrix}
+    I_x \\ I_y
+    \end{bmatrix}
+    \begin{bmatrix}
+    I_x & I_y
+    \end{bmatrix} = 
+    \sum \nabla I (\nabla I)^T
+\end{gather}
+, where $\sum \nabla I (\nabla I)^T$ is the dot product over the window. Matrix $\bA^T\bA$ is a \textit{Hessian matrix} (in discrete form) therefore is symmetric. Particularly, it's a \textit{Harris corner detector} matrix, which is used to detect features.
+
+Now consider a corner or edge pixel $\textbf{p}_i$ at the centre of the $k\times k$ small window. For the gradient $\begin{bmatrix}I_x I_y \end{bmatrix}$, because pixels along the corner/ edge have similar magnitudes given by $\sqrt{I_x^2 + I_y^2}$, we can write \footnote{$k$ is unrelated to $\kappa$, just unfortunate notation.}:
+\[
+\sum \nabla I (\nabla I)^T = \kappa \nabla I(\textbf{p}_i) \left(\nabla I(\textbf{p}_i)\right)^T  = \kappa \norm{\nabla I(\textbf{p}_i)}^2
+\]
+Therefore:
+\[
+\underbrace{\left( \sum \nabla I (\nabla I)^T \right)}_{\bA^T\bA} \nabla I(\textbf{p}_i) = \kappa \norm{\nabla I(\textbf{p}_i)}^2 \nabla I(p_i)
+\]
+, where the sum is all over the window. The last equations tells us that the gradient vector $\nabla I(\textbf{p}_i)$ is an eigenvector of $\bA^T\bA$ with eigenvalue a multiple of $ \norm{\nabla I(p_i)}^2$. $\nabla I(\textbf{p}_i)$ points to the edge/ corner direction.
+
+The second eigenvector of $\bA^T\bA$ is the vector $\textbf{u}_2$ is perpendicular to the first, i.e. perpendicular to the edge/ corner direction as Harris matrix is symmetric. 
+
+\begin{corollary}
+    For the Harris matrix $\bA^T\bA$ in Lucas Kanade method, its eigenvectors and eigenvalues of  relate to edge direction and magnitude. The eigenvector associated with the larger eigenvalue points in the direction of fastest intensity change.  The other eigenvector is orthogonal to it. If the matrix window overlaps a corner, both eigenvalues are large.
+\end{corollary}
+If $\lambda_1 \geq \lambda_2 > 0$ are the eigenvalues of $\bA^T\bA$ and $v_1,v_2$ their unit eigenvectors, and window $W$ sees and edge, then $v_1$ points perpendicularly to the edge. If window $W$ overlaps a corner, then $v_2$ points to the tip of the corner and $v_1$ is perpendicular to it. Mathematical derivation and interpretation of this conclusion is provided in \ref{app:harris_eigenvalues}.
+
+The following graph summarises the relation of the eigenvalues of $\textbf{A}^T\textbf{A}$ to the nature of the image patch.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=9cm]{img/opt_flow/harris_detector_eigen.jpg}
+    \caption{What the eigenvalues $M = \textbf{A}^T\textbf{A}$ mean regarding the region under the $k\times k$ window.}
+\end{figure}
+\begin{exmp}
+Assume that we see the image patches
+\[
+I = 
+\begin{bmatrix}
+0 & 0 & 0 & 10 & 10 \\
+0 & 0 & 0 & 10 & 10\\
+0 & 0 & 0& 20 & 10 \\
+10 & 10 & 10 & 20 & 10 \\
+10 & 10 & 10 & 10 & 10 \\
+\end{bmatrix}, \quad
+J =
+\begin{bmatrix}
+0 & 0 & 0 & 20 & 20 \\
+0 & 0 & 0 & 30 & 20 \\
+0 & 0 & 0 & 40 & 20 \\
+0 & 0 & 0 & 20 & 20 \\
+0 & 0 & 0 & 20 & 20 \\
+\end{bmatrix}
+\]
+at two different locations when scanning with a $5\times 5$ window. Determine which one is edge and which a corner using the Hessian matrix. When computing the discrete derivatives, extrapolate the pixels around and off the image to the nearest border pixel.
+\end{exmp}
+Begin with $I$ and compute its partial derivatives \footnote{In the code, partial derivatives are computed by convolution. Convolution of an image $I$ with a kernel $K$, e.g. $K=\begin{bmatrix}
+-1 & 0 & 1 \end{bmatrix}$ and by replicating border pixels is implemented in OpenCV by \mintinline{python}{cv2.filter2D(I, -1, [1 0 -1], borderType=cv2.BORDER_REPLICATE)}. Care needs to be taken when selecting the type of $I$ (unsigned/ signed) int, as the output type is the same.}.
+\[
+I_x = 
+\begin{bmatrix}
+0 & 0 & 10 & 10 & 0 \\
+0 & 0 & 10 & 10 & 0\\
+0 & 0 & 20& 10 & 0 \\
+0 & 0 & 10 & 0 & -10 \\
+0 & 0 & 0 & 0 & 0
+\end{bmatrix}, \quad
+I_y = 
+\begin{bmatrix}
+0 & 0 & 0 & 10 & 0 \\
+0 & 0 & 0 & 10 & 0\\
+10 & 10 & 10 & 20 & 0 \\
+10 & 10 & 10 & -10 & 0 \\
+0 & 0 & 0 & -10 & 0 
+\end{bmatrix}, \quad
+I_x *. I_y  = 
+\begin{bmatrix}
+0 & 0 & 0 & 100 & 0 \\
+0 & 0 & 0 & 100 & 0\\
+0 & 0 & 200 & 200 & 0 \\
+0 & 0 & 100 & 0 & 0 \\
+0 & 0 & 0 & 0 & 0 
+\end{bmatrix}
+\]
+, where $*.$ denotes the element-wise product. Therefore the Hessian (correlation) matrix is:
+\[
+M = \begin{bmatrix}
+\sum I_x^2 & \sum I_xI_y \\
+\sum I_yI_x & \sum I_y^2
+\end{bmatrix} =
+\begin{bmatrix}
+1100 & 700 \\
+700 & 1400
+\end{bmatrix}
+\]
+The eigenvalue and unit eigenvector matrix of $M$ are\footnote{In Numpy, eigendata are computed as: \mintinline{python}{w, v = np.linalg.eig(M)}.}
+\[
+\Lambda = 
+\begin{bmatrix}
+1965.89 & \\
+ & 534.10
+\end{bmatrix},\quad 
+V =
+\begin{bmatrix}
+0.628 & -0.777\\
+0.777 & 0.628
+\end{bmatrix}
+\]
+$v_1 = \begin{bmatrix} 0.628 & 0.777 \end{bmatrix}^T$ forms an angle of $51.05\degree$, i.e. points perpendicularly to the direction of the corner tip, as expected.
+
+For $J$ we have:
+\[
+J_x = 
+\begin{bmatrix}
+0 & 0 & 20 & 20 & 0 \\
+0 & 0 & 30 & 20 & 0 \\
+0 & 0 & 40 & 20 & 0 \\
+0 & 0 & 20 & 20 & 0 \\
+0 & 0 & 20 & 20 & 0 \\
+\end{bmatrix},  \quad
+J_y = 
+\begin{bmatrix}
+0 & 0 & 0 & 10 & 0 \\
+0 & 0 & 0 & 20 & 0 \\
+0 & 0 & 0 & -10 & 0 \\
+0 & 0 & 0 & -20 & 0\\
+0 & 0 & 0 & 0 & 0 
+\end{bmatrix}, \quad
+J_x *. J_y = 
+\begin{bmatrix}
+0 & 0 & 0 & 200 & 0 \\
+0 & 0 & 0 & 100 & 0 \\
+0 & 0 & 0 & -200 & 0 \\
+0 & 0 & 0 & -100 & 0 \\
+0 & 0 & 0 & 0 & 0 \\
+\end{bmatrix}
+\]
+Therefore the correlation Hessian matrix is
+\[
+M = \begin{bmatrix}
+\sum J_x^2 & \sum J_xJ_y \\
+\sum J_yJ_x & \sum J_y^2
+\end{bmatrix} =
+\begin{bmatrix}
+5700 & 0 \\
+0 & 1000
+\end{bmatrix}
+\]
+The eigendata are
+\[
+\Lambda = \begin{bmatrix}
+5700 & \\
+ & 1000
+\end{bmatrix},\quad
+V = 
+\begin{bmatrix}
+1 & 0 \\ 0 & 1
+\end{bmatrix}
+\]
+The eigenvector $v_1 = \begin{bmatrix}1 & 0\end{bmatrix}$ corresponding to the largest eigenvalue points to the fastest change, i.e. perpendicularly to the vertical edge.
+
+
+\subsubsection{Implementation of Lucas-Kanade from scratch}
+
+An implementation of Lucas-Kanade based on what has been established so far in this section has been written in Python from scratch and is listed in \ref{app:lucas_kanade_scratch}.
+
+The script can be run as:
+\begin{verbatim}
+$ python lucas_kanade_scratch.py image_1_path image_2_path [min_eigenvalue_threshold]
+\end{verbatim}
+, where \mintinline{python}{min_eigenvalue_threshold} is an optional argument. The script writes the output result to directory \mintinline{python}{/tmp}. Tip: to exaggerate the optical flow result, change the following line
+\begin{verbatim}
+feature_pts.append(Feature((c,r), tuple(vec_xy)))
+\end{verbatim}
+to, e.g.
+\begin{verbatim}
+feature_pts.append(Feature((c,r), tuple(5 * vec_xy)))
+\end{verbatim}
+The figure below shows the result of the algorithm from scratch for a sequence of cars moving on two lanes. The output vectors (greens) are slightly exaggerated.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.5cm]{img/opt_flow/scratch_output.png}
+    \caption{Lucas Kanade from scratch motion vectors. Window size is $13\times 13$, minimum corner ratio is $10^3$ and minimum eigenvalue threshold is $3\cdot 10^4$.}
+    \label{fig:my_label}
+\end{figure}
+
+\begin{itemize}
+    \item A \textit{weakness} of this algorithm is that the eigenvalue ratio is not always a good measure to select corners. As a result, a lot of false positive (FP) features are considered. A better measure is Harris's corner detector response function $R = \lambda_1\lambda_2 - k (\lambda_1 + \lambda_2)^2$, where $k$ is a constant. This will not be discussed in this tutorial.
+    \item Another \textit{weakness} is that is only considers small feature motions. An improvement is to use the the hierarchical Lucas Kanade, which uses image pyramids (downsampled of the original), and operates from the smallest image to the largest, given previous knowledge. Hierarchical Lucas Kanade will be discussed later.
+\end{itemize}
+
+
+\subsubsection{Implementation of Lucas-Kanade with OpenCV}
+
+In OpenCV, Lucas-Kanade tracks ``features'' (essentially corners) using the \mintinline{python}{cv2.goodFeaturesToTrack()} method. This returns an array of potentially good points that Lucas-Kanade would like to track. It is followed by \mintinline{python}{cv2.calcOpticalFlowPyrLK()}, which takes in the two image frames and the candidate points and returns their new positions, as well as which points are valid from one frame to another. The calls are described in detail below.
+
+\begin{minted}{python}
+cv2.goodFeaturesToTrack(image, maxCorners, qualityLevel, minDistance[, corners[, mask[, blockSize
+[, useHarrisDetector[, k]]]]]) -> corners
+\end{minted}
+\begin{itemize}
+    \item \mintinline{python}{image}:  Input 8-bit (\mintinline{python}{np.uint8}) or floating-point 32-bit, single-channel image, e.g. a greyscale one.
+    \item \mintinline{python}{maxCorners}: Maximum number of corners to return. If there are more corners than are found, the strongest of them is returned.
+    \item \mintinline{python}{qualityLevel}: Quality level threshold as a fraction of the corner with best quality for qwhich corners to retain. For example, if the corner with best quality has a measure of 1500 and \mintinline{python}{qualityLevel = 0.1}, then only corners with measure of at least 150 are considered. 
+    \item \mintinline{python}{minDistance}: Minimum possible Euclidean distance between the returned corners.
+    \item \mintinline{python}{[mask]}: Optional region of interest. If the image is not empty (it needs to have the type \mintinline{python}{CV_8UC1} (essentially \mintinline{python}{np.uint8}) and the same size as image ), it specifies the region in which the corners are detected. If \mintinline{python}{mask[i, j] == 255}, then the pixel of the original image at \mintinline{python}{i, j} is considered, if \mintinline{python}{mask[i, j] == 0} it is ignored.
+    \item \mintinline{python}{[blockSize]}: Size of an average block for computing a derivative covariation matrix over each pixel neighborhood. See \mintinline{python}{cornerEigenValsAndVecs()}. 
+    \item \mintinline{python}{corners}: array of 2D ``good'' points in a column vector. It is of shape \mintinline{python}{(n, 1, 2)} -- same as the \mintinline{python}{prevPts} in the \mintinline{python}{cv2.calcOpticalFlowPyrLK()} call below,
+\end{itemize}
+
+
+\begin{minted}{python}
+cv2.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts[, nextPts[, status[, err[, winSize[,
+maxLevel[, criteria[, flags[, minEigThreshold]]]]]]]]) -> nextPts, status, err
+\end{minted}
+\begin{itemize}
+    \item \mintinline{python}{prevImg}: first 8-bit input image or pyramid constructed by \mintinline{python}{buildOpticalFlowPyramid}. 
+    \item \mintinline{python}{nextIng}: second input image or pyramid of the same size and the same type as \mintinline{python}{prevImg}. 
+    \item \mintinline{python}{prevPts}: vector of 2D points for which the flow needs to be found; point coordinates must be single-precision floating-point numbers. 
+    \item \mintinline{python}{[nextPts]}: output vector of 2D points (with single-precision floating-point coordinates) containing the calculated new positions of input features in the second image; when \mintinline{python}{OPTFLOW_USE_INITIAL_FLOW} flag is passed, the vector must have the same size as in the input. 
+    \item \mintinline{python}{[winSize]}: size of the search window at each pyramid level (tuple).
+    \item \mintinline{python}{[maxLevel]}: 0-based maximal pyramid level number; if set to 0, pyramids are not used (single level), if set to 1, two levels are used, and so on; if pyramids are passed to input then algorithm will use as many levels as pyramids have but no more than maxLevel.
+    \item \mintinline{python}{[criteria]}: termination criteria of the iterative search algorithm. Number of iterations and search window displacment need to be specified, e.g. as \mintinline{python}{cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))}. 
+\end{itemize}
+\textit{Tips}: \mintinline{python}{nextPts}, as returned by \mintinline{python}{calcOpticalFlowPyrLK} is a vector of 2D points, where each point is represented by an array \mintinline{python}{[x, y]}, therefore \mintinline{python}{nextPts} is of size \mintinline{python}{(n, 1, 2)}. To select the good points, we choose those whose status is 1 by  \mintinline{python}{good_new = good_new[st == 1]}. \mintinline{python}{good_new} is now of size \mintinline{python}{(n, 2)} therefore needs to be reshaped to \mintinline{python}{(n, 1, 2)} so it can be passed in the next round of Lucas-Kanade as the previous good points. The \mintinline{python}{calcOpticalFlowPyrLK} workflow, taken from OpenCV's tutorials \cite{docopencvoptflow}, is summarised as
+\begin{minted}{python}
+p1, st, err = cv2.calcOpticalFlowPyrLK(old_gray, frame_gray, p0, None, **lk_params)
+good_new = p1[st==1]
+# display the points etc.
+p0 = good_new.reshape(-1,1,2)
+# then loop again
+\end{minted}
+Note that this way of selecting new points tends to reduce their number. A class to configure and run Lucas-Kanade in OpenCV has been listed in \ref{app:lucas_kanade_opencv}.
+
+\subsection{Hierarchical Lucas-Kanade}
+
+
+%%%%%%%%%%%%%%%%%%%%
+% see this: https://ags.cs.uni-kl.de/fileadmin/inf_ags/opt-ss14/OPT_SS2014_lec06.pdf
+% eigenvalues and edges: https://dsp.stackexchange.com/questions/10104/why-eigenvalues-concerned-in-harris-corner-detection
+% harris and image: https://en.wikipedia.org/wiki/Harris_Corner_Detector
+%PCA : http://www.math.union.edu/~jaureguj/PCA.pdf
+% corrected: https://courses.cs.washington.edu/courses/csep576/05wi/lectures/motion.pdf
+% kinda helpful: http://cs.haifa.ac.il/hagit/courses/CV/Lectures/CV05_Motion_X4.pdf
+% 2nd moment matrix: https://www.uio.no/studier/emner/matnat/its/nedlagte-emner/UNIK4690/v16/forelesninger/lecture_3_2_1_corner_features.pdf
+%%%%%%%%%%%
+
+% good: http://www.cs.cmu.edu/~16385/s17/Slides/15.1_Tracking__KLT.pdf
+% harris matrix: http://www.cs.cornell.edu/courses/cs4670/2015sp/lectures/lec07_harris_web.pdf
+% harris matrix more: https://ags.cs.uni-kl.de/fileadmin/inf_ags/opt-ss14/OPT_SS2014_lec02.pdf
+% see http://www.cs.cmu.edu/~16385/s17/Slides/14.4_Alignment__LucasKanade.pdf
+% https://pdfs.semanticscholar.org/eec7/4fa786195ed9a8c754c989aa6b6eabf86ecd.pdf
+% https://ags.cs.uni-kl.de/fileadmin/inf_ags/opt-ss14/OPT_SS2014_lec06.pdf
+% http://mccormickml.com/2013/03/30/ucf-lecture-6-optical-flow/
+% really good: https://www.cse.iitb.ac.in/~ajitvr/CS763_Spring2017/OpticalFlow.pdf
+% https://jayrambhia.com/blog/lucas-kanade-tracker
+% http://www.cs.umd.edu/~djacobs/CMSC426/OpticalFlow.pdf
+% http://web.yonsei.ac.kr/jksuhr/articles/Kanade-Lucas-Tomasi%20Tracker.pdf
+% https://www.cc.gatech.edu/~afb/classes/CS4495-Fall2014/slides/CS4495-MotionModels.pdf
+% https://ags.cs.uni-kl.de/fileadmin/inf_ags/opt-ss14/OPT_SS2014_lec06.pdf
+% https://files.ifi.uzh.ch/rpg/teaching/2015/11_tracking.pdf
+% good http://www.cs.princeton.edu/courses/archive/fall11/cos429/notes/cos429_f11_lecture08_motion.pdf
+% warp: https://www.cc.gatech.edu/~afb/classes/CS4495-Fall2014/ProblemSets/PS5/burt-trcom1983.pdf
+% warp: http://www.ece.tufts.edu/en/74/10_warping.pdf
+
+% derivation: 
+% http://campar.in.tum.de/twiki/pub/Chair/TeachingWs12TDCV/template_tracking.pdf
+% https://www.ri.cmu.edu/pub_files/pub3/baker_simon_2004_1/baker_simon_2004_1.pdf
+
+% harris: https://books.google.de/books?id=MgIVyAWf9VUC&pg=PA110&lpg=PA110&dq=how+do+eigenvectors+relate+to+edge+direction&source=bl&ots=go7hhKCyWT&sig=ACfU3U0nDgKMcvMa7b03YINuLJkzKcINKQ&hl=en&sa=X&ved=2ahUKEwinw6LY0bnjAhWHRMAKHejCA044FBDoATAFegQIBxAB#v=onepage&q=how%20do%20eigenvectors%20relate%20to%20edge%20direction&f=false
 
 
 
@@ -570,6 +1163,7 @@ The code provided by OpenCV's documentation has been lazily re-written and made 
 \subsection{HSV domain}
 \label{app:hsv_domain}
 
+\TODO[why is HSV colour scheme used in tracking/ detection?]
 
 
 
@@ -607,5 +1201,343 @@ The code provided by OpenCV's documentation has been lazily re-written and made 
 \label{app:mean_shift_opencv}
 \lstinputlisting[language=python,caption={Mean shift using OpenCV's \mintinline{python}{meanShift} (\detokenize{src/mean_shift/mean_shift_cv.py)}.}]{src/mean_shift/mean_shift_cv.py}
 %\inputminted{python}{src/hist_backproj/backproj_cv.py}
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Condition number of a matrix}
+\label{app:cond_number}
+
+In short, the condition number of a matrix measures how it can be inverted
+\subsubsection{Normal matrix}
+Below are the definition and a basic property just for completeness.
+\begin{definition}
+	A square matrix $\bA$ is \emphasis{normal} when
+	\begin{equation}
+		\bA^H\bA - \bA\bA^H = 0
+	\end{equation}
+	, where $H$ is the Hermitian, i.e. conjugate transpose operator.
+\end{definition}
+A matrix $\bA$ can be normal without being Hermitian, i.e. the $M = \begin{bmatrix}5 & 0\\0 & 2-3i \end{bmatrix}$. Normal matrices are unitarily diagonalisable, i.e. if $\bA$ is normal there exists a unitary matrix such the:
+\begin{equation*}
+	D = U A U^T	
+\end{equation*}
+is diagonal.
+\begin{theorem}
+	A matrix is normal iff it is unitarily diagonalisable.
+\end{theorem}
+\begin{proof}
+	($\Leftarrow$)
+
+	If $\bA$ is unitarily dia/ble, then:
+	\begin{gather*}
+		\bA = U \Lambda U^H	\\
+		\therefore \bA\bA^H = U \Lambda U^H U \Lambda^H U^H = U \Lambda^2 U^H, \\
+		\bA^H \bA = U \Lambda^H U^H U \Lambda U^H = U \Lambda^2 U^H
+	\end{gather*}
+
+	($\Rightarrow$)
+	
+	\textit{Hint:} Write $A$ as the sum of its real and imaginary part, i.e. $\bA = \bB + i\bC$. Full proof is omitted.
+\end{proof}
+
+
+\subsubsection{The spectral matrix norm}
+
+
+\begin{definition}[matrix norm]
+The matrix norm, denoted as $\norm{\:.\:}$, is a function $\setR^{m \times n}\rightarrow \setR$ that satisfies all of the following properties:
+\begin{enumerate}
+    \item $\norm{A} \geq 0$ if $\textbf{A} \neq \textbf{0}_{m \times  n}$ -- positive valued
+    \item $\norm{A} = 0$ iff $\textbf{A}=\textbf{0}_{m\times n}$ -- definite
+    \item $\norm{\alpha \textbf{A}} = \left| \alpha \right|\norm{A}$ for every $\alpha \in \setR$ -- homogeneous
+    \item $\norm{\textbf{A}-\textbf{B}} \leq \norm{\textbf{A}} + \norm{\textbf{B}}$ for every $\textbf{A}, \textbf{B} \in \setR^{m \times n}$ -- triangular inequality
+\end{enumerate}
+\end{definition}
+% properites proof: https://www.math.uh.edu/~jingqiu/math4364/iterative_linear_system.pdf
+It can be shown that the spectral norm defined below satisfies these properties \cite{lecnormsproof}, \cite{lecconrad} \footnote{Another proof by SVD here \cite{lecdalhe}.}. Note that $\norm{\textbf{x}}_2$ is simply the vector norm of $\textbf{x}\in \setR^n$, which can be defined as:
+\begin{equation}
+\norm{\textbf{x}}_2 = (\textbf{x}^T\textbf{x})^{\frac{1}{2}} = \left(\sum\limits_{i=0}^{n}x_i^2\right)^{\frac{1}{2}}     
+\end{equation}
+\begin{definition}[spectral norm of matrix]
+The \emphasis{spectral} (or $\ell_2$, or induced matrix) norm of a matrix $\textbf{A}\in \setR^{m\times n}$ is defined as:
+\begin{equation}
+    \norm{\textbf{A}}_2 = \underset{\norm{\textbf{x}}_2=1}{\max}\norm{\textbf{Ax}}_2 
+\end{equation}
+Although we'll use the former, an equivalent defintion is
+\begin{equation}
+    \norm{\textbf{A}}_2 = \underset{\substack{\textbf{x}\in\setR^n \\ \textbf{x} \neq 0}}
+    {\max} 
+    \frac{{\max}\norm{\textbf{Ax}}_2}{\norm{\textbf{x}}_2}
+\end{equation}
+\end{definition}
+
+We often define the spectral norm via the following alternative expression.
+\begin{lemma}[spectral norm equal largest singular value]
+Given a matrix $\textbf{A}_{m\times n}$ and a unit vector $\textbf{x} \in \setR^n, \; \norm{\textbf{x}}=1$, the maximum value of the norm-2 of $\textbf{A}$ is $\sqrt{\lambda_{1}(\textbf{A}^T\textbf{A})}$, where  $\lambda_{1}(\textbf{A}^T\textbf{A})$ is the largest eigenvalue of $\textbf{A}^T\textbf{A}$. 
+\begin{equation}
+    \underset{\norm{\textbf{x}}_2=1}{max}\norm{\textbf{Ax}}_2 = \sqrt{\lambda_{1}(\textbf{A}^T\textbf{A})}
+\end{equation}
+\end{lemma}
+\begin{proof}
+\[
+\norm{\textbf{Ax}}_2^2 = (\textbf{Ax})^T(\textbf{Ax})= \textbf{x}^T\textbf{A}^T\textbf{Ax}  \tag{1}
+\]
+Matrix $\textbf{A}^T\textbf{A}$ is symmetric therefore diagonalisable, hence we can factor it as:
+\[
+\textbf{A}^T\textbf{A} = \textbf{V}^T\boldsymbol{\Lambda}\textbf{V}   \tag{2}
+\]
+, where $\textbf{V}$ is an orthonormal matrix, so $\textbf{V}^T\textbf{V}= \textbf{I}$. $\boldsymbol{\Lambda}$ is a diagonal matrix of the non-negative eigenvalues of $\textbf{A}^T\textbf{A}$, i.e.
+\[
+\boldsymbol{\Lambda} =
+\begin{bmatrix}
+\lambda_1 & & \\
+ & \ddots & \\
+ & & \lambda_n
+\end{bmatrix}
+\]
+As a convention, we write the eigenvalues in decreasing order, such that $\lambda_1\geq \ldots \geq \lambda_n \geq 0$. Given the diagonalisation in Eq. (2), we square of the norm becomes:
+\[
+\begin{split}
+\textbf{x}^T\textbf{A}^T\textbf{Ax} = \textbf{x}^T\textbf{V}^T\boldsymbol{\Lambda}\underbrace{\textbf{Vx}}_{\textbf{y}}&=\textbf{y}^T\boldsymbol{\Lambda}\textbf{y} \\
+& = \sum\limits_{i}\lambda_i y_i^2\\
+& \stackrel{\lambda_1\geq \ldots \geq \lambda_n}{\leq} \lambda_1 \sum\limits_{i}y_i^2 \stackrel{\norm{y}_2=1}{=} \lambda_1
+\end{split}
+\]
+The expansion to the first sum was done by using the theory for the \textit{quadratic form} of the product. We have proven the upper bound
+
+\begin{gather*}
+\norm{Ax}_2^2 = \textbf{x}^T\textbf{A}^T\textbf{Ax} \leq \lambda_1 \Rightarrow
+\norm{Ax}_2 \leq \sqrt{\lambda_1}
+\end{gather*}
+, where $\lambda_1 = \lambda_1(\textbf{A}^T\textbf{A})$, also called a \emphasis{singular value} of $\textbf{A}$. We show that a maximum of $\norm{Ax}_2$ is attained at $\sqrt{\lambda_1}$ by setting $\textbf{x}=\textbf{u}_1$, where $\textbf{u}_1$ is the unit eigenvector corresponding to the maximum eigenvalue $\lambda_1$:
+\[
+\norm{Au_1}_2 = \norm{\lambda_1u_1}_2 = \left|\lambda_1 \right| = \lambda_1
+\]
+We have proven that
+\[
+\underset{\norm{\textbf{x}}_2=1}{max}\norm{\textbf{Ax}}_2 = \sqrt{\lambda_{1}(\textbf{A}^T\textbf{A})}
+\]
+\end{proof}
+% interpr: http://www.seas.ucla.edu/~vandenbe/133A/lectures/condition.pdf
+
+
+
+\subsubsection{The condition number of a matrix}
+
+Suppose we want to compute $\by = \bA \bx$ but because of noise $\bA$ it perture by a small amount $\textbf{E}$ to $\bA + \textbf{E}$ so instead we compute $\hat{\by} = (\bA + \textbf{E})\bx$.Then the absolute error is
+\begin{equation*}
+	\norm{\by - \hat{\by}}= \norm{\textbf{Ex}}
+\end{equation*}
+The \textit{relative error}r of the output, which is what we want to measure, is:
+\begin{equation}
+	\frac{\norm{\by - \hat{\by}}}{\norm{\by}} = \frac{\norm{\textbf{Ex}}}{\norm{\by}} \tag{1}
+\end{equation}
+If we assume that $\bA$ is invertible, then by the dot product inequality for the norm in the numerator we have:
+\begin{equation*}
+	\norm{E \bx} = \norm{E \bA^{-1}y} \leq \norm{E} \norm{\bA^{-1}}\norm{\by}	
+\end{equation*}
+Therefore Eq. (1) yields the inequality:
+\begin{equation*}
+	\frac{\norm{\by - \hat{\by}}}{\norm{\by}}  \leq \norm{E}\norm{\bA^{-1}} = \norm{\bA}\norm{\bA^{-1}} \frac{\norm{E}}{\norm{\bA}} = \kappa(\bA)  \frac{\norm{E}}{\norm{\bA}} 
+\end{equation*}
+\begin{definition}
+The scalar $\kappa(\bA) = \norm{\bA}\norm{\bA^{-1}}$ is called \emphasis{condition number} of matrix $\bA$.
+\end{definition}
+Therefore, when computing the relative error, the perturbation $E$ is multiplied by condition number $\kappa(\bA) = \norm{\bA}\norm{\bA^{-1}}$. The condition 
+ characterizes the relationship between a small relative perturbation to $\bA$ and a small relative perturbation to the matrix-vector product $\bA\bx$. We say that a matrix $\bA$ in the linear system $\bA\bx = \by$ is \emphasis{ill-conditioned} when  its condition number is large.
+
+Recall that $\norm{.}_2$ operator is defined as the maximum amount that matrix $\bA$ can stretch a unit vector by, i.e.:
+\begin{equation*}
+	M = \norm{\bA} = 	
+    \frac{{\max}\norm{\textbf{Ax}}_2}{\norm{\textbf{x}}_2}
+\end{equation*}
+The norm of the inverse measures how much mapping $\bA$ can shrink unit vectors as:
+\begin{equation*}
+	% TODO: y= Ax
+	m = \norm{\bA^{-1}} = \max\frac{\bA^{-1}\by}{\by} = \frac{1}{ \min\frac{\bA^{-1}\by}{\by}} = \min \frac{\by}{\bA^{-1}\by}=\min \frac{\bA \bx}{\bx} 
+\end{equation*}
+Therefore the condition number measures ratio of the maximum stretching over maximum shrinkage a matrix $\bA$ can apply to unit vectors. 
+
+If a matrix is singular, then its condition number is infinite. A very large condition number implies a matrix is close to being singular.
+
+\begin{corollary}
+	If a matrix $\bA$ is invertible, then its condition number is given by:
+	\begin{equation}
+		\kappa(\bA) = \frac{\sqrt{\lambda_1(\bA^T\bA)}}{\sqrt{\lambda_n(\bA^T\bA)}}
+	\end{equation}
+, where $\lambda_1(\bA^T\bA)$ and $\lambda_n(\bA^T\bA)$ are the largest and smallest eigenvalues of $\bA^T\bA$.
+\end{corollary}
+\begin{proof}
+	% TODO: where?
+	It has already been derived that $\norm{\bA} = \lambda_1(\bA^T\bA)$. We also know for the singular values of the inverse that:
+	\begin{equation*}
+		\sigma_i(\bA) = 1 / \sigma_i(\bA^{-1})
+	\end{equation*}
+	Therefore for the maximum singular value of $\bA$, $\sigma_{\max}(\bA)$:
+	\begin{equation*}
+		\sigma_{\max}(\bA) = 1 / \sigma_{\min}(\bA^{-1})	
+	\end{equation*}
+	The condition number can then be written as:
+	\begin{equation*}
+		\kappa(\bA) = \norm{\bA} \norm{\bA^{-1}} = \frac{\sigma_{\max}(\bA)}{\sigma_{\min}(\bA)}	
+	\end{equation*}
+\end{proof}
+
+
+\begin{corollary}
+	If a matrix $\bA$ is invertible and normal, the condition number is given by:
+	\begin{equation*}
+		\kappa(\bA) = \frac{\left|\lambda_{\max}(\bA)\right|}{\left|\lambda_{\min}(\bA)\right|}	
+	\end{equation*}
+\end{corollary}
+\begin{proof}
+	$\bA$ being normal means it can be factorised as:
+	\begin{equation*}
+		% ref https://math.stackexchange.com/questions/2817630/why-the-condition-number-of-matrix-given-by-eigenvalues	
+		\bA = U \Lambda U^T
+	\end{equation*}
+	, where $U$ is unitary (orthonormal) and $\Lambda$ is the diagonal matrix of eigenvalues of $\bA$. Therefore $\bA^TA = U \Lambda U^T U \Lambda U^T = U \Lambda^2 U^T$. For the singular values of $\bA$:
+\begin{equation*}
+	\sigma_{\max}(\bA) = \sqrt{\lambda_{\max}(\bA^T \bA)} = \sqrt{\lambda_	{\max}(U \Lambda^2 U^T)} = \sqrt{\lambda_{\max}(\bA)^2} = \left| \lambda_{\max} \right|
+\end{equation*}
+	Similarly, $\sigma_{\min}(\bA) = \left| \lambda_{\min}(\bA)\right|$. Finally,
+	\begin{equation*}
+		\kappa(\bA) = \frac{\left| \lambda_{\max}(\bA)\right|}{\left| \lambda_{\min}(\bA)\right|}		
+	\end{equation*}
+	Another, more concise proof, by SVD is given in \cite{stackratioproof}.
+\end{proof}
+% http://www.cs.utexas.edu/users/flame/Notes/NotesOnConditioning.pdf
+% https://people.sc.fsu.edu/~jburkardt/classes/gateway_2014/lecture_week04.pdf
+% http://www.phys.uconn.edu/~rozman/Courses/m3511_18s/downloads/condnumber.pdf
+% http://www.cs.cornell.edu/courses/cs3220/2009sp/notes/condition.pdf
+% inp out http://fourier.eng.hmc.edu/e176/lectures/NM/node2.html
+% http://www.cse.iitm.ac.in/~vplab/courses/LARP_2018/Matrix-Vector%20and%20Matrix%20Norms-3.pdf
+
+
+% (extra) appls: https://www.tu-braunschweig.de/Medien-DB/iwr/lehre/lec2.pdf
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Eigenvalues of Harris matrix -- why do they indicate corners and edges?}
+\label{app:harris_eigenvalues}
+
+Lucas-Kanade method uses the matrix $M = \begin{bmatrix}    \sum I_x I_x & \sum I_xI_y \\
+    \sum I_y I_x & \sum I_y I_y \end{bmatrix}$ to solve for the displacement of a ``feature'' from one frame to another. The matrix needs to be inverted as part of the least squares solution as shown in the main section of the document \eqref{eq:harris_lin_sq_sol}. But $\textbf{M}$ also tells us about the nature of the feature -- whether it's an edge, corner, or simply a flat area. \textit{But why}?
+
+% ref http://faculty.cse.tamu.edu/jchai/csce641/harris_detector.pdf
+Without getting in too much detail, Harris detector tries to maximise the \textit{autocorrelation function} (i.e. similarity function) $c(x,y)$ of some pixel $(x,y)$ over a  window $W$, which is obtained by small shifts $(\Delta x, \Delta y)$ around the point. If it is large, then the window pixel $(x,y)$ is likely to be a corner \footnote{Harris detector weights the matrices given by products $I_xI_x, \ I_xI_y,\ I_yI_y$ by a Gaussian kernel centred in the origin of the window. In this case, the expression for one term of the sum is $g(\Delta x, \Delta y)\left(I(x,y) - I(x + \Delta x,y + \Delta y) \right)^2$, where $g(x,y) = e^{-\frac{x^2+y^2}{2\sigma^2}}$ is the 2D Gaussian.}, where:
+\[
+c(x,y) = \sum\limits_{\Delta y\in W}\sum\limits_{\Delta x\in W}\left(I(x,y) - I(x + \Delta x,y + \Delta y) \right)^2 = \sum\limits_{W}\left(I(x,y) - I(x + \Delta x,y + \Delta y) \right)^2
+\tag{1}
+\]
+The shifted image is approximated by a Taylor expansion truncated to thefirst order terms:
+\[
+I(x+\Delta x, y + \Delta y) \approx I(x,y) + I_x(x,y)\Delta x + I_y(x,y)\Delta y = I(x,y) + \begin{bmatrix}I_x(x,y) & I_y(x,y)\end{bmatrix}\begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix}
+\tag{2}
+\]
+, where $I_x = \partdevx{I(x,y)}, \ I_y = \partdevy{I(x,y)}$.
+Substituting the approximation of Eq. (2) into Eq. (1) yields:
+\begin{gather*}
+  c(x,y)  = \sum\limits_{W}\left( I(x,y) - I(x,y) - \begin{bmatrix}I_x(x,y) & I_y(x,y) \end{bmatrix}\begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix} \right)^2   = \\
+  \sum\limits_{W}\left( \begin{bmatrix}I_x(x,y) & I_y(x,y) \end{bmatrix}\begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix} \right)^2 = \\
+  \begin{bmatrix}\Delta x & \Delta y \end{bmatrix}
+  \begin{bmatrix}
+  \sum\limits_{W}I_x(x,y)I_x(x,y) & \sum\limits_{W}I_x(x,y)I_y(x,y) \\
+  \sum\limits_{W}I_y(x,y)I_x(x,y) & \sum\limits_{W}I_y(x,y)I_y(x,y)
+  \end{bmatrix}
+  \begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix} = \\
+  \begin{bmatrix}\Delta x & \Delta y \end{bmatrix} \textbf{M}(x,y) \begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix}
+  \tag{3}
+\end{gather*}
+The figures below show the correlation function $c(x,y)$ graph for edges and corners.
+\begin{multicols}{3}
+ 
+ \begin{figure}[H]
+     \centering
+     \includegraphics[width=.98\linewidth]{img/opt_flow/hessian_edge_x.PNG}
+     \caption{Intensity profile for edge.}
+ \end{figure}
+ \columnbreak
+ 
+  \begin{figure}[H]
+     \centering
+     \includegraphics[width=.98\linewidth]{img/opt_flow/hessian_edge_y.PNG}
+     \caption{Intensity profile for edge.}
+ \end{figure}
+  \columnbreak
+  
+   \begin{figure}[H]
+     \centering
+     \includegraphics[width=.98\linewidth]{img/opt_flow/hessian_corner.PNG}
+     \caption{Intensity profile for corner.}
+ \end{figure}
+\end{multicols}
+We have derived in Eq. (3) that $c(x,y) = \begin{bmatrix}\Delta x & \Delta y \end{bmatrix} \textbf{M}(x,y) \begin{bmatrix}\Delta x \\ \Delta y \end{bmatrix}$. Matrix $\textbf{M}(x,y)$ is a 2nd order Hessian, therefore symmetric, and captures the intensity structure of the local neighborhood as it will be shown in the following paragraphs.
+
+$\textbf{M}$ is real and symmetric, therefore diagonalisable, i.e. can be written as:
+\[
+M = \textbf{V}^T \boldsymbol{\Lambda} \textbf{V}
+\]
+, where $\textbf{V}$ is the matrix of eigenvector column \textit{unit} vectors and $\boldsymbol{\Lambda}$ the matrix of their corresponding eigenvalues:
+\[
+\textbf{V} = \begin{bmatrix}\overset{|}{\mathop{\underset{|}{\textbf{v}_1}}} & \overset{|}{\mathop{\underset{|}{\textbf{v}_2}}} \end{bmatrix},
+\quad \boldsymbol{\Lambda} = \begin{bmatrix}\lambda_1 & \\ & \lambda_2 \end{bmatrix}, \; \lambda_1 \geq \lambda_2 > 0
+\]
+Because $M$ is symmetric, its eigenvectors are perpendicular to each other therefore 
+\[
+\left< \textbf{v}_1,\textbf{ v}_2 \right> = 0, \quad \norm{\textbf{v}_1} = \norm{\textbf{v}_2} = 1
+\]
+As a result, matrix $\textbf{V}\in \setR^{2\times 2}$ is unitary, therefore a rotation matrix. of the form
+\[
+M = \begin{bmatrix}
+\cos \theta_1 & -\sin\theta_1 \\
+\sin\theta_1 & \cos\theta_1
+\end{bmatrix}
+\]
+% more about eignvector and raotations http://scipp.ucsc.edu/~haber/ph116A/diag2x2_11.pdf
+, where $\theta_1$ is the angle of $\textbf{v}_1$. $\textbf{V}$ rotates $\begin{bmatrix}\Delta x & \Delta y\end{bmatrix}^T$ by $\theta_1$ to some new coordinates $\begin{bmatrix}\Delta x^\prime & \Delta y^\prime\end{bmatrix}$, i.e. $\begin{bmatrix}\Delta x^\prime & \Delta y^\prime\end{bmatrix}^T = V \begin{bmatrix}\Delta x & \Delta y\end{bmatrix}^T$  Then $c(x,y)$ can be written as:
+\begin{gather*}
+% see also https://dsp.stackexchange.com/questions/10104/why-eigenvalues-concerned-in-harris-corner-detection
+c(x,y) = \begin{bmatrix}\Delta x & \Delta y\end{bmatrix}\textbf{V}^T \boldsymbol{\Lambda} \textbf{V} \begin{bmatrix}\Delta x \\ \Delta y\end{bmatrix} = \\
+(\textbf{V}\begin{bmatrix}\Delta x \\ \Delta y\end{bmatrix})^T\boldsymbol{\Lambda} \textbf{V}\begin{bmatrix}\Delta x \\ \Delta y\end{bmatrix} = \\
+\lambda_1 \Delta x ^{\prime 2} + \lambda_2 \Delta y^{\prime 2} 
+\end{gather*}
+So $c(x,y)$ is large in both directions $\Delta x^\prime$ and $\Delta y^\prime$  if $\lambda_1$ and $\lambda_2$ respectively are large.
+
+
+% diag examples -> see rotations
+% http://karin.fq.uh.cu/qct/Tema_04/04.02.Los%20valores%20y%20vectores%20propios%20de%20un%20sistema/Diagonalization.pdf
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Optical flow with Lucas Kanade (naive) from scratch}
+\label{app:lucas_kanade_scratch}
+\lstinputlisting[language=python,caption={Lucas Kanade in Python  (\detokenize{src/opt_flow/lucas_kanade_scratch.py)}.}]{src/opt_flow/lucas_kanade_scratch.py}
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{L-K optical flow with OpenCV -- using user input to crop object of interest}
+\label{app:lucas_kanade_opencv}
+Cropper class:
+\lstinputlisting[language=python,caption={Object cropper given clicks from user  (\detokenize{src/opt_flow/lk_cv/MouseRoi.py)}.}]{src/opt_flow/lk_cv/MouseRoi.py}
+Lucas-Kanade tracker class:
+\lstinputlisting[language=python,caption={LK-based tracker with OpenCV  (\detokenize{src/opt_flow/lk_cv/LkTracker.py)}.}]{src/opt_flow/lk_cv/LkTracker.py}
+Driver code:
+\lstinputlisting[language=python,caption={LK-based tracker driver code (\detokenize{src/opt_flow/lk_cv/main.py)}.}]{src/opt_flow/lk_cv/main.py}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+
 
 \end{document}
