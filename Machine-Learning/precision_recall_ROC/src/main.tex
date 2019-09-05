@@ -1,0 +1,295 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+%%% from https://tex.stackexchange.com/questions/20267/how-to-construct-a-confusion-matrix-in-latex
+\newcommand\MyBox[2]{
+  \fbox{\lower0.75cm
+    \vbox to 1.7cm{\vfil
+      \hbox to 1.7cm{\hfil\parbox{1.4cm}{#1\\#2}\hfil}
+      \vfil}%
+  }%
+}
+%%%
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Meausing the quality of a binary classifier}
+
+The problem we attempt to answer in this article is; when is a binary classifier reliable given a dataset? What's a good quality measure? From now on, we assume that the classifier can predict only two classes - \textit{positive} and \textit{negative}.
+
+\subsection{Binary classification terms -- actual vs predicted}
+
+We assume that we have a number of positive and negative samples as input as attempt to predict (label) them as positive or negative. Therefore we have 4 prediction cases:
+\begin{enumerate}
+    \item Positive input and positive prediction -- True Positive (TP). \textcolor{green!60!black}{Good}.
+    \item Positive input and negative prediction -- False Negative (FN). \textcolor{red!60!black}{Bad}.
+    \item Negative input and positive prediction -- False Positive (FP). \textcolor{red!60!black}{Bad}.
+    \item Negative input and negative prediction -- True Negative (TN). \textcolor{green!60!black}{Good}. 
+\end{enumerate}
+
+To make it easier to understand these terms, we can visualise them in a matrix called \emphasis{confusion matrix}. It is split into four quarters.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.5cm]{img/conf_matrix.png}
+    \caption{Confusion matrix.}
+\end{figure}
+
+Ideally, a binary classifier labels all inputs 100\% correctly, therefore outputs only TP's or TN's, but of course that's not always the case. What does the number of FP and FN compared to TP and TN say about the quality of its predictions?
+
+%\url{https://data-science-blog.com/blog/2019/03/07/a-gentle-introduction-to-precision-and-recall/}\\
+%\url{https://developers.google.com/machine-learning/crash-course/classification/precision-and-recall}\\
+%\url{https://towardsdatascience.com/accuracy-recall-precision-f-score-specificity-which-to-optimize-on-867d3f11124}\\
+%\url{https://www.mikulskibartosz.name/precision-vs-recall-explanation/}\\
+%\url{https://blog.exsilio.com/all/accuracy-precision-recall-f1-score-interpretation-of-performance-measures/}\\
+
+
+\subsection{Performance metrics}
+
+\begin{definition}[accuracy]
+Accuracy is the ratio of correctly predicted samples over the total number of samples.
+\begin{equation}
+    Acc := \frac{TP + TN}{TP + FP + TN + FN}
+\end{equation}
+\end{definition}
+Accuracy does not perform well with unbalanced datasets. For example, imagine we have a large image of $N$ pixels and we want to detect a face in the distance by classifying whether each pixel corresponds to the face or not. The vast majority of pixels in the image are \textit{not} face pixels (actual negatives) and a few are (actual positives). A badly-designed classifier could predict 0 face pixels. Therefore $TN \approx N, \ TP = 0,\ FP = 0,\ FN \approx 0$. Then the accuracy would falsely indicate that this is an almost perfect classifier as
+\[
+Acc = \frac{TP + TN}{TP + FP + TN + FN} \approx \frac{N}{N} \approx 1
+\]
+Precision aims to answer the question; ``What proportion of positive predictions was actually correct?''. 
+\begin{definition}[Precision]
+Therefore precision is defined as the ratio of TP over the total predicted positives.
+\begin{equation}
+    Prec = \frac{TP}{TP + FP}
+\end{equation}
+\end{definition}
+For the face detection example, precision would be the ratio of correctly predicted face pixels compared to all pixels predicted as face. Assume a badly-designed classifier correctly detected only a few face pixels but did not falsely detect background objects as face. Therefore it would have some $TP$, lots of $TN$, some $FN$ and 0 $FP$. The precision would be perfect, although the classifier may not necessarily perform well:
+\[
+Prec = \frac{TP}{TP + FP} = \frac{TP}{TP + 0} = 1
+\]
+Precision itself is not a good metric and we don't know whether it is applied on all skin pixels or only a small sample of then -- i.e. identify all relevant instances. The measure that identifies all relevant instances is the recall (a.k.a. sensitivity). Recall attempts to answer; ``What proportion of actual positives was identified correctly?''
+\begin{definition}[recall]
+Therefore recall is defined as the ratio of TP over all the actuall positives ($TP + FN$):
+\begin{equation}
+    Rec = \frac{TP}{TP + FN}
+\end{equation}
+\end{definition}
+Referring to the face detection example, if another bad classifier labelled all face pixels as face \textit{and} all pixels around them as such, overestimating the face pixels, then $FN = 0$ and let $TP = s$. Then the recall would be perfect, although the classifier  does not necessarily perform well:
+\[
+Rec = \frac{TP}{TP + FN} = \frac{s}{s + 0} = 1
+\]
+The latter classifier would correctly extract all relevant face pixel instances and have high recall. However it wouldn't correctly label all predicted positives, having lots of FP's, therefore low precision. 
+
+% add face imgs (https://sanfrancisco.cbslocal.com/2015/12/06/sunnyvale-police-seek-alleged-package-thief-caught-home-surveillance-camera/)
+The figures below illustrate how recall and precision alone are not always good metrics.
+
+\begin{multicols}{3}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/face_unmarked.jpg}
+    \caption{Face pixel classifier has detected nothing at all. However, $Acc \approx 100\%$.}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/face_fn.png}
+    \caption{Detected face pixels are green. Classifier has failed to mark a lot of face pixels. $FP = 0$ therefore $Prec = 100\%$ but recall is low.}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=.33\textwidth]{img/face_fp.png}
+    \caption{Classifier has laballed a lot of background pixels as skin (FP). However, $FN = 0$ therefore $Rec = 100\%$ and precision is low.}
+\end{figure}
+\end{multicols}
+
+% see https://towardsdatascience.com/accuracy-recall-precision-f-score-specificity-which-to-optimize-on-867d3f11124
+A measure that combines both precision and recall is the $F1$ score.
+\begin{definition}[f1 score]
+$F1$ score is defined as the harmonic mean of precision and recall:
+\begin{equation}
+    F1 = \frac{2 \cdot Prec \cdot Rec}{Prec + Rec}
+\end{equation}
+\end{definition}
+$F1$ Score is best if there is some sort of balance between precision ($p$) and recall ($r$) in the system. Oppositely, $F1$ score isn't so high if one measure is improved at the expense of the other. For example, if $p=1, \ r = 0$,\ $F1=0$.
+
+
+
+
+\subsection{When is a binary classifier accurate? The ROC curve.}
+
+% see also https://datascience.stackexchange.com/questions/31872/auc-roc-of-a-random-classifier
+A binary classifier is considered good when it performs better than the random classifier. We will see how we can compare a classifier to the random one in the newxt few paragraphs. One thing to keep in mind about the random classifier is the following; let's say we have an input set with $n_p$ positive and $n_n$ negative instances. Then the actual positive probability is $p(X=1) = \frac{n_p}{n_p+n_n}$ and the actual negative is $p(X=0) = 1 - p(X=1)$. A random classifier (is random because) will randomly assign each input to the positive class with probability $\rho$ and to the negative class with probablity $1-\rho$. Therefore for the random classifiers the numbers of TP, FN, TN, FP are the combined probabilities of the class and the assignment:
+\begin{align}
+    TP &= \rho p(X=1) \label{eq:random_class_tp}\\
+    FN &= (1-\rho)p(X=1) \label{eq:random_class_fn}\\
+    TN &= (1-\rho)p(X=0) \label{eq:random_class_tn}\\
+    FP &= \rho p(X=0) \label{eq:random_class_fp}
+\end{align}
+As shown in the following diagram, due to its nature a random classifier labels \textit{equal fraction} $\rho$ of positive instances as positive ($TP/P$) and negative instances as positive ($FP/N$).
+\begin{figure}[H]
+    \centering
+    \includegraphics[scale=.07,angle=-90]{img/unbalanced_dataset.jpg}
+    \caption{How the random classifier's output depends on the class balance and the current decision ($\rho$).}
+    \label{fig:unlanced_datasets}
+\end{figure}
+
+
+
+
+\marginnote{The name comes from WWII when it was used to evaluate the performance of radars!}The tool to measure a classifier's performance is the \emphasis{Receiver Operating Characteristic (ROC) curve}. ROC curve uses some terms which we define below.
+
+% see https://en.wikipedia.org/wiki/Receiver_operating_characteristic
+\begin{definition}[sensitivity]
+In ROC curve terms, recall is also called sensitivity or True Positive Rate (TPR), defined as we saw before as:
+\begin{equation}
+    TPR = \frac{TP}{P} = \frac{TP}{TP + FN}
+\end{equation}
+\end{definition}
+
+\begin{definition}[fall-out]
+False positive rate (FPR) (or fall-out) is defined as:
+\begin{equation}
+    FPR = \frac{FP}{N} = \frac{FP}{FP + TN}
+\end{equation}
+\end{definition}
+
+% see % see https://www.medcalc.org/manual/roc-curves.php
+In a ROC curve the true TPR (sensitivity) is plotted in function of the FPR for different cut-off points. Therefore to construct the whole curve we need to vary either the positive or the negative class probability in the input dataset from $P(X=1)=0$ to $P(X=1)=1$. Each point on the ROC curve represents a TPR/ FPR pair therefore a different confusion matrix instance. A test with perfect discrimination has a ROC curve that passes through the upper left corner (100\% sensitivity -- no FN, 0\% fall-out -- no FP). Therefore the closer the ROC curve is to the upper left corner, the higher the overall accuracy of the test.
+
+As mentioned before, a classifier is good if it performs better than the random one. The figure below visualises some good and bad points in the ROC space. The ``good'' points are above the line $y=x$, which is the ROC curve of the random classifier.
+
+
+%%% TODO: temp
+\vspace{3cm}
+
+\begin{multicols}{2}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=6cm]{img/roc_space.png}
+    \caption{The ROC space and plots of the four prediction examples. Source: wikepedia.}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    % ref https://www.medcalc.org/manual/roc-curves.php
+    \centering
+    \includegraphics[height=5cm]{img/ideal_roc_curve.png}
+    \caption{Ideal ROC curve. It passes near  point $(FPR,TPR)=(0,1)$}
+\end{figure}
+\end{multicols}
+
+\begin{corollary}
+The ROC curve (TPR over FPR) of the random classifier is the line $y=x$.
+\end{corollary}
+\begin{proof}
+From \eqref{eq:random_class_tp} and \eqref{eq:random_class_fn}, for the TPR of a random classifier we have:
+\[
+TPR = \frac{TP}{TP+FN} = \frac{\rho p(X=1)}{\rho p(X=1) + (1-\rho)p(X=1)} = \rho \tag{1}
+\]
+From \eqref{eq:random_class_fp} and \eqref{eq:random_class_tn} for the FPR:
+\[
+FPR = \frac{FP}{FP+ TN} = \frac{\rho p(X=0)}{\rho p(X=0) + (1 -\rho )p(X=0)} = \rho \tag{2}
+\]
+Therefore $FPR = TPN = \rho \;\ \forall \ 0\leq \rho \leq 1$. This fact that these rates are both equal to $\rho$ is also intuitive from Fig. \ref{fig:unlanced_datasets}. 
+
+\end{proof}
+
+
+\subsection{Area Under ROC Curve (AUC)}
+
+The last question is how exactly do we measure the ``quality'' of the ROC curve, especially when two curves look similar? A robust  measure we use to assess the overall performance of a binary classifier is the \emphasis{Area Under the ROC Curve (AUC)}. AUC is a robust measure as it relies on the complete ROC curve and thus involves all possible classification thresholds. It measures the area under the curve within points the box $(0,0),(1,1)$.
+
+One way of interpreting AUC is as the probability that the model ranks a random positive example more highly than a random negative example. AUC ranges in $[0,1]$. The higher the value, the better the classifier (Fig. \ref{fig:auc_a_vs_b}). In general, AUC value in range $[0.5,1]$ are considered good as the AUC of a random classifier is $0.5$. A AUC of that range means that our binary classifier in general performs better than a random one.
+\begin{figure}[H]
+    \centering
+    %src https://link.springer.com/referenceworkentry/10.1007%2F978-1-4419-9863-7_209
+    \includegraphics[height=5cm]{img/auc_of_a_vs_b.PNG}
+    \caption{Binary classifier A has higher AUC so it performs better \cite{Melo2013}.}
+    \label{fig:auc_a_vs_b}
+\end{figure}
+
+\begin{corollary}
+A binary classifier performs well if it's AUC is higher than 0.5, where 0.5 is the AUC of a random classifier.
+\end{corollary}
+
+
+
+%\url{https://datascience.stackexchange.com/questions/31872/auc-roc-of-a-random-classifier}\\
+%\url{https://www.researchgate.net/post/How_to_tell_if_an_F1-score_or_MCC_score_is_better_than_random_for_a_binary_classifier}
+
+
+
+
+%\url{https://developers.google.com/machine-learning/crash-course/classification/roc-and-auc}\\
+%\url{https://stats.stackexchange.com/questions/132777/what-does-auc-stand-for-and-what-is-it}\\
+%\url{https://link.springer.com/referenceworkentry/10.1007%2F978-1-4419-9863-7_209}\\
+
+
+%\url{https://medium.com/greyatom/lets-learn-about-auc-roc-curve-4a94b4d88152}\\
+%\url{https://developers.google.com/machine-learning/crash-course/classification/roc-and-auc}\\
+%\url{https://acutecaretesting.org/en/articles/precision-recall-curves-what-are-they-and-how-are-they-used}\\
+%\url{https://www.datascienceblog.net/post/machine-learning/interpreting-roc-curves-auc/}\\
+%\url{https://datascience.stackexchange.com/questions/31872/auc-roc-of-a-random-classifier}\\
+
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+%\newpage
+%\appendix
+
+%\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+%\newpage
+%\subsection{Appendix Example}
+%\label{app:my_cool_appendix}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+\end{document}
