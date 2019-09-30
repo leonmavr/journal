@@ -1,0 +1,383 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Viola Jones detection}
+
+
+\subsection{Problem statement and idea}
+Detecting faces is complicates since they have so many features, such as forehead, eyes, lips etc. Faces can also be in any size and position through the image, they can be non-uniformly illuminated, have multiple expressions or be occluded. Viola Jones takes advantage of the fact that every face has certain characteristics, that such the nose usually brighter is darker than the surrounding cheek area, the eye pupil is darker than the sclera, the nose, lip and eye position relative to each other etc. Viola Jones works in real time by combining the following methods:
+\begin{enumerate}
+    \item Integral image. This speeds up the feature computation time.
+    \item Haar features. These are simple rectangular masks that resemble with Haar wavelets.
+    \item Boosting for feature selection (``AdaBoosting''). Iteratively classifies good and bad features.
+    \item Cascade of weak feature classifiers to quickly reject windows without faces (Attentional cascade).
+\end{enumerate}
+Viola Jones scans a window that searches features over the image, incrementing pixel by pixel. The window size remains constant -- the authors of VJ suggest $24\times 24$ window the image is considered at various scales -- the authors suggest a scaling factor of $1.25$.  All the scalings along with the original image are called \emphasis{image pyramid}. Each level in the pyramid is obtain by downsampling the previous. For example, downsampling of $1.25$ implies that every 5 pixels we save 4 and reject the 5th.
+% ref https://www.mpi-inf.mpg.de/fileadmin/inf/d2/HLCV/cv-ss13-0605-sliding-window.pdf
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2.5cm]{img/window_slide_loc_scale.PNG}
+    \caption{Same window scans different image scales.}
+\end{figure}
+The window contains a different feature detector each time, e.g. one that might detect an eye or one that might detect a nose. \textit{Haar features} determine what we want to compute each time, e.g. an eye, a forehead etc. One might think that the larger the window, the larger the number of operations done to compute the feature inside it. We will see that the number of computations is always constant thanks to the idea of \textit{integral image}, whose computation is the first step of the algorithm. Why integral image is useful will be shown later, next section explains  how it's computed. To summarise, the whole algorithm is explained by the following high-level pseudocode.
+% src https://sites.google.com/site/5kk73gpu2012/assignment/viola-jones-face-detection
+\begin{verbatim}
+for number of scales in image pyramid do
+    downsample image by one scale
+    compute integral image for current scale
+    for each shift step of the sliding detection window do
+        for each stage in the cascade classifier do
+            for each filter in the stage do
+                filter the detection window
+            end
+            accumulate filter outputs within this stage
+            if accumulation fails to pass per-stage threshold do
+                break the for loop and reject this window as a face
+            end
+        end
+        if this detection window passes all per-stage thresholds do
+            accept this window as a face
+        else
+            reject this window as a face
+        end
+    end
+end
+\end{verbatim}
+
+
+\subsection{Integral image}
+Given the source image $ii(x,y)$ where we want to detect faces, a new, \emphasis{integral  image}  $i(x,y)$ is  created such that each  new pixel is the sum of the pixels above and to the left of it, including the original pixel itself:
+\begin{equation}
+    ii(x,y) = \sum\limits_{x\prime \leq x,\ y\prime \leq y} i(x\prime, y\prime)
+\end{equation}
+\begin{multicols}{2}
+\begin{figure}[H]
+    % ref: comphile viola jones
+    \centering
+    \includegraphics[height=2.5cm]{img/int_image_one_pixel.png}
+    \caption{Computing a single pixel of the integral image.}
+\end{figure}
+\columnbreak
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2.5cm]{img/int_image_whole.png}
+    \caption{The whole integral image computed.}
+\end{figure}
+\end{multicols}
+This technique allows constant time ($\mathcal{O}(1)$) calculation of the sum of all pixels within a rectangle. 
+\begin{figure}[H]
+    % https://pdfs.semanticscholar.org/40b1/0e330a5511a6a45f42c8b86da222504c717f.pdf
+    \centering
+    \includegraphics[height=3.5cm]{img/int_image_rectangle.png}
+    \caption{Rectangle sum calculation. The rectangles from the origin to A, B, C, D are pre-computed by the integral image. A is counted in both B and C so in the end we subtract it.}
+    \label{fig:my_label}
+\end{figure}
+Sums of pixels are computed in order to find the Haar features described in the next sections. Since we have tons of Haar features, pre-computing the integral image is necessary.
+
+
+
+\subsection{Haar features}
+\marginnote{Haar features are supposed to be similar to simple face features found in the nose, eyes, etc.}But what exactly are the Haar features and how do they look like? They are simple rectangular masks and each one is supposed to roughly resemble with a certain face feature, e.g. the left end of the lip. They contain certain combinations of zeros and ones. Ones should match bright areas of the feature and zeros dark. Haar features are always located in the sliding window and they are used similarly to convolution kernels.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2.5cm]{img/haar_simple_feat.png}
+    \caption{Some Haar features for line and edge detection.}
+\end{figure}
+For example, the edge feature in the above figure could roughly match an eyebrow and the vertical line feature could match the now bridge, as shown below. Of course, line features can also be diagonal to detect rotated faces.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.75cm]{img/haar_feat_face.png}
+    \caption{Some Haar features that match face features.}
+\end{figure}
+To measure the quality of a feature, i.e. its similarity to the overlapping Haar cascade, we simply subtract the pixels under the black ones from those under the whites and divide the result by the size of the Haar feature. The higher the result $\Delta$, the more likely a feature to belong to a face. This method is also called ``difference of adjacent boxes''. Below, $n$ of the number of pixels of the Haar feature.
+\begin{equation}
+    \Delta = \textup{dark} - \textup{white} = \frac{1}{n} \sum \limits_{\substack{(x,y)\\ \textup{under}\;\textup{white}}}i(x,y)
+    - \frac{1}{n} \sum \limits_{\substack{(x,y)\\ \textup{under}\;\textup{black}}}i(x,y)
+\end{equation}
+The two figures below explain the $\Delta$ calculations. For the feature in Fig. \ref{fig:downsampled_eyebrow}, we have \footnote{Images are represented as 8-bit integers so a negative result would be clipped to 0 and one that cannot be represented by 8 bits to $255$.}
+\[
+\Delta = \frac{1}{16} (209 + 214 + 207 + 199 + 183 + 196 + 200+ 212 - 181 - 77 - 105 - 67 - 68-101 - 183 - 196) = 40.125
+\]
+The closer the value of $\Delta$ to $255$, the better the feature. A region of random pixels would have $\Delta \approx 0$. This calculation seems quite fast but it needs to be repeated for a huge number of times. When the Haar rectangle is large, it adds up a lot of computation time.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3cm]{img/downsampled_human_face.png}
+    \caption{The sliding $24\times 24$ window captures a downsampled face. A line feature is overlaid the eyebrow.}
+\end{figure}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.0cm]{img/downsampled_human_eyebrow.png}
+    \caption{A closer look at the intensity values of the eyebrow. Pixels  under the black region will be subtracted and those under the white region will be added.}
+    \label{fig:downsampled_eyebrow}
+\end{figure}
+\marginnote{Integral image speeds up the Haar feature computation.}This is where integral image discussed in the previous section comes in handy. Instead of calculating the sum naively, for Fig. \ref{fig:downsampled_eyebrow} we would find the sum inside the white and black rectangles using the integral image. Therefore each black or white sub-rectangle only requires 4 additions. 
+\begin{figure}[H]
+    %ref https://www12.cs.fau.de/edu/map/ss15/talks/vj_cuda.pdf
+    \centering
+    \includegraphics[height=4.75cm]{img/haar_line_int_image.png}
+    \caption{Computing an example Haar feature using the integral image $ii$.}
+    \label{fig:my_label}
+\end{figure}
+By comparing each $\Delta$ value to a threshold, e.g. $30$ we can tell if the region under the window is likely to be a face, although this procedure will give lots of \textit{false positives}. If the result is less than $30$, then that feature in that window position will not be considered. If it's greater, more Haar classifiers will be applied. That's called a \textit{weak classifier} and the algorithm combines multiple of them. ``Weak essentially means better than random classifier, so in this case as long as the classifier outputs a value roughly greater than zero, then the window is likely to contain a face:
+\begin{equation}
+    y(\Delta_{\boldsymbol{\theta}})= \left\{
+\begin{array}{ll}
+      1, & \Delta_{\boldsymbol{\theta}} > T\\
+      0, & \textup{else} \\
+\end{array} 
+\right. 
+\end{equation}
+, where $\boldsymbol{\theta}$ refers to a set of parameters such as the number of rectangles, their positions, etc. The problem with using Haar features inside the window is that for a $24\times 24$ window there are about $160,000$ of them, so computing them all is inefficient. The algorithm needs to select and combine in advance some good Haar features. This is done by a machine learning algorithm called ``AdaBoost''.
+
+
+
+
+
+%The formula is demonstrated in the following figure.\\
+%\TODO[example from yt]\\
+%\TODO[also very good:]
+%\url{http://www.botmag.com/images/drupal/ViolaJones_Simplified_byEricGregori.pdf}\\
+%This is where integral image comes in handy. \TODO\\
+%\TODO[how to choose features?]\\
+%\url{https://stackoverflow.com/questions/27322848/defining-an-initial-set-of-haar-like-features}\\
+%\url{https://docs.opencv.org/3.4/db/d28/tutorial_cascade_classifier.html}
+
+\subsection{Adaboost training}
+The solution to the fact that the sliding window contains over $160,000$ features is to select a few of them -- the most reliable ones that can tell whether the sub-image contains a face. This is done by AdaBoost (adaptive boost), which is a topic on its own, so it won't be discussed in too much detail but this section includes the overview.
+
+For a certain position of the sliding window and given its features $f_1,f_2,\ldots$ such as position of black boxes, coordinates, threshold etc, the idea is that we have a set of data and outputs $(\bx_1, y_1), \ldots, (\bx_m, y_m),\ \bx \in \setR^d,\ y \in \{-1,1\}$ ($-1$: is not face, $1$: is face) and we want to train perceptrons to correctly classify the output points, i.e. we want to linearly classify them. The goal is to find the features that best separate the positive and negative classes. 
+% mpore about features 
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4cm]{img/feature_pts.png}
+    \caption{Various data points $\left((x_{i1},x_{i2}),y_i\right)$} in the 2D feature space $f_1,f_2$. Each class is represented by a colour.
+\end{figure}
+% ref http://www.robots.ox.ac.uk/~az/lectures/cv/adaboost_matas.pdf
+Adaboost aims to separate the data in two classes, minimising some error function. It constructs a ``strong'' linear classifier as a combination of $T$ simple ``weak'' simple linear classifiers $h^{(1)}(x), \ldots, h^{(T)}(x)$:
+\begin{equation}
+    f(x) = \sum\limits_{t=1}^{T}{\alpha^{(t)}h^{(t)}(x)}
+\end{equation}
+, where:
+\begin{itemize}
+    \item $h_t(x)$ is a ``weak'' or base classifier -- can be a perceptron, or decision tree etc, as long as it can perform linear binary classification.    
+    \item $H(x) = \textup{sgn}\left(f(x)\right)$ is the final, strong, classifier.
+    \item $\alpha^{(t)}$ is a coefficient we set at each iteration depending on how good the base classifier $h^{(t)}$ is.
+\end{itemize}
+\marginnote{AdaBoost essentially applies a series of linear classifiers, increasing the weights of the errors and decreasing the correct ones each iteration.}The algorithm maintains a weight distribution $\bw^{(t)} = (w^{(t)}_1,\ldots,w^{(t)}_m)$ over the data points \footnote{Weights $\bw^{(t)}$ and $\alpha_1,\ldots,\alpha_m$ are different.}. The weights $w^{(t)}$ are initialised uniformly, and are updated in each iteration, keeping their sum constant, e.g. normalised. The goal of the base learner is to minimise the \textit{weighted (base) error}
+\begin{equation}
+    \epsilon^{(t)} = \sum_{i=0}^{m}{w^{(t)}_i}I\left\{h^{(t)}(\bx_i)\neq y_i \right\}
+\end{equation}
+, where $I(true) = 1, \ I(false) = 0$ so $\epsilon^{(t)}$ can be considered as the sum of the weights of the wrong examples \footnote{There are better error functions than this sum but we don't discuss them here for simplicity.}, i.e. $\sum_{h^{(t)}(\bx_i)\neq y_i}w^{(t)}_i$. 
+
+Having found the total error, the weak classifier weight $\alpha^{(t)}$ is set as
+\begin{equation}
+    \alpha^{(t)} = \frac{1}{2}\ln{\frac{1-\epsilon^{(t)}}{\epsilon^{(t)}}}
+\end{equation}
+So the larger the error $\epsilon^{(t)}$, the smaller the weight $\alpha^{(t)}$. The final pseudocode is shown below. We denote the training set as $\mathcal{D}_m = \left\{(\bx_1,y_1),\ldots,(\bx_m,y_m) \right\}$
+
+% ref https://users.lal.in2p3.fr/kegl/teaching/stages/notes/tutorial, http://www.robots.ox.ac.uk/~az/lectures/cv/adaboost_matas.pdf
+\begin{algorithm}[H]
+\caption{AdaBoost algorithm outline.}
+\label{alg:hist_backproj}
+\begin{algorithmic}[1]
+\Procedure{AdaBoost} {$\mathcal{D}_m$, Base(.,.), $T$} 
+\State $w^{(1)} \leftarrow (1/m, \ldots, 1/m)$ \Comment{initial weights}
+\For{$t \leftarrow 1,\ldots,T$} 
+\State $h^{(t)} \leftarrow Base(\mathcal{D}_m,\bw^{(t)})$ \Comment{apply base classifier; e.g. a simple perceptron}
+\State $\epsilon^{(t)} \leftarrow \sum_{i=0}^{m}{w^{(t)}_i}I\left\{h^{(t)}(\bx_i)\neq y_i \right\}$ \Comment{weighted (total) error of base classifier $t$}
+\State $\alpha^{(t)} \leftarrow \frac{1}{2}\ln{\frac{1-\epsilon^{(t)}}{\epsilon^{(t)}}}$
+\For{$i \leftarrow 1,\ldots,m$} \Comment{re-weight each training point}
+\If {$h^{(t)}(t)\neq y_i$} \Comment{error}
+\State $w^{(t+1)}_i \leftarrow \frac{w_i^{(t)}}{2\epsilon^{(t)}}$ \Comment{increase the weight}
+\Else \Comment{correct classification}
+\State $w^{(t+1)}_i \leftarrow \frac{w_i^{(t)}}{2\left(1-\epsilon^{(t)}\right)}$ \Comment{decrease the weight}
+\EndIf
+\EndFor
+\EndFor
+\State \textbf{return} $\textup{sgn}\left(f(\bx)\right)=\textup{sgn}\left(\sum\limits^{T}_{t=1}\alpha^{(t)}h^{(t)}(\bx)\right)$ \Comment{weighted ``vote'' of best (a.k.a. base) classifiers}
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+It's important to remember the weights are normalised for each iteration of the algorithm, i.e.
+\begin{equation}
+    \sum\limits_{i=1}^{m}w_i^{t}=1
+\end{equation}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/ada_wrong_examples_weights.png}
+    \caption{Weights of wrong examples are increased and weights of correct ones are decreased.}
+\end{figure}
+The figure below shows how the weights are updated at every iteration.
+\begin{figure}[H]
+    % ref https://www12.cs.fau.de/edu/map/ss15/talks/vj_cuda.pdf
+    \centering
+    \includegraphics[height=6cm]{img/ada_adjusting_weights.png}
+    \caption{At every iteration $t$ the weights of false classifications are increased and the correct ones are decreased. Then the base classifier $h^{(t)}$ is applied again.}
+\end{figure}
+
+
+
+\subsection{Classifier cascade}
+So far, we applied various Haar masks of different sizes, formations, and locations, etc (there are the features $\bx^{(i)}\in \setR^d$, where $d$ the total number of sizes, formations, and locations etc), compared the summation result of masking calculated using the integral image to a threshold, and depending on the comparison result we classified the output $y^{(i)} \in \{-1,1\}$ as ``is in face'' ($1$) or ``is not in face'' ($-1$). Then we separate all positive and negative results in two groups using a strong classifier calculated by AdaBoost. We had been dealing with only a fixed image size (no scales).  
+
+% ref https://medium.com/datadriveninvestor/understanding-and-implementing-viola-jones-part-two-97ae164ee60f
+\marginnote{Each part of the cascade operates on a different input scale.}
+For a large image, and considering the image will have to be scaled and rescaled to account for differently sized faces, this amounts to using Viola-Jones a large number of times. If the system needs to detect faces in real-time, the computation needs to be fast. It is for this purpose that Viola and Jones introduced the \emphasis{attentional cascade}.
+
+% ref https://medium.com/datadriveninvestor/understanding-and-implementing-viola-jones-part-two-97ae164ee60f
+The attentional cascade uses a series of strong classifiers (see previous section), each progressively having more features, to classify an image. An image is only put through by the $n$th classifier (larger image size) if the $n-1$th classifier (smaller size) classifies it as a positive example. If at any point a classifier does not think the image is a positive example, the cascade stops and the region is rejected as a face. The reason behind it is that in an image we will have only a few faces and thousands of non-faces. Being able to quickly discard non-faces saves time.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2.25cm]{img/cascade_class.PNG}
+    \caption{How multiple strong classifiers are chained to form a cascade one. The first cascale belongs to large scale (smallest image), the second to smaller scale, etc. Classifier 2 is activated by 1 and 3 by 2.}
+    \label{fig:cascade_class}
+\end{figure}
+% ref https://www.cc.gatech.edu/~hays/compvision2017/lectures/23.pdf, https://www.cse.iitb.ac.in/~ajitvr/CS763_Spring2017/Adaboost_FaceDetection.pdf
+We study how the length of the cascade improves its quality. Let $f_i$ be the False Positive Rate (FPR) of each classifier and $d_i$ is detection rate (True Positive Rate -- TPR\footnote{FPR and TPR are defined as follows. $P$ are the total positive and $N $ the total negative examples. $TPR = \frac{TP}{P}=\frac{TP}{TP+FN}$, $FPR = \frac{FP}{N} = \frac{FP}{FP+TN}$.}). Assuming the stages are independent, then the \textit{overall} false positive rate $F$ and the overall detection rate $D$ is
+\begin{equation}
+    F = \prod\limits_{i=1}^{K}f_i
+\end{equation}
+\begin{equation}
+    D = \prod\limits_{i=1}^{K}d_i
+\end{equation}
+\marginnote{High FPR does not really affect the cascade's quality. However, TPR needs to be high.} Assume $K=10$. If every stage (assume they all preform roughly the same) has TPR $d_i=99\%$ and FPR $f_i = 40\%$, then the cascade  has $D = 0.99^{10}=90\%$ and $F = 0.4^{10} = 0.001\%$.
+
+\subsubsection{Training the cascaded classifier}
+Therefore having high FPR at each stage is not a bad thing but having low TPR is undesirable. Hence, training the whole cascade is summarised as follows.
+% ref http://vision.cs.utexas.edu/378h-fall2015/slides/lecture20.pdf
+\begin{enumerate}
+    \item Set target detection and false positive rates for each stage.
+    \item Keep adding features to the current stage until its target rates have been met.
+    \begin{enumerate}
+        \item Need  to lower AdaBoost threshold  to maximise detection (as opposed  to minimising total classification  error).
+        \item Test  on a validation set.
+    \end{enumerate}
+    \item If the overall false positive rate is not low enough, then add another stage.
+    \item Use false positives from current stage as the negative training  examples for the next stage.
+\end{enumerate}
+Training could, for instance, include $5\cdot 10^3$ positives, $350\cdot 10^6$ negatives, and could result in a real-time cascaded detector with $38$ stages and $6061$ features along all layers. The figure below how individual classifiers, each with its own Haar features, could look like.
+
+\begin{figure}[H]
+    % ref http://www.egr.unlv.edu/~b1morris/ecg782/slides/viola_jones_face_detection.pdf
+    \centering
+    \includegraphics[height=4.5cm]{img/cascade_vis.png}
+    \caption{The first weak classifier has in this case 2 simple features , outputting lots of FP. The rest have progressively more features.}
+\end{figure}
+
+
+
+
+\subsection{Face and object detection in OpenCV}
+
+As mentioned before, the cascade Viola Jones classifier can work in real time thanks to the cascade of strong classifiers, which are applied sequentially. Although we could have thousands of features, they are not applied at the same time. The first classifier contains the fewest features, the second more etc. If at any stage the input image does not pass one of the classifiers, it's rejected. This saves huge amounts of computation time.
+
+Object, not only face, detection in OpenCV is very straightforward. First, we initialise a \mintinline{python}{cv2.CascadeClassifier} object:
+\begin{minted}{python}
+cv2.CascadeClassifier(xml_file) -> cascade_detector
+\end{minted}
+\begin{itemize}
+    \item \mintinline{python}{xml_file} is the path to an .xml file that contains training data, i.e. the Haar features and threshold of each classifier stage. It contains data in a special format. Some samples can be found in \href{https://github.com/opencv/opencv/tree/master/data/haarcascades}{OpenCV's repository}. Note that the \mintinline{latex}{.xml} files contain also features trained to detect face profiles, eyes, bodies, etc.
+    \item \mintinline{python}{cascade_detector} is the object that will actually run the Viola-Jones algorithm. More on it next.
+\end{itemize}
+\begin{minted}{python}
+cv2.CascadeClassifier.detectMultiScale(image[, scaleFactor[, minNeighbors[, flags[,
+minSize[, maxSize]]]]]) -> objects
+\end{minted}
+% doc: https://docs.opencv.org/3.4/d1/de5/classcv_1_1CascadeClassifier.html#aaf8181cb63968136476ec4204ffca498
+\begin{itemize}
+    \item \mintinline{python}{image}: Greyscale image that contains objects to be detected.
+    \item \mintinline{python}{scaleFactor}: Specifies how much the image size is reduced at each image scale. Default value is \mintinline{python}{1.2}.
+    \item \mintinline{python}{minNeighbors}: Specifyies how many neighbors each candidate rectangle should have to retain it. Default value is \mintinline{python}{3}.
+    \item \mintinline{python}{flags}: Parameter with the same meaning for an old cascade as in the function cv2.HaarDetectObjects. It is not used for a new cascade.
+    \item \mintinline{python}{minSize}: A tuple. Minimum possible object size. Objects smaller than that are ignored.
+    \item \mintinline{python}{maxSize}: A tuple. Maximum possible object size. Objects larger than that are ignored. If \mintinline{python}{maxSize == minSize} model is evaluated on single scale.
+    \item \mintinline{python}{objects}: An array of rectangles. Each rectangle is, in turn, an array \mintinline{python}{x0, y0, width, height}.
+\end{itemize}
+If the input image has low constrast, OpenCV suggests histogram pre-processing before applying the face detector.
+
+\mintinline{python}{scaleFactor} may need to be calibrated depending on how large the face to detect is relative to the image size. Recall that scale factor defines how much the image is downsampled from one pyramid level to another. For example, if the input image has resolution $1280\times 800$ and \mintinline{python}{scaleFactor = 1.2}, then the pyramid base level has size $1280\times 800$ and the next has $20\%$ of it, so $1168\times 730$ and so forth. Reducing the scale factor increases the chance of finding a face but also increases computation time and also false positives. 
+
+Decreasing \mintinline{python}{minNeighbors} increases the number of detection rectangles that can overlap each other.
+
+The code is listed in \ref{app:viola_jones_cv} and a result is shown below.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/viola_jones_out.png}
+    \caption{Applying Viola-Jones for \mintinline{python}{scalingFactor = 1.1} and \mintinline{python}{minNeighbors = 5}.}
+\end{figure}
+
+
+
+\subsection{How to train your own Haar cascade classifier in OpenCV}
+
+\TODO
+
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\appendix
+
+\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Viola Jones in OpenCV}
+\label{app:viola_jones_cv}
+
+\lstinputlisting[language=python,caption={Python implementation (\detokenize{src/viola_jones_cv.py)}.}, label=src:mylabel]{src/viola_jones_cv.py}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+\end{document}
