@@ -3,8 +3,8 @@
 This repository contains reference notes on different topics such as computer vision, machine learnig etc. Most of them contain easy to run code to demonstrate the theory. There's a huge list of things to add but the next ones are  
 - [x] write a small BIOS
 - [x] computer vision - finish localisation (tracking)
-- [ ] computer vision - features
-- [ ] computer vision - face recognition and Haar classifier
+- [ ] computer vision - features, homography, SIFT, HOGs
+- [x] computer vision - face recognition by Haar cascade classifier
 - [ ] machine learning - CNNs with Pytorch
 - [x] C - integer promotion rules
 - [x] Unix systems programming - processes
