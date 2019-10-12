@@ -350,11 +350,166 @@ The code is listed in \ref{app:viola_jones_cv} and a result is shown below.
 
 
 
-\subsection{How to train your own Haar cascade classifier in OpenCV}
-
-\TODO
+\subsection{How to train your own cascade classifier in OpenCV}
 
 
+\marginnote{Requirement: OpenCV 3.x}OpenCV 3.x allows you to train your own cascade classifier. Cascade training has been dropped in version 4.x. The way it works is 
+\begin{enumerate}
+    \item Prepare the directory structure.
+    \item Grab some positive and negative images and store them in the directory.
+    \item (Optional) Augment the positive datasets, e.g. randomly rotate, flip, or add noise to each positive image.
+    \item Generate the metadata, such information files regarding where the images are and the object location in the positive images.
+    \item Do the training. This is will eventually generate an \mintinline{latex}{.xml} file that is usable for the target object detection.
+\end{enumerate}
+
+
+\subsubsection{Prepare the directory structure}
+
+On github there is already an empty repository that's fit for cascade training. Clone it
+\begin{verbatim}
+git clone https://github.com/0xLeo/opencv-haar-classifier-training.git
+cd opencv-haar-classifier-training/
+\end{verbatim}
+Remove all the \mintinline{latex}{.gitkeep} files so that they're not accidentally included as training images.
+\begin{verbatim}
+find . -type f -name .gitkeep -exec rm -f {} \;
+\end{verbatim}
+The directory is ready and should look as follows:
+\begin{verbatim}
+.
++-- bin
+|   +-- createsamples.pl
++-- classifier
++-- LICENSE
++-- negative_images
++-- positive_images
++-- README.md
++-- samples
++-- tools
+|   +-- mergevec.py
++-- trained_classifiers
+    +-- banana_classifier.xml
+\end{verbatim}
+
+
+
+\subsubsection{Collect and process training images}
+
+Remember two things when downloading training images.
+\begin{enumerate}
+    \item The positive images should contain only the object of interest and as little margin around it as possible.
+    \item The negative images can contain anything but the object of interest.
+\end{enumerate}
+To quickly crop the object, a tool such as  \href{https://www.batchcrop.com}{batchcrop} is recommended. Unfortunately, this only works on Windows.
+
+A way of collecting positive images is by downloading pre-compiled datasets and extracting their RGB images. Alternatively, videos can be converted to images. A few thousand positive and a few thousand negatives should be fine. Once they have been collected and cropped, they need to be resized to the same size to facilitate training. For this, run the resize tool as follows:
+\begin{verbatim}
+cd tools
+chmod +x batch_resize.py
+./batch_resize.py ../positive_images/ 128 128 # directory width height
+./batch_resize.py ../negative_images/ 128 128
+\end{verbatim}
+
+
+
+
+\subsubsection{Augment the positive dataset}
+
+Image data augmentation is a technique that can be used to artificially expand the size of a training dataset by creating modified versions of images in the dataset. It therefore allows the model to generalise its results.
+
+In the \mintinline{latex}{tools} directory, the \mintinline{latex}{augment.py} augments the dataset. It rotates each image a number of times and randomly horizontally flips the result, and optionally adds noise. Simply do
+\begin{verbatim}
+./augment.py ../positive_images 6
+\end{verbatim}
+To  rotate and then flip each image 6 times. The new results will be added to the positive image directory.
+
+
+
+\subsubsection{Generate the metadata}
+
+OpenCV needs a file to list positives, one to list negatives and one to list obj locations in positives images.
+\begin{verbatim}
+cd <project_root>
+find ./positive_images/ -iname *.png > positives.txt
+find ./negative_images/ -iname *.png > negatives.txt
+\end{verbatim}
+Now generate the file that contains the object positions as rectangles (info file). Info files is based on \mintinline{latex}{positives.txt} so in the project root, copy the later:
+\begin{verbatim}
+cp positives.txt info.dat
+\end{verbatim}
+Because there's virtually no margin around the object since the positive image are tightly cropped, the starting position of the rectangle is $(0,0)$ and the end is $(image\_width, image\_height)$. The info file is based on \mintinline{latex}{positives.txt}, however each line looks as follows:
+\begin{verbatim}
+<path_from_root_to_positive_image> <number_of_objects> <x0> <y0> <x1> <y1>
+\end{verbatim}
+For example, if all images have been resized to $(128, 128)$, objects have been cropped rightly and each one contains only one object, then each line of \mintinline{latex}{info.dat} should look like:
+\begin{verbatim}
+./positive_images/resized_00212_rot_03.png.png 1 0 0 128 128
+\end{verbatim}
+Once it's done, generate the \mintinline{latex}{.vec}, which encodes all positive images together in a vector given the \mintinline{latex}{info.dat} file. Before encoding them, it can also downsample them to speed up the training. For this, we need the \mintinline{latex}{opencv_createsamples} program, which is part of OpenCV 3.x. The command to create a vector file (\mintinline{latex}{sampels.vec}) containing all positive images downsamples to $36\times 36$ is:
+\begin{verbatim}
+NPOS=`cat positives.txt  | wc -l`
+opencv_createsamples -info info.dat -vec samples.vec -h 36 -w 36 -num $NPOS
+\end{verbatim}
+To make sure the vector is created correctly, view it with the following command and press escape to close the window:
+\begin{verbatim}
+opencv_createsamples -vec samples.vec    
+\end{verbatim}
+
+
+\subsubsection{Do the training}
+
+
+Before the training begins, make sure the file where we will write the trainng weights is empty:
+\begin{verbatim}
+mkdir -p classifier; rm classifier/*
+\end{verbatim}
+Use the following command for training:
+\begin{verbatim}
+opencv_traincascade -data classifier -vec samples.vec -bg negatives.txt   -numStages 25 -minHitRate 0.9999 -maxFalseAlarmRate 0.35 -numPos 1400   -numNeg 425 -w 36 -h 36 -mode ALL -precalcValBufSize 1024   -precalcIdxBufSize 1024 -featureType LBP
+\end{verbatim}
+The parameters that need to be explained are the following. For more, see the help menu of the command.
+\begin{itemize}
+    \item \mintinline{latex}{data}: The output file where the training weights and the final .xml, called cascade.xml will be written.
+    \item \mintinline{latex}{numStages}: Number of stages of cascade classifier.
+    \item \mintinline{latex}{minHitRate}: Minimum TP rate of each stage of the classifier. It needs to be high as, if it's e.g. $0.99$, for 16 stages the final TP rate would be $0.99^{16} \approx 0.851$. 
+    \item \mintinline{latex}{maxFalseAlarmRate}: Maximum FP rate of each stage. If for one stage FPR is $0.35$, then for 16 stages the final is $0.35^{16} \approx 0$.
+    \item \mintinline{latex}{numPos}: Number of positive images used for learning at each stage.
+    \item \mintinline{latex}{numNeg}: Likewise, for negative images. It's recommended to keep \mintinline{latex}{numPos} 2 or 3 times higher than \mintinline{latex}{numNeg}.
+    \item \mintinline{latex}{w, h}: The width and height of images stored in the .vec file.
+    \item \mintinline{latex}{featureType}: can be either \mintinline{latex}{LPB} or \mintinline{latex}{HAAR}. LPB stands for Local Binary Patterns and it's a similar type of  features to Haar. LPB is several times faster than Haar but less accurate.
+\end{itemize}
+While the training is ongoing, it will display an output similar to the following.
+\begin{verbatim}
+===== TRAINING 0-stage =====
+<BEGIN
+POS count : consumed   2300 : 2300
+NEG count : acceptanceRatio    430 : 1
+Precalculation time: 13
++----+---------+---------+
+|  N |    HR   |    FA   |
++----+---------+---------+
+|   1|        1|        1|
++----+---------+---------+
+|   2|        1|        1|
++----+---------+---------+
+|   3|        1|        1|
++----+---------+---------+
+|   4|        1| 0.909302|
++----+---------+---------+
+|   5|        1|      0.9|
++----+---------+---------+
+|   6|        1| 0.695349|
++----+---------+---------+
+|   7|        1| 0.723256|
++----+---------+---------+
+|   8|        1| 0.634884|
++----+---------+---------+
+|   9|        1| 0.327907|
++----+---------+---------+
+END>
+Training until now has taken 0 days 0 hours 0 minutes 24 seconds.
+\end{verbatim}
+When it's done, it will generate the trained classifier at \mintinline{latex}{cascade.xml}. Then, the program at \ref{app:viola_jones_cv} can be used to test it.
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
