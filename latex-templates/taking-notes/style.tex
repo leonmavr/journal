@@ -15,7 +15,8 @@
 \usepackage{scrextend}                  % indentation
 \usepackage{graphicx}                   % standard - add figures
 \usepackage{float}                      % standard - figure position, use [H] option
-\usepackage{pifont}                     % symbols
+\usepackage{pifont}                     % symbols http://willbenton.com/wb-images/pifont.pdf
+                                        % e.g. \ding{51}
 \usepackage{gensymb}                    % degree symbol \degree
 \usepackage{xcolor}                     % bg color
 \hypersetup{
@@ -63,29 +64,25 @@
 \addbibresource{bibliography.bib}
 \usepackage{url}
 \usepackage{textcomp}
-\usepackage[makeroom]{cancel}            % crossed symbols
+\usepackage[makeroom]{cancel}           % crossed symbols - \cancel{}, \bcancel{}, xcancel{}
 \usepackage{algorithm}
 \usepackage[noend]{algpseudocode}
 \usepackage{tikz}
 \usetikzlibrary{arrows.meta,positioning,quotes} % arrows and nodes in tikz
-\usepackage{marginnote}
+\usepackage{marginnote}                 % things in page margin by \marginnote{...}
 \usepackage{pgfplots}
-\usepackage{pstricks-add,pst-slpe}  % for fancy tikz arrows
-%\usepackage{titlesec}                   % title style
+\usepackage{pstricks-add,pst-slpe}      % for fancy tikz arrows
+%\usepackage{titlesec}                  % title style
 \usepackage{lmodern}                    % a font
-\usepackage{titletoc} % Required for manipulating the table of contents
-\usepackage{titlesec} % Allows customization of titles
-\usepackage{fouriernc} % Use the New Century Schoolbook font
-\usepackage{booktabs} % things in page margins
-\usepackage{stmaryrd } % \varoast
-\usepackage{listings} % code listings
-\usepackage{longtable} % table across multiple pages
+\usepackage{titletoc}                   % Required for manipulating the table of contents
+\usepackage{titlesec}                   % Allows customization of titles
+\usepackage{fouriernc}                  % Use the New Century Schoolbook font
+\usepackage{booktabs}                   % better tables
+\usepackage{stmaryrd }                  % \varoast
+\usepackage{listings}                   % code listings
+\usepackage{longtable}                  % table across multiple pages
+\usepackage{todonotes}                  % TODO bubbles by \todo{...} command
 
-
-
-
-%% extra comments that I don't know where they belong:
-% list of ding tags: http://willbenton.com/wb-images/pifont.pdf
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Colours for various things
@@ -238,14 +235,52 @@
     tabsize=4
 }
 
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+
+\lstdefinestyle{terminal}{
+    backgroundcolor=\color{black!5},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    %numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    numbers=none,
+    breakatwhitespace=false,
+    breaklines=true,        
+    %captionpos=t,             
+    keepspaces=true,        
+    %numbers=left,           
+    %numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
 \lstset{style=code1}
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Headers (size, font, colour)
 %%
-
-
-
 
 \makeatletter
 \renewcommand{\@seccntformat}[1]{\llap{\textcolor{DarkestPink}{\csname the#1\endcsname}\hspace{1em}}}                    
@@ -283,8 +318,6 @@
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Paths
 %%
-\graphicspath{ {./img/} } % figures' path - can look up files directly from there
-
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % User defined macros (math mode)
