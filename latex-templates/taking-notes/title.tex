@@ -41,6 +41,89 @@
 
 \begin{titlepage} % Suppresses headers and footers on the title page
 
+	%------------------------------------------------
+	%	Border decorations
+	%------------------------------------------------
+    \AddToShipoutPictureBG*{
+        \begin{tikzpicture}[overlay,remember picture]
+            \draw[line width=10pt]
+                ($ (current page.north west) + (4pt,-4pt) $)
+                rectangle
+                ($ (current page.south east) + (4pt,4pt) $);
+            \draw[line width=10pt]
+                ($ (current page.north west) + (4pt,-4pt) $)
+                rectangle
+                ($ (current page.south east) + (-4pt,4pt) $);
+        \end{tikzpicture}
+        \AtTextUpperLeft{%
+            \put(185,12){
+                \parbox[b][\paperheight]{\paperwidth}{% parbox
+            
+                    \centering
+                    {\transparent{1.0}
+                    \setlength{\fboxsep}{0pt}%
+                    \setlength{\fboxrule}{2pt}%
+                    \fbox{                                
+                        \includegraphics[keepaspectratio=false,width=50pt,height=50pt]{img/title/corner.png}
+                        }
+                    } % transparent
+                } % parbox
+            } % put
+        } % AtTextUpperLeft
+        
+        \AtTextUpperLeft{%
+            \put(185,-762){
+                \parbox[b][\paperheight]{\paperwidth}{% parbox
+            
+                    \centering
+                    {\transparent{1.0}
+                    \setlength{\fboxsep}{0pt}%
+                    \setlength{\fboxrule}{2pt}%
+                    \fbox{                                
+                        \includegraphics[keepaspectratio=false,width=50pt,height=50pt]{img/title/corner.png}
+                        }
+                    } % transparent
+                } % parbox
+            } % put
+        } % AtTextUpperLeft
+        
+         \AtTextUpperLeft{%
+            \put(-338,-762){
+                \parbox[b][\paperheight]{\paperwidth}{% parbox
+            
+                    \centering
+                    {\transparent{1.0}
+                    \setlength{\fboxsep}{0pt}%
+                    \setlength{\fboxrule}{2pt}%
+                    \fbox{                                
+                        \includegraphics[keepaspectratio=false,width=50pt,height=50pt]{img/title/corner.png}
+                        }
+                    } % transparent
+                } % parbox
+            } % put
+        } % AtTextUpperLeft
+        
+        \AtTextUpperLeft{%
+            \put(-338,12){
+                \parbox[b][\paperheight]{\paperwidth}{% parbox
+            
+                    \centering
+                    {\transparent{1.0}
+                    \setlength{\fboxsep}{0pt}%
+                    \setlength{\fboxrule}{2pt}%
+                    \fbox{                                
+                        \includegraphics[keepaspectratio=false,width=50pt,height=50pt]{img/title/corner.png}
+                        }
+                    } % transparent
+                } % parbox
+            } % put
+        } % AtTextUpperLeft
+    } %AddToShipoutPictureBG
+    
+    
+   	%------------------------------------------------
+	%	Text alignment
+	%------------------------------------------------
 	\centering % Centre everything on the title page
 	
 	\scshape % Use small caps for all text on the title page
