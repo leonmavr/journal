@@ -82,7 +82,11 @@
 \usepackage{listings}                   % code listings
 \usepackage{longtable}                  % table across multiple pages
 \usepackage{todonotes}                  % TODO bubbles by \todo{...} command
-
+\usepackage{changepage}                 % paragraph margins
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{eso-pic}
+\usepackage{transparent}
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Colours for various things
@@ -420,6 +424,10 @@
 \newenvironment{mynote}%
     {\begin{siderule}\textbf{\Pointinghand~Note:}}
     {\end{siderule}}
+    
+\newenvironment{myquote}%
+    {\begin{adjustwidth}{0.4cm}{0.4cm}\faQuoteLeft\ \itshape}
+    { \hfill \faQuoteRight  \end{adjustwidth}}
 %%%%%%%%%%%%% my own box
 \newcommand{\boxone}[1]{\begin{tcolorbox}[colback = LighterPink,colframe=LightPink]
 #1
