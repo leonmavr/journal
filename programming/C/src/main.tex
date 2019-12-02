@@ -1,0 +1,793 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+
+
+
+\input{inline.tex}
+\input{int_promotions.tex}
+
+\clearpage
+\section{Operator precedence}
+
+
+\subsection{Associativity and precedence}
+
+% ref https://www.programiz.com/c-programming/precedence-associativity-operators
+Associativity and precedence defined how operations are evaluated when there are multiple in a line.
+\begin{itemize}
+    \item \emphasis{Associativity} defines the order in which operations of the same precedence are evaluated in an expression. It can be left to right ($\rightarrow$) or right to left ($\leftarrow$).
+    % ref https://en.cppreference.com/w/c/language/eval_order
+    \item \emphasis{Precedence}  determines the grouping of terms in an expression and decides how an expression is evaluated. Certain operators have higher precedence than others.
+\end{itemize}
+
+
+\subsection{Precedence table}
+
+% ref https://www.programiz.com/c-programming/precedence-associativity-operators
+If more than one operators are involved in an expression, C language has a predefined rule of priority for the operators. This rule of priority of operators is called operator precedence.
+
+% also https://www.ibm.com/support/knowledgecenter/en/SSLTBW_2.3.0/com.ibm.zos.v2r3.cbclx01/preeval.htm
+%\TODO[copy \url{https://docs.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=vs-2019} below]
+
+% ref for table https://aticleworld.com/operator-precedence-and-associativity-in-c/
+\begin{tabular}{cclc} \toprule
+    Rank & Operator & Type of operation & Associativity \\ \midrule
+    1 & \texttt{()}  & Parentheses or function call &  \large{\ding{224}}  \\
+    1 & \texttt{[]} & Brackets or array subscript & \large{\ding{224}} \\
+    1 & \texttt{.} & Dot or member selection operator & \large{\ding{224}}\\
+    1 & \texttt{->} & Arrow operator & \large{\ding{224}} \\
+    1 & \texttt{++} or \texttt{---} & Postfix increment/ decrement & \large{\ding{224}} \\ \midrule
+    2 & \texttt{++} or \texttt{---} & Prefix increment/ decrement & \large{\revdingarrow} \\
+    2 & \texttt{+} or \texttt{-} & Unary plus or minus & \large{\revdingarrow} \\
+    2 & \texttt{!}, \texttt{\~} & not operator, bitwise complement & \large{\revdingarrow} \\
+    2 & \texttt{(type)}, e.g. \texttt{(double) 2} & type cast & \large{\revdingarrow} \\
+    2 & \texttt{*}  & Indirection or dereference & \large{\revdingarrow} \\
+    2 & \texttt{\&} & address of & \large{\revdingarrow}\\
+    2 & \texttt{sizeof} & Determine size in bytes & \large{\revdingarrow} \\ \midrule
+    3 & \texttt{* . \%} & Multiplication, division, modulus & \large{\ding{224}} \\ \midrule
+    4 & \texttt{+ -} & Addition and subtraction & \large{\ding{224}} \\ \midrule
+    5 & \texttt{<< >>} & Bitwise left shift and right shift & \large{\ding{224}}\\ \midrule
+    6 & \texttt{< <=} & relational less/ less than or equal to & \large{\ding{224}} \\
+    6 & \texttt{> >=} & relational greater/ greater than or equal to & \large{\ding{224}}\\ \midrule
+    7 & \texttt{== !=} & relational equal or not equal to & \large{\ding{224}} \\ \midrule
+    8 & \texttt{\&\&} & bitwise AND & \large{\ding{224}} \\ \midrule
+    9 & \texttt{\^} & bitwise XOR & \large{\ding{224}} \\ \midrule
+    10 & \texttt{|} & bitwise OR & \large{\ding{224}} \\ \midrule
+    11 & \texttt{\&\&} & Logical AND & \large{\ding{224}} \\ \midrule
+    12 & \texttt{||} & Logical OR & \large{\ding{224}}\\ \midrule
+    13 & \texttt{?:} & Ternary operator & \large{\revdingarrow} \\ \midrule
+    14 & \texttt{=} & Assignment & \large{\revdingarrow} \\ 
+    14 & \texttt{+= -=} & Add/ subtract and assign & \large{\revdingarrow} \\
+    14 & \texttt{*= /=} & Multiply/ divide and assign & \large{\revdingarrow} \\
+    14 & \texttt{\%= \&=} & Modulus and assign/ bitwise AND and assign & \large{\revdingarrow} \\
+    14 & $\hat{}\ $\texttt{= |=} & Bitwise XOR/ bitwise OR and assign & \large{\revdingarrow} \\
+    14 & \texttt{<<= >>=} & Shift left/ shift right and assign & \large{\revdingarrow} \\ \midrule
+    15 & \texttt{,} & comma operator\footnote{\url{https://stackoverflow.com/a/52558}} & \large{\ding{224}}  \\ \bottomrule
+\end{tabular}
+
+One in the table above that is not used often is the comma. (\texttt{,}).
+\begin{takeaway}
+Comma operator returns the rightmost operand in the expression and evaluates the rest, rejecting their return value.
+\end{takeaway}
+
+\begin{exmp}
+\marginnote{It is no way implied that the following are good code practices, they simply test the understanding of operators!}
+The left column shows some examples of the \texttt{,} operator and the right their output. 
+\begin{multicols}{2}
+
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i;
+	i = 1, 2, 3;	
+	printf("%d\n", i);
+}
+\end{lstlisting}
+
+\columnbreak 
+\; \\
+\begin{verbatim}
+1
+\end{verbatim}
+
+(= operation has highest precedence, therefore \texttt{i = 1} gets evaluated first. Then, \texttt{, 2, 3} gets evaluated, which does nothing.)
+\begin{verbatim}
+\end{verbatim}
+\end{multicols}
+
+\begin{multicols}{2}
+
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i;
+	i = (1, 2, 3);	
+	printf("%d\n", i);
+}
+\end{lstlisting}
+
+\columnbreak
+\; \\
+\begin{verbatim}
+1
+\end{verbatim}
+
+(\texttt{()} have the highest priority, forcing what's inside them to get evaluated first, i.e. \texttt{1,2,3} to evaluate \texttt{3} (L to R). \texttt{3} gets assigned to \texttt{i}.)
+\begin{verbatim}
+\end{verbatim}
+\end{multicols}
+
+\begin{multicols}{2}
+
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i = 1, 2, 3;	
+	printf("%d\n", i);
+}
+\end{lstlisting}
+
+\columnbreak
+\; \\
+
+(\texttt{=} has the highest priority, defining \texttt{i} as \texttt{1}. Since the \texttt{int} type is multiplicative, \texttt{int 2} and \texttt{int 3} will also be attempted to be declared -- compilation error.)
+\begin{verbatim}
+\end{verbatim}
+\end{multicols}
+
+
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	printf("%d bytes, %d bytes\n",
+	    sizeof((double) (1,2,3)),
+	    sizeof((int) (1.0, 2.0)));
+}
+\end{lstlisting}
+\columnbreak
+
+\; \\
+\begin{verbatim}
+8 bytes, 4 bytes
+\end{verbatim}
+(Outer parens first. Then inner parens, evaluating \texttt{3} and \texttt{2.0} respectively. Then type casts, evaluating \texttt{3.0} and \texttt{2} respectively. \texttt{sizeof} operates on each outer paren, returning 8 and 4 respectively.)
+
+\end{multicols}
+
+
+
+
+\begin{multicols}{2}
+
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i = 0, j = 1, k = 2;
+	int *p_i = &i, p_j = &j, p_k = &k;
+	printf("%d %d %d\n", *p_i, *p_j, *p_k);
+}
+\end{lstlisting}
+\columnbreak
+\; \\
+(compilation error -- \texttt{int} is multiplicative but dereference (\texttt{*}) is not. Pointer \texttt{p\_i} will be defined properly but \texttt{p\_j, p\_k} are just \texttt{int}. The correct way would be \texttt{*p\_j = \&j, *p\_k = \&k}.)
+\end{multicols}
+
+\clearpage
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int x = 0, y = 0;
+	int i = (1, x++, ++y);
+	printf("%d %d %d\n",
+	    i, x++, ++y);
+	printf("%d %d %d\n",
+	    i = 1337, x, y);
+}
+\end{lstlisting}
+
+\columnbreak
+\; \\
+\begin{verbatim}
+1 1 2
+1337 2 2
+\end{verbatim}
+(For explanation of the pre/post increment, see \ref{app:pre_post_increment}.)
+
+\end{multicols}
+
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i, j = (printf("Hello?\n"),
+			1337);
+	printf("world!\n%d, %d\n",
+			i, j);
+}
+\end{lstlisting}
+\columnbreak
+\; \\
+\begin{verbatim}
+Hello?
+world!
+0, 1337
+\end{verbatim}
+\end{multicols}
+
+
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i;
+	int arr[5] = {1, 2, 3, 4, 5};
+	int *p_arr = arr; // same as &arr[0]
+
+	// pr(++post) > pr(++pre) = pre(*deref))
+	// ++p_arr; *p_arr (L to R) => 2
+	printf("(1) %d\n", *++p_arr);
+	// p_arr++, then *p_arr => 3
+	printf("(2) %d\n", *p_arr++); // *
+	// ++(*p_arr) => arr[2]++
+	printf("(3) %d\n", ++*p_arr);
+	// ++(*(p_arr++))
+	printf("(4) %d\n", ++*p_arr++);
+	for (i = 0; i < sizeof(arr)/sizeof(arr[0]);
+			++i)
+		printf("%d ", arr[i]);
+	return 0;
+}
+\end{lstlisting}
+
+\columnbreak
+\; \\
+\begin{verbatim}
+(1) 2, 0xf9933074
+(2) 2, 0xf9933078
+(3) 4, 0xf9933078
+(4) 5, 0xf993307c
+1 2 5 4 5
+\end{verbatim}
+
+(1) Reading L to R, we evaluate \texttt{*(++p\_arr)}. \texttt{p\_arr} initially points at the 0-th element, so we print \texttt{2}.
+
+(2) Post-inc has the highest priority, however evaluates AFTER the whole expression is evaluated, therefore we compute \texttt{*p\_arr} = 2, then increment the pointer.
+
+(3) Equal priority, so we read L to R and evaluate \texttt{++}'s operand first. As we shifted the pointer before, result is \texttt{++(*p\_arr) = 3+1}. 
+
+(4) Evaluated as \texttt{++(*p\_arr++) = *p\_arr++; ++p\_arr}
+\end{multicols}
+
+\clearpage
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+int main(int argc, char *argv[])
+{
+	int i = 0;
+	int arr[5] = {1, 2, 3, 4, 5};
+
+	printf("%d ", arr[++i]);
+	printf("%d ", arr[i]);
+	printf("%d ", arr[i++]);
+	printf("%d \n", arr[i]);
+	return 0;
+}
+\end{lstlisting}
+\columnbreak
+\begin{verbatim}
+\; \\
+2 2 2 3
+\end{verbatim}
+(Pre-increment always happens before the expressions have been evaluated and post after -- see \ref{app:pre_post_increment}.)
+\end{multicols}
+
+
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+void main(){
+   int intVar = 20, x;
+   x = ++intVar, intVar++, ++intVar;
+   printf("Value of intVar = \%d, x = \%d", intVar, x);
+}
+\end{lstlisting}
+\columnbreak
+\; \\
+\begin{verbatim}
+Value of intVar=23, x=21   
+\end{verbatim}
+(Since \texttt{=} operator has more precedence than \texttt{,} \texttt{=} operator will be evaluated first.
+Here, \texttt{x = ++intVar, intVar++, ++intVar} so
+\texttt{x = ++intVar} will be evaluated, assigning \texttt{21} to \texttt{x}. Then comma operator will be evaluated \cite{aptitudequestions}.)
+\end{multicols}
+
+
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+
+void main()
+{
+
+	// (1)
+	int x;
+	x = (printf("AA") || printf("BB"));
+	printf("%d\n", x);
+	
+	// (2)
+	x = (printf("AA") && printf("BB"));
+	printf("%d\n", x);
+	
+	// (3)
+	x = printf("1") && printf("3") || 
+		printf("3") && printf("7");
+	printf("\n%d\n", x);
+	
+}
+\end{lstlisting}
+
+
+\columnbreak
+\; \\
+\begin{verbatim}
+AA1
+AABB1
+13
+1
+\end{verbatim}
+
+Adapted from \cite{aptitudequestions}. Keep in mind that \texttt{printf} returns the number of characters to be printed. 
+
+(1) A logical OR (\texttt{ A || B}) condition checks whether A or B is true and as soon as one of them is true, exits. \texttt{printf("AA")} is true and returns \texttt{(int) true = 1} to \texttt{x}. In the end, prints \texttt{AA1}. (2) \texttt{A \&\& B} checks whether both A and B are true and if so returns \texttt{true}, therefore runs the two \texttt{printf} commands and returns \texttt{2 \&\& 2 = true} to \texttt{x}. (3) Similar to others, but evaluation stops when the OR (\texttt{||}), is hit, which is when the compiler understands the expression is true and returns 1 to \texttt{x}, therefore \texttt{13} and \texttt{1} are printed.
+\end{multicols}
+
+
+
+\begin{multicols}{2}
+
+
+\begin{lstlisting}[language=c]
+
+
+void main()
+{   
+	char var = 10;
+	printf("var is = %d", ++var++);
+}
+
+\end{lstlisting}
+
+\columnbreak
+\; \\
+\begin{verbatim}
+lvalue required as increment operand
+\end{verbatim}
+Question adapted from \cite{aptitudequestions}. Will be evaluated as \texttt{(++var)++}. \texttt{++var} will yield \texttt{11}, which is an unnamed value -- unnamed values cannot be the operand of \texttt{++} \cite{aptitudequestions}.
+\end{multicols}
+
+\clearpage
+\begin{multicols}{2}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+void main()
+{
+   int a = 3, b = 2;
+   a = a == b == 0;
+   printf("%d,%d\n", a, b);
+}
+\end{lstlisting}
+
+\columnbreak \; \\
+\begin{verbatim}
+1, 2
+\end{verbatim}
+\texttt{=} has the highest priority so the expression is evaluated as \texttt{ a = (a == b == 0)}. Then L to R as \texttt{a =((a == b) == 0)}, i.e. \texttt{a = (0 == 0)}, i.e. \texttt{a = 1} \cite{aptitudequestions}.
+\end{multicols}
+\end{exmp}
+
+
+\subsubsection{Application of using operators to write concise code -- string manipulation}
+
+A basic string library has been written to demonstrate how operators can be used for denser code. By using them, less buffer variables are needed. Remember that in C, strings are terminated by \texttt{'\arraybackslash 0'}, hence the conditions in the code. If precedence is correctly understood, then the code is easy to read too. Below are its functions. Prototypes are found in \texttt{sstr.h} and implementations at \texttt{sstr.c}.
+
+\lstinputlisting[firstline=4,lastline=9,language=c,caption={String length implementation (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrlen]{src/sstrlib/sstr.c}
+The following diagram shows how \texttt{sstrlen("abcd")} works assuming \texttt{pSrc} points to an imaginary address \texttt{0x800}. First, we increment the pointer and then compare its value to 0.
+\begin{verbatim}
++--+--+--+--+--+
+|a |b |c |d |\0| (0x8001)
++--+--+--+--+--+
+    |
+    v
+    True     
++--+--+--+--+--+
+|a |b |c |d |\0| (0x8002)
++--+--+--+--+--+
+       | 
+       v
+       True     
++--+--+--+--+--+
+|a |b |c |d |\0| (0x8003)
++--+--+--+--+--+
+          | 
+          v
+          True
++--+--+--+--+--+
+|a |b |c |d |\0| (0x8004)
++--+--+--+--+--+
+             |
+             v
+             False ------> 0x8004 - 0x8000
+\end{verbatim}
+
+\lstinputlisting[firstline=12,lastline=15,language=c,caption={String copy implementation  (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrcpy]{src/sstrlib/sstr.c}
+
+\lstinputlisting[firstline=18,lastline=22,language=c,caption={Reverse a string implementation  (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrrev]{src/sstrlib/sstr.c}
+
+\lstinputlisting[firstline=25,lastline=28,language=c,caption={Character to lowercase implementation  (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrlower]{src/sstrlib/sstr.c}
+
+\lstinputlisting[firstline=31,lastline=43,language=c,caption={Check palindrome implementation  (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrpalin]{src/sstrlib/sstr.c}
+
+\lstinputlisting[firstline=46,lastline=54,language=c,caption={Print string implementation  (\detokenize{src/sstrlib/sstr.c)}.}, label=src:sstrprint]{src/sstrlib/sstr.c}
+
+
+
+
+
+
+
+
+
+
+
+%\url{https://stackoverflow.com/questions/15345396/precedence-of-dereference-and-postfix}\\
+%\url{https://stackoverflow.com/questions/26902462/difference-between-argv-argv-argv-and-argv/26902610#26902610}\\
+%\url{https://stackoverflow.com/questions/17251584/difference-between-int-i-1-2-3-and-int-i-1-2-3-variable-declaration-with}\\
+%\url{https://www.youtube.com/watch?v=mhmnb80ZDBM}\\
+%\url{https://www.2braces.com/c-questions/operators-questions-c-3}\\
+%\url{https://www.includehelp.com/c/operators-aptitude-questions-and-answers.aspx}\\
+%\url{https://stackoverflow.com/questions/4176328/undefined-behavior-and-sequence-points}\\
+%\url{https://stackoverflow.com/questions/52550/what-does-the-comma-operator-do}\\
+%\url{https://stackoverflow.com/questions/1613230/uses-of-c-comma-operator}\\
+%\url{https://stackoverflow.com/questions/41611557/c-programming-comma-operator-within-while-loop}\\
+%\TODO[example below]
+
+%\url{https://docs.microsoft.com/en-us/cpp/c-language/precedence-and-order-of-evaluation?view=vs-2019}\\
+%\url{https://www.includehelp.com/c/operators-aptitude-questions-and-answers.aspx}\\
+%\url{https://www.2braces.com/c-questions/operators-questions-c-3}\\
+%\url{https://www.sanfoundry.com/c-language-interview-questions-precedence-order-evaluation/}\\
+%\url{https://gcc.gnu.org/onlinedocs/cpp/Operator-Precedence-Problems.html}\\
+%\url{https://www.2braces.com/c-programming/c-operators-precedence}\\
+%\url{http://web.deu.edu.tr/doc/oreily/java/langref/ch04_14.htm}\\
+%\url{https://stackoverflow.com/questions/4176328/undefined-behavior-and-sequence-points}\\
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\appendix
+
+\section{Appendices}
+
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{ANSI C vs GNU C}
+\label{app:gnu_vs_iso}
+In the main text, we have used the terms ``ISO C, ANSI C'' and ``GNU C''. They mean different things.
+
+\begin{itemize}
+    % https://stackoverflow.com/questions/17206568/what-is-the-difference-between-c-c99-ansi-c-and-gnu-c
+    \item GNU C: GNU is a unix like operating system (www.gnu.org) \& somewhere GNU's project needs C programming language based on ANSI C standard. GNU use GCC (GNU Compiler Collection) compiler to compile the code. It has C library function which defines system calls such as malloc, calloc, exit...etc
+    % https://www.linuxquestions.org/questions/programming-9/gnu-c-and-ansi-c-520509/
+    \item ANSI C is a standardised version of the C language. As with all such standards it was intended to promote compatibility between different compilers which tended to treat some things a little differently.
+    \item standard specified in the ANSI X3.159-1989 document became known as ANSI C, but it was soon superseded as it was adopted as an international standard, ISO/IEC 9899:1990.
+\end{itemize}
+
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{\texttt{idiv} and \texttt{imul} instructions}
+\label{app:idiv_imul}
+\texttt{imul} and \texttt{idiv} instructions are used in assembly to perform multiplication or division with signed integers. \texttt{mul} and \texttt{div} are their respective unsigned instructions. We'll be using Intel IA-32 instructions for convenience. 
+
+
+\subsubsection{\texttt{imul}}
+ 
+
+% ref http://www.godevtool.com/TestbugHelp/UseofIMUL.htm
+The IMUL instruction takes one, two or three operands. It can be used for byte, word or dword operation. IMUL only works with signed numbers. The result is the correct sign to suit the signs of the multiplicand and the multiplier, therefore the if necessary (e.g. negative) is \textit{sign extended} following the 2's complement rules. The size of the result maybe up to twice of the input size. Therefore when using a user-specified register as the destination (table below), the result is truncated to the register size and it's up to the user to prevent information loss. For 32-bit architectures, the result may be represented with up to 64 bits. Finally, remember that 
+\begin{itemize}
+    \item 32-bit signed range represents numbers $[-2^{31},2^{31}-1]$,
+    \item 32-bit unsigned range represents numbers $[0, 2^{32}-1]$.
+\end{itemize}
+
+
+\lstinputlisting[caption={\texttt{imul} simple demonstration. (\detokenize{src/imul_only.asm)}.}]{src/imul_only.asm}
+
+Note that when the result in EDX:EAX is negative, the whole double register is sign extended, to 64 bits, e.g. when we obtain -20, EDX:EAX stores \texttt{0xffffffff:0xffffffec}.
+
+
+% 86 intel: https://www.felixcloutier.com/x86/imul
+\begin{tabular}{p{0.25\textwidth}p{0.37\textwidth}p{0.3\textwidth}} \toprule % {|p{4cm}|p{5cm}|}
+{Syntax} & {Description} & {Types} \\ \midrule
+    \texttt{imul src} & {\texttt{EDX:EAX = EAX * src}} & {\texttt{src: r/m32}} \\
+    
+    \texttt{imul dst, src} & {\texttt{dst = src * dst}} & {\texttt{dst: r32}, \texttt{src:r32/m32}}\\
+    \texttt{imul dst, src1, src2} & {\texttt{dst = src1 * src2}} & {\texttt{dst: r32},
+    \texttt{src1: r32/m32}, \texttt{src2: val32}} \\ \bottomrule
+\end{tabular}
+
+
+% ------------------------ New appendix ------------------------ %
+\subsubsection{\texttt{idiv}}
+% ref Redefining IMUL and IDIV Are you still reading these subtitles?
+
+% see https://www.felixcloutier.com/x86/idiv
+% https://www.aldeid.com/wiki/X86-assembly/Instructions/idiv
+Assuming 32-bit architecture, \texttt{idiv src} performs signed division. It divides the 64-bit register pair  \texttt{edx:eax} registers by the source operand \texttt{src} (divisor). It  and stores the result in the the pair \texttt{edx:eax}. It stores the quotient in \texttt{eax} and the remainder in \texttt{edx}. Non-integral results are truncated (chopped) towards 0.
+\begin{tabular}{p{0.25\textwidth}p{0.37\textwidth}p{0.3\textwidth}} \toprule % {|p{4cm}|p{5cm}|}
+{Syntax} & {Description} & {Types} \\ \midrule
+    \texttt{idiv src} & {\texttt{EDX = EDX:EAX \% src},\quad\quad\quad\quad\quad\quad\quad \texttt{EAX = EDX:EAX / src}} & {\texttt{src: r/m32}} \\
+    \bottomrule
+\end{tabular}
+
+However, we need to be careful before using \texttt{idiv}. Check out the following example.
+
+At line 18, \texttt{edx = 0x20 = 32}. We pollute \texttt{eax} with \texttt{eax = 11 = 0xb} and want to divide by \texttt{ebx = 2}  so the program will try to divide \texttt{edx:eax = 0x200000000b} by \texttt{2} and store the quotient \texttt{0x200000000b/2 = 68719476741} in \texttt{eax}. \marginnote{Always make sure that \texttt{eax} is zero before \texttt{idiv} (or \texttt{div}).}However, $68719476741 > 2^{32}$ so it cannot fit -- the program will receive a \texttt{SIGFPE} (arithmetic exception) signal by the kernel and exit.
+
+% also  https://stackoverflow.com/questions/38416593/why-should-edx-be-0-before-using-the-div-instruction/38416896
+\lstinputlisting[caption={\texttt{idiv} demonstration for unsigned division. (\detokenize{src/idiv_wrong1.asm)}.}]{src/idiv_wrong1.asm}
+
+
+%%%%%%%%%%%%%
+% negative idiv
+%
+% https://stackoverflow.com/questions/27385132/divide-a-negative-with-a-positive
+% https://stackoverflow.com/questions/54000965/what-is-signed-divisionidiv-instruction
+Let's examine what happens when we divide \texttt{EDX:EAX} by a negative number. 
+
+\lstinputlisting[caption={\texttt{idiv} demonstration for signed division. (\detokenize{src/idiv_wrong2.asm)}.}]{src/idiv_wrong2.asm}
+
+In the first example, we attempt to divide $-21$ by $2$ so we move $-21$ to \texttt{eax}, which is represented in hex as \texttt{eax = 0xffffffeb}. \texttt{edx} is zero so \texttt{idiv} will try to define the positive number (leading 0) in \texttt{edx:eax = 00000000:ffffffeb = 4294967275}. As a result, $4294967275$ will be divided by 2, writing \texttt{4294967275 div 2} = \texttt{2147483637} to \texttt{eax} and \texttt{4294967275 mod 2 = 1} to \texttt{edx}.
+
+To get the value right, we need to ensure the whole divident (\texttt{edx:eax}) is negative. This is done by sign extending \texttt{edx} into \texttt{eax}, i.e. set \texttt{edx = 0xffffffff} is \texttt{eax < 0}. Example 2 correctly performs the division, writing \texttt{0xffffffff} (-1) to \texttt{edx} and \texttt{0xfffffff6} (-10) to \texttt{eax}. 
+
+The next section describes an instruction that can generalise this zero/sign extension before \texttt{idiv}.
+
+
+% ------------------------ New appendix ------------------------ %
+\subsubsection{The \texttt{cdq} instruction}
+
+% see https://stackoverflow.com/a/25489305
+\texttt{cdq} converts the doubleword (32 bits) in \texttt{EAX} into a quadword in \texttt{EDX:EAX} by sign-extending \texttt{EAX}  into \texttt{EDX} (i.e. each bit of EDX is filled with the most significant bit of EAX). 
+
+For example, if \texttt{EAX}  contained \texttt{0x7FFFFFFF} we'd get 0 in \texttt{EDX}, since the most significant bit of \texttt{EAX} is clear. But if we had \texttt{EAX = 0x80000000} we'd get \texttt{EDX = 0xFFFFFFFF} since the most significant bit of \texttt{EAX} is set. The point of \texttt{cdq} is to set up \texttt{EDX} prior to a division by a 32-bit operand, since the dividend is \texttt{EDX:EAX}. 
+
+The program below demonstrates the instruction.
+
+\lstinputlisting[caption={Chaining \texttt{cdg} with \texttt{idiv} to avoid potential arithmetic errors due to sign. (\detokenize{src/idiv_correct.asm)}.}]{src/idiv_correct.asm}
+
+After line 16, \texttt{edx = 0x2} and \texttt{eax = 0x5}. After line 21, \texttt{edx = 0xffffffff} and \texttt{eax = 0xffffffea}. After line 22, \texttt{edx = 0xfffffffe = -2} and \texttt{eax = 0xffffffbf = -5}.
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Increment and decrement operators}
+\label{app:pre_post_increment}
+
+\subsubsection{Pre vs post increment operator}
+%\label{app:my_cool_appendix}
+
+In C, pre-increment (\texttt{++i}) and post-increment (\texttt{i++}) work slightly differently. Pre-decrement (\texttt{--i}) and post-decrement (\texttt{i--}) also work in a similar manner. Pre-increment means that the variable is incremented and the incremented value is returned. Post-increment means that the variable is returned as its original value and then incremented. The way to remember them is:
+\begin{itemize}
+    \item \textit{pre}$\rightarrow$ \textit{first} increment, then evaluate, 
+    \item \textit{post}$\rightarrow$ increment \textit{after} evaluating.
+\end{itemize}
+The following table summarises the differences. In the equivalent assembly code, we can see that
+\begin{itemize}
+    \item in the first case (\texttt{j=i++}), \texttt{eax} register stores the initial value of local variable \texttt{i=0x42}. Next, \texttt{edx=eax+1=0x43}. Finally, \texttt{edx} is copied to \texttt{i} and \texttt{eax} is coped to \texttt{j} so \texttt{i=0x43, j=0x42}.
+    \item In the second case (\texttt{j=++i}), \texttt{eax} stores again \texttt{i=0x42}. \texttt{eax} gets incremented. Then, it gets copied to both local variables \texttt{i} and \texttt{j} so \texttt{i=0x42, j=0x42}.
+\end{itemize}
+
+
+\begin{table}[ht]
+\centering
+% To place a caption above a table
+\caption{Post vs pre-increment differences and generated code.}
+\begin{tabular}{ccccc} \toprule
+    Operation & How it appears & Pseudocode & \begin{tabular}{@{}c@{}}Assembly code  \footnote{Instruction \texttt{lea edx, [eax+0x1]} achieves the same as incrementing \texttt{eax} and moving it to \texttt{edx}.} \\ (initially \texttt{\textcolor{magenta!60!black}{i}=0x42, \textcolor{cyan!40!black}{j}=0x41})\end{tabular} & \begin{tabular}{@{}c@{}}Final\footnote{\texttt{j} of course doesn't need to be initialised but it was added just for clarity in the disassembly.} values  \\ (initially \texttt{i=0x42})\end{tabular}  \\ \midrule
+    
+    Post-increment &
+    \texttt{j=i++} &
+    \begin{tabular}{@{}c@{}}\texttt{j=i} \\ \texttt{i++}\end{tabular} & \begin{tabular}{@{}l@{}l@{}l@{}l@{}l@{}}
+    \texttt{mov    \textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]},0x42} \\
+    \texttt{mov    \textcolor{cyan!40!black}{DWORD PTR [ebp-0xc]},0x41} \\
+    \texttt{mov    eax,\textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]}} \\
+    \texttt{lea    edx,[eax+0x1]} \\
+    \texttt{mov    \textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]},edx} \\
+    \texttt{mov    \textcolor{cyan!40!black}{DWORD PTR [ebp-0xc]},eax} \end{tabular} &
+    \texttt{i=0x43, j=0x42}
+    \\
+    
+    \rule{0pt}{4ex} & \rule{0pt}{4ex}  & \rule{0pt}{4ex}  & \rule{0pt}{4ex}  \\   
+    
+    Pre-increment & \texttt{j=++i} & \begin{tabular}{@{}c@{}}\texttt{i++} \\ \texttt{j=i}\end{tabular} &  
+    \begin{tabular}{@{}l@{}l@{}l@{}l@{}l@{}}
+    \texttt{mov    \textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]},0x42} \\
+    \texttt{mov    \textcolor{cyan!40!black}{DWORD PTR [ebp-0xc]},0x41} \\
+    \texttt{mov    eax,\textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]}} \\
+    \texttt{add    eax,0x1} \\
+    \texttt{mov    \textcolor{magenta!60!black}{DWORD PTR [ebp-0x10]},eax} \\
+    \texttt{mov    \textcolor{cyan!40!black}{DWORD PTR [ebp-0xc]},eax}
+    \end{tabular} &
+    \texttt{i=0x43, j=0x43}
+    \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\begin{exmp}
+In the following snippet, pre (post) increment evaluate before (after) the array indexing. Notice how the increment operator writes to its ``lvalue'' (either index \texttt{i} or array \texttt{arr}) each time.
+
+
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+#define SIZE 5
+
+int main(int argc, char *argv[])
+{
+	int arr[SIZE] = {0, 1, 2, 4, 5};
+	int i = 0;
+
+	printf("%d, ", arr[i++]);
+	printf("%d, ", arr[i]);
+	printf("%d, ", arr[++i]);
+	printf("%d, ", arr[i]++);
+	printf("%d\n", ++arr[i]);
+	for (i = 0; i < SIZE; ++i) 
+		printf("arr[%i] = %d, ", i, arr[i]);
+	printf("\n");
+
+	return 0;
+}
+\end{lstlisting}
+The output is:
+\begin{verbatim}
+0, 1, 2, 2, 4
+arr[0] = 0, arr[1] = 1, arr[2] = 4, arr[3] = 4, arr[4] = 5, 
+\end{verbatim}
+
+\end{exmp}
+
+
+\subsubsection{How much does the \texttt{++} increase the value?}
+
+When we have an integers, increment operator increases the value by one. For floats/ doubles it also works the same. What if we have a pointer that points to some address and increment its value? 
+
+Assume we have an array of \texttt{int} called \texttt{arr} and a pointer \texttt{p\_arr} pointing to its first element. Assume  an \texttt{int} takes 4 bytes. Then it would be natural to want to move from \texttt{arr[0]} to \texttt{arr[1]}, which are 4 bytes away. So incrementing the pointer would make sense only if it was incremented by 4 (bytes). In general, here's what happens when we increment a pointer of type T. \todo{figure for explanation}
+\begin{takeaway}
+% ref https://stackoverflow.com/questions/5610298/why-does-int-pointer-increment-by-4-rather-than-1
+When we increment a \texttt{T*}, it moves \texttt{sizeof(T)} bytes. It doesn't make sense to move any other value as then the pointer would point to incomplete data.
+\end{takeaway}
+The following example confirms it.
+\begin{exmp}
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+
+#define SIZE 5
+
+int main(int argc, char *argv[])
+{
+	int arr[SIZE] = {0, 1, 2, 3, 4};
+	short int sarr[SIZE] = {0, 1, 2, 3, 4};
+	int* p_arr = &arr[0]; // point to beginning - same as p_arr = arr 
+	short int* p_sarr = &sarr[0];
+
+	printf("p_arr points to: 0x%x\n", p_arr);
+	printf("next, p_arr points to: 0x%x\n", ++p_arr);
+	printf("p_arr contains: %d\n", *p_arr);
+
+	printf("p_sarr points to: 0x%x\n", p_sarr);
+	printf("next, p_sarr points to: 0x%x\n", ++p_sarr);
+	printf("p_sarr contains: %d\n", *p_sarr);
+
+	return 0;
+}
+\end{lstlisting}
+\end{exmp}
+The output is:
+\begin{verbatim}
+p_arr points to: 0xbfc8ce78
+next, p_arr points to: 0xbfc8ce7c
+p_arr contains: 1
+p_sarr points to: 0xbfc8ce6e
+next, p_sarr points to: 0xbfc8ce70
+p_sarr contains: 1
+\end{verbatim}
+In this system, \texttt{int} takes 4 bytes and \texttt{short int} 2. Hence we move from \texttt{0xbfc8ce78} to \texttt{0xbfc8ce78+4} in the first case and from \texttt{0xbfc8ce6e} to \texttt{0xbfc8ce6e+2} in the second.
+
+
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Find the number of elements in array}
+
+\url{https://stackoverflow.com/questions/27518251/how-does-sizeof-know-the-size-of-array}\\
+\url{https://stackoverflow.com/questions/671790/how-does-sizeofarray-work}\\
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+\end{document}

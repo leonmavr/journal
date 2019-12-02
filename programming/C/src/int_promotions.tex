@@ -1,0 +1,146 @@
+%------------------------------ New section ------------------------------%
+\section{Integer promotions and signed conversions in C}
+
+
+
+\subsection{Integer sub-types and ranges}
+
+Integer promotion refers to when sub-types of \texttt{int}, such as \texttt{short} and \texttt{char} are implicitly converted to \texttt{int}. The table below shows the size of \texttt{int} and its sub-types for most 32-bit machines.
+
+\begin{tabular}{p{0.3\textwidth}p{0.1\textwidth}p{0.15\textwidth}p{0.15\textwidth}p{0.15\textwidth}} \toprule % {|p{4cm}|p{5cm}|}
+{Types} & {Bits} & {Naming} & {Min} &{Max} \\ \midrule
+    \texttt{char (signed char)} & 8 & byte & $-2^7$ & $2^7-1$\\
+    \texttt{unsigned char} &  8 & byte &0 & $2^8-1$\\
+    \texttt{short (signed short)} &  16 & word & $-2^{15}$ & $2^{15}-1$\\
+    \texttt{unsigned short} &  16 & word & 0 & $2^{16}-1$\\
+    \texttt{int (signed int)} &  32 & double word & $-2^{31}$ & $2^{31}-1$\\
+    \texttt{unsigned short} &  32 & double word & $0$ & $2^{32}-1$\\
+    \bottomrule
+\end{tabular}
+
+Note that the sizes in the table are common among many systems but not universal. For example, OpenBSD systems use different numbers of bits.
+
+
+\subsection{Integer promotion example}
+
+% ref https://www.oreilly.com/library/view/c-in-a/0596006977/ch04.html
+As we'll see, this happens when we perform arithmetic operations on the sub-types. The second basic rule is that any operand which is sub-type of \texttt{int} is automatically converted to the type \texttt{int} , provided \texttt{int}  is capable of representing all values of the operand’s original type. If \texttt{int}  is not sufficient, the operand is converted to \texttt{unsigned int}.
+
+In the code below, the sub-expression \texttt{c1 * c2 = 400} is promoted to \texttt{int}. The division \texttt{c1 * c2 / c3} also yields an int (40). Since that fits in the \texttt{signed char} range of $[-128, 127]$ \footnote{If it didn't fit in that range, we'd have \emphasis{signed overflow}, which is undefined behaviour in C and wouldn't be able to determine the value of \texttt{res}. If, on the other hand, \texttt{res} was \texttt{unsigned char} and was assigned e.g. $256\notin [0,255]$, we'd have \emphasis{unsigned overflow}. The compiler would map \texttt{256} to \texttt{256 mod UCHAR\_MAX = 256 mod 256 = 0}, $257$ to $1$ etc.}, we have no overflow so it can safely be cast back to \texttt{signed char}. Note that values such as \texttt{10, 100, '('} are also treated as \texttt{int}, therefore take 4 bytes, before being cast to \texttt{char} (1 byte).
+
+\lstinputlisting[language=c,caption={\texttt{char} promotion to int. (\detokenize{src/char_to_int.c)}.}]{src/char_to_int.c}
+
+The disassembly for line 4 shows clearly what happens. \texttt{char c1, c2, c3} are all treated as \texttt{int} and so is the result \texttt{char res = char c1, c2, c3}, which is stored in register \texttt{EAX} after the \texttt{idiv} instruction \footnote{App \TODO describes in detail how instruction \texttt{idiv} works.}. However, because \texttt{res} was declared as \texttt{char} type, we extract only its bottom 8 bits (\texttt{AL} sub-sub register of \texttt{EAX}) and store them back to a local variable.
+
+\begin{verbatim}
+; char res = c1 * c2 / c3;
+movsx   edx, BYTE PTR [ebp-28]
+movsx   eax, BYTE PTR [ebp-32]
+imul    eax, edx
+movsx   ecx, BYTE PTR [ebp-36]
+cdq
+idiv    ecx
+mov     BYTE PTR [ebp-9], al
+\end{verbatim}
+
+
+\section{Signed and unsigned conversions}
+
+
+\subsection{Conversion golden rule}
+
+Another problem occurs when we mix \texttt{unsigned} with \texttt{signed} types, e.g. by adding them together. The general integer conversion rule, that holds for short, char, int, either signed or unsigned is:
+
+\begin{adjustwidth}{1cm}{1cm}
+%https://www.linkedin.com/pulse/dark-corners-c-integer-arithmetic-akshay-padhye
+``In case of operands of different data types, one integer operand (and hence the result) is promoted to the type of other integer operand, if other integer operand can hold larger number.''
+\end{adjustwidth}
+
+If the type of the operand with signed integer type can represent all of the values of the type of the operand with unsigned integer type, the operand with unsigned integer type is converted to the type of the operand with signed integer type.
+
+Otherwise, both operands are converted to the unsigned integer type corresponding to the type of the operand with signed integer type (\texttt{unsigned short}, \texttt{unsigned int}, etc.).
+
+This rule applies whenever we perform arithmetic or logical operations (for both the left and right side operands), be it $<, \: +, \: ==$, etc.
+
+
+
+\subsection{Example of conversions}
+
+Below is a listing that demonstrates the principle. Note that \texttt{printf} was not used much as e.g. trying to print and unsigned integer as signed (\texttt{\%d}) results in undefined behaviour.
+
+\lstinputlisting[language=c,caption={Examples of signed and unsigned type mixing.}]{src/int_conversions.c}
+
+The output is:
+\begin{verbatim}
+[Ex1]: -5 + 2 > 0
+[Ex2]: -5 + 2 < 0
+[Ex3]: signed = 0xffffffff, unsigned = 0xff
+[Ex4]: signed = 0xffffffff, unsigned = 0xffffffff
+[Ex5]: 1 > -1
+[Ex 6]: 1
+[Ex 7]: 1
+[Ex 8]: unsigned char = 255
+\end{verbatim}
+
+
+Let's interpret the results.
+
+\textbf{Example 1}. The summation operands are \texttt{signed int si} and \texttt{unsigned int ui}. Because the latter can express larger numbers, \texttt{si} is converted to unsigned integer by adding to it \texttt{UNSIGNED\_INT\_MAX + 1}. Therefore the result we compare against zero is a very larger number.
+
+\textbf{Example 2}. Since \texttt{(signed) short} can hold larger values than \texttt{unsigned char}, \texttt{uc} is converted to \texttt{short}. Its value is the same as either type so we have no loss of information. Compiling for 32 bits, the disassembly would look essentially like as follows.
+\begin{verbatim}
+mov     word ptr [ebp - 6], -5
+mov     byte ptr [ebp - 7], 2
+movsx   ecx, word ptr [ebp - 6]
+movzx   edx, byte ptr [ebp - 7]
+add     ecx, edx
+\end{verbatim}
+In the beginning, the values are represented by the sizes corresponding to their types but before the addition they have to be moved to 32 bit registers, hence be zero extended (\texttt{movzx}) or sign extended (\texttt{movsx}). The compiler prefers to directly move the data to the full registers instead of explicitly applying the integer conversion rule, which in this case would be converting them to short integers.
+
+\textbf{Example 3}. In this example, the two \texttt{char}s are converted to a hex value of length 8, i.e. to \texttt{unsigned int} type. \texttt{sc} is \textit{sign extended} (i.e. its leading one is propagated to the higher bits until it fits in 32 bits) and \texttt{uc} is \textit{zero extended} (its leading zero is propagated).
+
+\textbf{Example 4}. In this example, although numerically \texttt{ss} and \texttt{ui} are different, we convert them to \texttt{unsigned int} via the \texttt{printf} function. \texttt{ui} is already \texttt{0xffffffff} in hex therefore no extension is needed and \texttt{ss} is signed-extended to also represent \texttt{0xffffffff} in hex. The result of \texttt{==} would be \texttt{true}.  
+
+\textbf{Example 5}. Here, we have two signed operands. The one that can hold larger values is \texttt{signed int si}. Therefore \texttt{shi} is converted to that type (by sign extension) and it will again represent \texttt{-1}. Since \texttt{-1} fits in the new range, we have no loss of information. 
+
+\textbf{Example 6}. We have two operations -- addition and comparison. Due to integer promotion rules, the intermediate result of \texttt{uc + 100} will be represented as an \texttt{int}. Next, we compare an \texttt{int} to an \texttt{unsigned char}. Therefore the latter type will be converted to the former. \texttt{uc} doesn't lose any information so we compare whether \texttt{300 > 200}.
+
+\textbf{Example 7}. We have a similar comparison but add \texttt{unsigned int 100} to the \texttt{unsigned char} instead. The result of the addition will be represented as \texttt{unsigned int} by \texttt{300}.
+
+\textbf{Example 8}. We convert the representation of \texttt{-1} from \texttt{unsigned char} to \texttt{unsigned int}. \texttt{-1} is represented as \texttt{0xff} (or $255$) as \texttt{unsigned char}. Note that its bit don't change -- they're still \texttt{1111 1111}, only its representation. In the \texttt{printf}, zero extension is performed so it doesn't lose any information.
+
+Regarding the last example, in general, to convert a negative signed to signed we do the following loop:
+\begin{verbatim}
+while (number < 0) {
+    number += MAX_UNSIGNED_INT + 1
+}
+\end{verbatim}
+This does not change the binary representation of the number -- only the way it's interpreted. In binary, negative numbers are represented by \emphasis{2's complement}. For example, on a 4-bit machine, we have the signed
+\begin{verbatim}
+-2 = 1110b
+\end{verbatim}
+Adding \texttt{MAX\_UNSIGNED\_INT = 16} does not change the bits of the number. Using the magnitude representation instead of 2's complement, we have
+\begin{verbatim}
+-2 + MAX_UNSIGNED_INT = 14 = 1110b
+\end{verbatim}
+
+These are were basics of how integers are handled by the machine in C.
+
+
+% https://www.oreilly.com/library/view/c-in-a/0596006977/ch04.html
+% https://aticleworld.com/signed-and-unsigned-integers/
+% https://github.com/LambdaSchool/CS-Wiki/wiki/Casting-Signed-to-Unsigned-in-C 
+% https://embeddedgurus.com/stack-overflow/2009/08/a-tutorial-on-signed-and-unsigned-integers/
+% https://aticleworld.com/signed-and-unsigned-integers/
+% https://github.com/LambdaSchool/CS-Wiki/wiki/Casting-Signed-to-Unsigned-in-C
+% https://embeddedgurus.com/stack-overflow/2009/08/a-tutorial-on-signed-and-unsigned-integers/
+% http://www.idryman.org/blog/2012/11/21/integer-promotion/
+% https://stackoverflow.com/questions/17312545/type-conversion-unsigned-to-signed-int-char/17312930#17312930
+% http://www.idryman.org/blog/2012/11/21/integer-promotion/
+% https://pleasestopnamingvulnerabilities.com/integers.html
+
+
+
+% https://www.cs.virginia.edu/~evans/cs216/guides/x86.html
+% Redefining IMUL and IDIV Are you still reading these subtitles?
+
