@@ -22,9 +22,9 @@ It may seem that inline functions are similar to macros. They are, but there are
     \item \texttt{inline} functions are type-checked but macros are not since macros are just text. 
 \end{itemize}
 Let's create an inline function, call it and see what happens. If we try to compile the code below (without optimisations), i.e.
-\begin{verbatim}
+\begin{lstlisting}[style=terminal]
 gcc inline_error.c -o inline_error
-\end{verbatim}
+\end{lstlisting}
 we get the linker error:
 \lstinputlisting[language=c,caption={Attempting to declare an inline function (\detokenize{src/inline_error.c)}.}, label=src:inlineerror]{src/inline_error.c}
 \begin{verbatim}
@@ -33,9 +33,9 @@ collect2: error: ld returned 1 exit status
 \end{verbatim}
 In this case, the compiler has chosen \textit{not to} inline \texttt{foo}, searches its definition symbol and cannot find it. 
 However, if we compile with optimisations, i.e.
-\begin{verbatim}
+\begin{lstlisting}[style=terminal]
 gcc -O inline_error.c -o inline_error
-\end{verbatim}
+\end{lstlisting}
 , then everything will work. \texttt{foo} will be inlined and so the linker will not need the ``regular'' definition.
 
 \subsection{Linkage issues -- \texttt{static inline} vs \texttt{extern inline}}

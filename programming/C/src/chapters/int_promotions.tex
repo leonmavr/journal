@@ -1,0 +1,348 @@
+%----------------------------- New section ------------------------------%
+\section{Integer promotions and signed conversions in C}
+
+
+\subsection{Mixing floats with ints}
+
+Consider the following program. What will be the output?
+\begin{lstlisting}[language=c]
+double d = 3.33;
+if (d*3 < 10L)
+	puts("true");
+\end{lstlisting}
+Confirming the maths, the output is \texttt{true}, but why? Which value gets converted to which type? Let's look at the main part of the \texttt{clang} disassembly:
+\begin{lstlisting}
+movsd   xmm0, qword ptr [.LCPI0_0] # xmm0 = double 10
+movsd   xmm1, qword ptr [.LCPI0_1] # xmm1 = double 3
+movsd   xmm2, qword ptr [.LCPI0_2] # xmm2 = double 3.33
+movsd   qword ptr [ebp - 16], xmm2
+mulsd   xmm1, qword ptr [ebp - 16] # xmm1 = xmm1 * 3.33
+ucomisd xmm0, xmm1
+jbe     .LBB0_2 # if 10 below or equal to xmm1 jump to return (.LBB0_2)
+<-- omitted -->
+call    puts # if xmm0 > xmm1    
+\end{lstlisting}
+So \texttt{10L} gets converted to double, which makes sense as the other way would make operand \texttt{d*3} lose its precision. A similar conversion occurs in the following snippet too.
+\begin{lstlisting}[language=c]
+int i = 1;
+if (i + 1.5 < i + 2)
+	puts("correct!");
+\end{lstlisting}
+In this case, In this case \texttt{i} gets stored at an \texttt{int} register (e.g. \texttt{eax} register) and when the compiler sees the addition with \texttt{1.5} it copies \texttt{eax} to a floating pointer register (e.g. \texttt{xmm1} and performs the addition with both operands as doubles. The result of \texttt{i+2} also in the end gets stored at a floating point register and the comparison between doubles is made, printing \texttt{correct!}.
+
+According the C ISO \cite{ciso2007}, the following rules apply when an operator operating on \texttt{double} or \texttt{float} and another type \footnote{We don't take into account imaginary numbers for simplicity.}:
+\begin{takeaway}[conversion between double/ float and another type -- C ISO 2007, 6.3.1.8/1 ]
+\; \\
+\begin{enumerate}
+    \item First, if the  type of either operand is \texttt{long double}, the other
+operand is converted, without change of type domain, to \texttt{long double}.
+    \item Otherwise, if the type of either operand is double, the other
+operand is converted, without change of type domain, to \texttt{double}.
+    \item Otherwise, if the type of either operand is \texttt{float}, the other
+operand is converted, without change of type domain, to \texttt{float}. 
+
+To sum up:
+\end{enumerate}
+
+\begin{verbatim}
+                    long double > double > float > int types
+\end{verbatim}
+\end{takeaway}
+
+
+\subsection{Integer sub-types and ranges}
+
+Sometimes integer types and its their sub-types need to be converted from one to another. Such a conversion is called \emphasis{integer promotion}, for example when a \texttt{char} gets converted to \texttt{int}. As a reminder, the table below shows the size of \texttt{int} and its sub-types for most 32-bit machines.
+
+\begin{tabular}{p{0.3\textwidth}p{0.1\textwidth}p{0.15\textwidth}p{0.15\textwidth}p{0.15\textwidth}} \toprule % {|p{4cm}|p{5cm}|}
+{Types} & {Bits} & {Naming} & {Min} &{Max} \\ \midrule
+    \texttt{char (signed char)} & 8 & byte & $-2^7$ & $2^7-1$\\
+    \texttt{unsigned char} &  8 & byte &0 & $2^8-1$\\
+    \texttt{short (signed short)} &  16 & word & $-2^{15}$ & $2^{15}-1$\\
+    \texttt{unsigned short} &  16 & word & 0 & $2^{16}-1$\\
+    \texttt{int (signed int)} &  32 & double word & $-2^{31}$ & $2^{31}-1$\\
+    \texttt{unsigned int} &  32 & double word & $0$ & $2^{32}-1$\\
+    \bottomrule
+\end{tabular}
+
+Note that the sizes in the table are common among many systems but not universal. For example, OpenBSD systems use different numbers of bits. Another integer type, which is \textit{not} a sub-type of \texttt{int} but a super-type of it, is \texttt{long}. It is guaranteed to be at least 32 bits. On Linux Intel architecture, which is used in these notes, its size is the following.
+
+% https://stackoverflow.com/a/271087
+\begin{tabular}{p{0.25\textwidth}p{0.15\textwidth}p{0.1\textwidth}p{0.15\textwidth}p{0.1\textwidth}p{0.1\textwidth}} \toprule 
+	{Types} & {Architecture} & {Bits} & {Naming} & {Min} &{Max} \\ \midrule
+	\texttt{long (signed long)} & Linux IA-32 & 32 & quad word  & $-2^{31}$ & $2^{31}-1$\\
+	\texttt{unsigned long} & Linux IA-32 & 32 & quad word & 0 & $2^{32}-1$\\
+	\texttt{long (signed long)} & Linux IA/Intel-64 & 64 & quad word & $-2^{63}$ & $2^{63}-1$\\
+	\texttt{unsigned long} & Linux IA/Intel-64 & 64 & quad word &0 & $2^{64}-1$\\
+    \bottomrule
+\end{tabular}
+
+
+%\url{https://stackoverflow.com/questions/271076/what-is-the-difference-between-an-int-and-a-long-in-c}
+
+
+\subsection{Integer promotion}
+
+Integer promotion occurs implicitly when we operate on integer sub-types or integers. If an \texttt{int} can represent all values of the original type, the value is converted to an \texttt{int} (and its value is preserved), otherwise it is converted to an \texttt{unsigned int}. Bear in mind integer promotion is not the same as integer conversion, which is studied in another section. The following examples make it clear.
+
+\begin{exmp}[Integer promotion -- signed chars]
+
+Let's take a look at what happens when we operate on integer sub-types together, for example two (signed) \texttt{char} variables.
+\begin{lstlisting}[language=c]
+char c1 = 100, c2 = 3;
+if (c1*c2 > 299)
+	puts("Now I know 1st grade maths!");
+\end{lstlisting}
+The snippet above prints \texttt{Now I know 1st grade maths!}, as it should. But what's the type of \texttt{c1}, \texttt{c2}, \texttt{c1*c2} and \texttt{299} when the comparison is made? The \texttt{gcc} disassembly shows that initially \texttt{c1} and \texttt{c2} are stored in byte (char)-wide local variables but have been copied to 4-byte registers as signed integers\footnote{\texttt{movsx} means move and sign-extend}.  Next, they are multiplied as signed integers (\texttt{imul}) and then the comparison takes place:
+\begin{lstlisting}
+mov     BYTE PTR [ebp-9], 100
+mov     BYTE PTR [ebp-10], 3
+movsx   edx, BYTE PTR [ebp-9]
+movsx   eax, BYTE PTR [ebp-10]
+imul    eax, edx
+cmp     eax, 299
+\end{lstlisting}
+\qedblack
+\end{exmp}
+
+\begin{exmp}[Integer promotion -- signed char and unsigned char]
+We introduce a subtle change to the previous example, defining one \texttt{signed char} and one \texttt{unsigned char} instead, so the snippet looks like:
+\begin{lstlisting}[language=c]
+char c1 = 100;
+unsigned char c2 = 3;
+if (c1*c2 > 299)
+	puts("Now I know 1st grade maths!");
+\end{lstlisting}
+Then \texttt{c1} is zero-extended when copied to a 4-byte general register to store local variable \texttt{c2} as unsigned but the final result, i.e. \texttt{c1*c2} is treated as a \texttt{signed int}, as indicated by the \texttt{imul}:
+\begin{lstlisting}
+movsx   eax, byte ptr [ebp - 5]
+movzx   ecx, byte ptr [ebp - 6]
+imul    eax, ecx
+\end{lstlisting}
+The compiler would prefer to represent expression \texttt{c1*c2} as \texttt{signed int} even if both \texttt{c1,c2} were defined \texttt{unsigned char}! \qedblack
+\end{exmp}
+
+\begin{exmp}[Integer promotion -- unsigned char and unsigned char]
+In this case, have define \texttt{c1} and \texttt{c2} as \texttt{unsigned char}. However, we assign -6 to one of them. What gets printed?
+\begin{lstlisting}[language=c]
+unsigned char c1 = 100;
+unsigned char c2 = -6;
+printf("%d\n", c1*c2);
+\end{lstlisting}
+The \texttt{gcc} disassembly sheds some light.
+\begin{lstlisting}
+mov    BYTE PTR [ebp-0xa],0x64
+mov    BYTE PTR [ebp-0x9],0xfa
+movzx  edx,BYTE PTR [ebp-0xa]
+movzx  eax,BYTE PTR [ebp-0x9]
+imul   eax,edx
+\end{lstlisting}
+So what actually gets stored in \texttt{c2} (local variable \texttt{[ebp-0x9]}) is \texttt{0xfa = 250}, therefore the compiler mapped -6 to the \texttt{unsigned char} range  $[0, 255]$\footnote{When mapping from one range of equal width to another, the byte representation doesn't change, only the way we interpret the bytes does.}, doing what the type of \texttt{c2} defined. Although \texttt{c1} and \texttt{c2} are correctly represented by unsigned values (\texttt{movzx} instruction), the expression \texttt{c1*c2} is once again treated as signed integer, as indicated by \texttt{imul}. \qedblack
+
+We've seen what happens when operations between \texttt{int} sub-types are performed. But what if two (signed) \texttt{int}s are operated and the result is not small enough to fit in the \texttt{signed int} range?
+\begin{exmp}[When result doesn't fit in \texttt{signed int}.]
+
+\marginnote{In C, integers are signed by default.}In this example, we have the maximum integer than can be represented by the 32-bit range, i.e. $2^{31}-1$. We want to double it and compare it to zero, which should of course be true. But we want the operation to be performed between unsigned integers, as signed cannot represent the result. If we simply compared:
+\begin{lstlisting}[language=c]
+2*i > 0
+\end{lstlisting}
+, then 2, \texttt{i}, 0 are all signed and we'd end up comparing -2 to 0. The way to make the compiler understand that the result should be performed in \texttt{unsigned} if it doesn't fit in \texttt{signed} would be to make at least of the operands unsigned, e.g. as follows: 
+\begin{lstlisting}[language=c]
+#include <stdio.h>
+#include <limits.h>
+
+void main(int argc, char *argv[])
+{
+	signed int i = INT_MAX; // 2^31 - 1 for 32b systems
+	if (2U*i > 0)
+		printf("correct! unsigned result = %u" , 2U*i);
+}
+\end{lstlisting}
+\end{exmp}
+Then
+\begin{verbatim}
+correct! unsigned result = 4294967294   
+\end{verbatim}
+is printed (i.e. $2^{32}-2$, or \texttt{0xfffffffe}), as it should. As a final note, notice again that the expression \texttt{2*i > 0} operates on \texttt{unsigned int} if either of \texttt{2} (e.g. \texttt{2U}), \texttt{i}, or \texttt{0} is unsigned (\texttt{0U}). The next section explains such conversions.\qedblack
+\end{exmp}
+\marginnote{Integer promotions occur every time we operate with integer sub-types.}The last 4 examples can be justified by the following C ISO standard \cite{ciso2007}.
+\begin{takeaway}[integer promotion definition -- C ISO 2007, 6.3.1.1/2]
+If an \textup{\texttt{int}} can represent all values of the original type or \textup{\texttt{int}} sub-type, the value is converted to an \textup{\texttt{int}}; otherwise, it is converted to an \textup{\texttt{unsigned int}}. These are called \emphasis{integer promotions}. All other types are unchanged by integer promotions. 
+\end{takeaway}
+
+
+
+
+\section{Signed and unsigned conversions}
+
+
+When operating on both signed and unsigned, there are a few things that C takes into account to determine the result, in order of priority:
+\begin{enumerate}
+    \item The width of each type (e.g. 256 for \texttt{signed char} and \texttt{unsigned char} etc. The width of each type can be mapped to the ``rank'' in the C ISO. Integer rank defines which type will be converted to what.
+    \item Whether the operands are signed or unsigned, and whether they're different or not.
+\end{enumerate}
+Regarding the rank, the ISO\cite{ciso2007} defines the following:
+\begin{takeaway}[integer rank -- C ISO 2007 6.3.1.1/2]
+\begin{lstlisting}
+rank(long long) > rank(long) > rank(int) > rank(short) > rank(char)
+\end{lstlisting}
+The rank of any unsigned integer type shall equal the rank of the corresponding
+signed integer type, if any. Rank is essentially the width a type can represent.
+\end{takeaway}
+
+Here are some typical cases. Try to guess what rules apply given the rank and the signedness. Following the examples, the rule from C ISO is quoted. 
+
+\begin{exmp}[Mixing smaller int sub-type with larger sub-type]
+\begin{lstlisting}[language=c]
+signed char sc = -1;
+unsigned short ush = 0;
+(sc + ush < ush)? puts("-1 < 0"): puts("-1 >= 0");
+\end{lstlisting}
+In this case, we operate on \texttt{int} sub-types \texttt{signed char} and \texttt{unsigned short}. First, \texttt{+} takes place. According to the promotions, \texttt{sc} and \texttt{ush} are both promoted to \texttt{int} before the addition, both obtaining the same rank and yielding \texttt{-1}. So we compare the latter result to \texttt{ush}, which is zero. \texttt{ush} is also promoted to \texttt{int} before the comparison, resulting in the condition printing  \texttt{-1 < 0}. \qedblack
+\end{exmp}
+
+
+\begin{exmp}[Mixing int sub-type with signed int]
+This is similar to the previous, except \texttt{si} does not have to be promoted to \texttt{int} as it already is -- only \texttt{ssh} will, maintaining its value.
+\begin{lstlisting}[language=c]
+signed short ssh = -1;
+int si = 0;
+(ssh + si < si)? puts("-1 < 0"): puts("-1 >= 0");
+\end{lstlisting}
+The result is \texttt{-1 < 0}.
+\end{exmp}
+
+
+\begin{exmp}[mixing signed int with unsigned int]
+
+We have the same code with the previous example, except now we compare \texttt{ssh + si} to unsigned zero (\texttt{0U}).
+\begin{lstlisting}[language=c]
+signed short ssh = -1;
+int si = 0;
+(ssh + si < 0U)? puts("-1 < 0"): puts("-1 >= 0");
+\end{lstlisting}
+The result is \texttt{-1 > 0} so \texttt{ssh + si} must have been converted to \texttt{unsigned int}. Indeed, \texttt{printf("\\n\%u\\n", ssh + si)} gives 4294967295, which is $2^{32}-1$, which is the upper limit of \texttt{unsigned int} for 32-bit systems. To summarise, the bottom to top order is:
+\begin{verbatim}
+ssh => int
+(ssh + si) => int
+(ssh + si < 0U) => ssh + si => unsigned int
+\end{verbatim}
+It seems that if we have operate on two types with the same rank and different sign, the compiler prefers to convert \texttt{signed} to \texttt{unsigned}. \qedblack
+\end{exmp}
+
+
+\begin{exmp}[Mixing long with int]
+Now we have two types with different rank -- \texttt{unsigned long} and \texttt{int}. 
+\begin{lstlisting}[language=c]
+int si = -1;
+unsigned long ul = 0;
+(si + ul < ul)? puts("[4]: -1 < 0"): puts("[4]: -1 >= 0");
+\end{lstlisting}
+On a 32-bit system, \texttt{unsigned long} and \texttt{int} have the same width of 4 bytes therefore the same rank, therefore the output would depend on signedness; we've seen that signed is preferred to be converted to unsigned when the rank is the same so the result is \texttt{-1 >= 0}.
+
+On a 64-bit system, the result would also be \texttt{-1 <= 0}. The rank of \texttt{unsigned long} is same the rank of \texttt{long} and is greater than the rank of \texttt{int}. So \texttt{si} would be converted to \texttt{unsigned long} etc.
+
+The disassembly shows how the comparison is implemented in the generated code. The relevant parts are the following, and especially the \texttt{jbe} instruction.
+\begin{lstlisting}
+mov DWORD PTR [rbp-0xc],0xffffffff ; int si = -1
+mov QWORD PTR [rbp-0x8],0x0        ; unsigned long ul = 0
+mov eax,DWORD PTR [rbp-0xc]
+movsxd rdx,eax                     ; eax = 0xffffffffffffffff
+mov rax,QWORD PTR [rbp-0x8]        ; rax = ul = 0
+add rax,rdx                        ; rax += si
+cmp QWORD PTR [rbp-0x8],rax
+jbe 0x1178 <main+63>               ; if (PTR[rbp-0x8] <= rax)...
+\end{lstlisting}
+\end{exmp}
+The instruction \texttt{jbe} treats the comparison operands as unsigned.
+
+On the other hand, consider defining \texttt{ul} as \texttt{long}. Then \texttt{si} wouldn't have to be converted to \texttt{unsigned long} (in fact not even to long as it's simply compared to zero, hence the \texttt{DWORD}!). We'd end up with:
+\begin{lstlisting}
+mov DWORD PTR [rbp-0xc],0xffffffff
+cmp DWORD PTR [rbp-0xc],0x0
+jns 0x116b <main+50>
+\end{lstlisting}
+\texttt{cmp} compares \texttt{si} to zero. \texttt{jns} (Jump if Not Sign) checks its sign, i.e. its first bit, and branches accordingly. \qedblack
+
+\begin{exmp}[signed char to unsigned char] 
+\begin{lstlisting}
+char sc = -2;
+unsigned char uc = 1;
+(sc + uc == -1)? puts("[5] -1"): puts("[5] != -1");
+\end{lstlisting}
+In this case, both \texttt{sc} and \texttt{uc} are promoted to integer before the addition and the sign and values are preserved:
+\begin{lstlisting}
+movsx  edx,BYTE PTR [rbp-0x2]
+movsx  eax,BYTE PTR [rbp-0x1]
+add    eax,edx
+cmp    eax,0xffffffff
+jne    0x117d <main+52>
+\end{lstlisting}
+\texttt{[5] -1} is printed. The result would also be true in the following cases:
+\begin{lstlisting}[language=c]
+(sc + uc == -1U)
+(sc + uc == UINT_MAX)
+(sc + uc == 0xffffffff)
+\end{lstlisting}
+\qedblack
+\end{exmp}
+
+\begin{exmp}[signed int to unsigned int]
+signed int si = -5;
+unsigned int ui = 2;
+(si + ui == -3)? puts("[6]: -5+2==-3"): puts("[6]: -5+2!=-3");
+In this case, \texttt{si} and \texttt{ui} have the same rank but different sign. Because \texttt{int} can represent both, no conversion is necessary therefore \texttt{[6]: -5+2==-3} is printed.
+\qedblack
+\end{exmp}
+
+The code for all examples is found in \texttt{src/int\_conv/conversions.c}. The following C ISO extract applies to the above examples. Note that when we operate on signed and unsigned it is \textit{not always} the case that signed will be converted to unsigned (paragraph 4).
+\begin{takeaway}[C ISO 2007 -- 6.3.1.8/1]
+\; \\
+\begin{enumerate}
+
+\item If both operands have the same type, then no further conversion is needed. 
+
+\item Otherwise, if both operands have signed integer types or both have unsigned integer  types,  the  operand  with  the  type  of  lesser  integer  conversion  rank  is converted to the type of the operand with greater rank.
+
+\item Otherwise,  if  the  operand  that  has  unsigned  integer  type  has  rank  greater  or equal  to  the  rank  of  the  type  of  the  other  operand,  then  the  operand  with signed  integer  type  is  converted  to  the  type  of  the  operand  with  unsigned integer type.
+
+\item Otherwise, if the type of the operand with signed integer type can represent all of the values of the type of the operand with unsigned integer type, then the  operand  with  unsigned  integer  type  is  converted  to  the  type  of  the operand with signed integer type.
+
+\item Otherwise,   both   operands   are   converted   to   the   unsigned   integer   type corresponding to the type of the operand with signed integer type.
+\end{enumerate}
+\end{takeaway}
+Finally, if it's not clear yet, to convert a negative signed to unsigned we do the following:
+
+\begin{verbatim}
+while (number < 0) {
+    number += MAX_UNSIGNED_INT + 1
+}
+\end{verbatim}
+This does not change the binary representation of the number -- only the way it's interpreted. In binary, negative numbers are represented by \emphasis{2's complement}. For example, on a 4-bit machine, we have the signed
+\begin{verbatim}
+-2 = 1110b
+\end{verbatim}
+Adding \texttt{MAX\_UNSIGNED\_INT = 16} does not change the bits of the number. Using the magnitude representation instead of 2's complement, we have
+\begin{verbatim}
+-2 + MAX_UNSIGNED_INT = 14 = 1110b
+\end{verbatim}
+
+These are were basics of how integers are handled by the compiler in C.
+
+
+% https://www.oreilly.com/library/view/c-in-a/0596006977/ch04.html
+% https://aticleworld.com/signed-and-unsigned-integers/
+% https://github.com/LambdaSchool/CS-Wiki/wiki/Casting-Signed-to-Unsigned-in-C 
+% https://embeddedgurus.com/stack-overflow/2009/08/a-tutorial-on-signed-and-unsigned-integers/
+% https://aticleworld.com/signed-and-unsigned-integers/
+% https://github.com/LambdaSchool/CS-Wiki/wiki/Casting-Signed-to-Unsigned-in-C
+% https://embeddedgurus.com/stack-overflow/2009/08/a-tutorial-on-signed-and-unsigned-integers/
+% http://www.idryman.org/blog/2012/11/21/integer-promotion/
+% https://stackoverflow.com/questions/17312545/type-conversion-unsigned-to-signed-int-char/17312930#17312930
+% http://www.idryman.org/blog/2012/11/21/integer-promotion/
+% https://pleasestopnamingvulnerabilities.com/integers.html
+
+
+
+% https://www.cs.virginia.edu/~evans/cs216/guides/x86.html
+% Redefining IMUL and IDIV Are you still reading these subtitles?
