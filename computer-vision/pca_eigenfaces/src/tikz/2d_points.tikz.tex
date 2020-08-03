@@ -1,0 +1,13 @@
+
+
+\scalebox{0.65}{ %%% scalebox
+\begin{tikzpicture}
+  \begin{axis}[
+    xlabel=\Large{$x_1$},
+    ylabel=\Large{$x_2$},
+    grid=major]
+    \addplot [only marks, draw=magenta!60!black, fill = magenta] coordinates {(0,0) (15,15) (15,0) (0,15)};
+    % if you want the plot to be RED, instead write: \addplot [red,mark=*] coordinates ...
+  \end{axis}
+\end{tikzpicture}
+}
