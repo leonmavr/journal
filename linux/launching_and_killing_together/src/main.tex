@@ -1,0 +1,156 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Path priority and executing binaries together}
+
+
+
+\subsection{Motivation}
+I was browsing the \href{https://wiki.archlinux.org/index.php/Spotify#blockify}{Arch wiki} on how to automatically launch \texttt{blockify} when \texttt{spotify} is launched and how to kill it in the same manner.
+
+The wiki instructs to place the following script at \texttt{/usr/local/bin/spotify}:
+\begin{lstlisting}[language=bash]
+#!/bin/sh
+
+spotify=/usr/bin/spotify
+
+if [[ -x $spotify && -x /usr/bin/blockify ]];
+then
+  blockify &
+  block_pid=$!
+  $spotify
+  trap "kill -9 $block_pid" SIGINT SIGTERM EXIT
+fi
+
+\end{lstlisting}
+
+First, let's try to recreate something similar with some simple dummy executables.
+
+\subsection{How path priority works}
+
+By path priority, I refer to the sub-paths in the system's \texttt{PATH} environmental variable. The latter variable tells a Unix system which directories to search when executing a program (command). The directories in the path are separated by \texttt{:}. The latter variable looks like:
+\begin{verbatim}
+PATH="dir1:dir2:...:dirN"	
+\end{verbatim}
+When executing a command, its executable is first searched in \texttt{dir1}, then \texttt{dir2}, then $\ldots$ \texttt{dirN} so the priority is:
+\[
+	Pr(dir_1) > Pr(dir_2) > \ldots > Pr(dir_N)
+\]
+A typical \texttt{PATH} in a Unix system contains the following:
+\begin{verbatim}
+/usr/local/sbin:/usr/local/bin:/usr/bin:...
+\end{verbatim}
+, which shows what the priority is. 
+
+Going back to the blockify script, since \texttt{/usr/local/bin/spotify} has greater priority than \texttt{/usr/bin/spotify}, the script gets executed instead of plain \texttt{spotify}. The script executes blockify and stores its PID (\texttt{\$!}) in a variable
+
+
+\subsection{Traps; waiting for signal to execute action}
+
+The next goal of the script is to kill \texttt{blockify} when \texttt{spotify} terminates, achieved by the line:
+\begin{verbatim}
+trap "kill -9 $block_pid" SIGINT SIGTERM EXIT
+\end{verbatim}
+In Unix, traps are used to activate handlers when a particular signal is received. The syntax to set up a trap is the following:
+\begin{verbatim}
+trap <"handler command"> <signal list>
+\end{verbatim}
+In this case, the handler is to kill blockify, i.e. \texttt{kill -9 \$block\_id}. We want the handler to be reached when signals \texttt{SIGINT, SIGTERM, EXIT} are received, i.e. when spotify terminates. Signals \texttt{SIGINT}, \texttt{SIGTERM} are received when a command terminates the program and \texttt{EXIT} is a pseudo-signal received when the program exits. That's it.
+
+
+\subsubsection{Traps; a simple example}
+
+Let's say we have a script keeps writing random numbers from 0 to 99 to a file and is meant to remove the file when it exits, either manually or by itself.
+
+\begin{lstlisting}[language=bash]
+#!/bin/bash
+
+output_file=/tmp/output.txt
+> $output_file 
+
+# --- trap handler
+cleanup() {
+	echo "Exit received. Cleaning up..."
+	rm $output_file 
+}
+# ---
+
+trap "cleanup" SIGINT SIGTERM EXIT
+
+
+#--- main work 
+for i in `seq 1 10`; do
+	echo $[ $RANDOM \% 100 ] >> $output\_file 
+	sleep 1
+done
+#---
+\end{lstlisting}
+When the user kills the program by \texttt{\^C} or when the program exits, it calls the handler \texttt{cleaup()} and removes the output file.
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+%\printbibliography
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+%\newpage
+%\appendix
+
+%\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+%\newpage
+%\subsection{Appendix Example}
+%\label{app:my_cool_appendix}
+
+
+
+
+\end{document}
