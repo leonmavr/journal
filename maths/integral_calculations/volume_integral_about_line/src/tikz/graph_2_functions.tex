@@ -1,0 +1,82 @@
+
+\makeatletter
+\newsavebox{\measure@tikzpicture}
+\NewEnviron{scaletikzpicturetowidth}[1]{%
+  \def\tikz@width{#1}%
+  \def\tikzscale{1}\begin{lrbox}{\measure@tikzpicture}%
+  \BODY
+  \end{lrbox}%
+  \pgfmathparse{#1/\wd\measure@tikzpicture}%
+  \edef\tikzscale{\pgfmathresult}%
+  \BODY
+}
+\makeatother
+
+\def\circledarrow#1#2#3{ % #1 Style, #2 Center, #3 Radius
+\draw[#1,->] (#2) +(80:#3) arc(80:-260:#3);
+}
+
+\begin{scaletikzpicturetowidth}{0.4\textwidth}
+\begin{tikzpicture}[scale=\tikzscale,domain=0.0:1.5,samples=200]
+    \draw[->] (-0,0) -- (2.2,0) node[below] {$x$};
+    \draw[->] (0,0) -- (0,2.3) node[left] {$y$};
+    \foreach \i in {0,1,...,2} {
+        \draw (\i,0.05) -- (\i,-0.05) node[below] {$\i$};
+    }
+    \foreach \i in {0,1,...,2} {
+        \draw (0.05,\i) -- (-0.05,\i) node[left] {$\i$};
+    }
+    \draw[cyan!80!black, thick] plot (\x,{\x});
+    \draw[magenta, thick] plot (\x,{\x^3-\x});
+    % draw points
+    \coordinate[label = above right:{$(\sqrt{2}\,\sqrt{2})$}] (A) at (1.41,1.41);
+    \node at (A)[circle,fill,inner sep=1pt]{};
+\end{tikzpicture}
+\end{scaletikzpicturetowidth}
+\begin{scaletikzpicturetowidth}{0.2\textwidth}
+\begin{tikzpicture}
+
+\node at (0,-1) (arrow) {};
+\node at (0,0) (text) { $\textbf{R} = \begin{bmatrix} \cos(-45) & -\sin(-45) \\
+\sin(-45) & \cos(-45) \\
+\end{bmatrix}
+$};
+\circledarrow{thick, black}{arrow}{0.6cm};
+\end{tikzpicture}
+\end{scaletikzpicturetowidth}
+\begin{scaletikzpicturetowidth}{0.4\textwidth}
+\begin{tikzpicture}[scale=\tikzscale,domain=0.0:2.1,samples=200,
+myrect/.style={
+  rectangle,
+  draw,
+  inner sep=0pt,
+  fit=#1}]
+    \draw[->] (-0,0) -- (2.5,0) node[below] {$x$};
+    \draw[->] (0,0) -- (0,-2.3) node[left] {$y$};
+    \foreach \i in {0,1,...,2} {
+        \draw (\i,0.05) -- (\i,-0.05) node[below] {$\i$};
+    }
+    \foreach \i in {0,-1,...,-2} {
+        \draw (0.05,\i) -- (-0.05,\i) node[left] {$\i$};
+    }
+    \draw[cyan!80!black,thick] plot (\x,{0*\x});
+    \draw[magenta,thick] plot (\x,{1.41*\x - 2^(7/6)*\x^(1/3)});
+    % points
+    \coordinate[label = above right:{$(2,0)$}] (B) at (2,0);
+    \node at (B)[circle,fill,inner sep=1pt]{};
+    
+    % rectangle
+    \coordinate[label = above right:{}] (r1) at (0.19,0);
+    \coordinate[label = above right:{}] (r2) at (0.61,0);
+    \coordinate[label = above right:{}] (r3) at (0.19,-1);
+    \coordinate[label = above right:{}] (r4) at (0.61,-1.05);
+    \node[myrect={(r1) (r4)},draw=black!80!magenta,fill=magenta!80!white] {}; 
+    \coordinate[label = above right:{}] (dx1) at (0.19,0.15);
+    \coordinate[label = above left:{$dx$}] (dx2) at (0.61,0.15);
+    \draw[<->] (dx1) -- (dx2);
+    \coordinate[label = {[yshift=4mm]above right:{$y$}}] (r4near) at (0.68,-1.05);
+    \coordinate (dx2near) at (0.68,0.0);
+    \draw[<->] (dx2near) -- (r4near);
+\end{tikzpicture}
+\end{scaletikzpicturetowidth}
+
