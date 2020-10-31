@@ -1,0 +1,116 @@
+=================================================
+= Processing csv files with GNU Awk             =
+=================================================
+
+
+
+1. Problem statement
+
+Recently at work I had to quickly profile the time our algorithm takes for each sequence of frames.
+I was given some folders, let's say folder1,..,N and each folder would contain one big .csv file with 2 columns.
+The first column would contain some frame indexes (0,1,...) and the second column would contain the time the frame of the corresponding index would take, so here are some sample lines of how the files could look like:
+5,47
+6,53
+...
+
+My task was for each of those csv files to find the min, max and mean time ASAP.
+I show how this can be accomplished with the awk command.
+
+
+
+2. Some Awk basics
+
+
+2.1 Column separator
+
+Can be specified with the -F option, e.g.
+>>>>>>>>>>>>>>>>>>
+awk -F"," 'awk commands go in single quotes here'
+<<<<<<<<<<<<<<<<<<
+will tell awk to read a .csv file.
+
+
+2.2 Looping with BEGIN END
+
+* BEGIN pattern: means that Awk will execute the action(s) specified in BEGIN once before any input lines are read.
+* END pattern: means that Awk will execute the action(s) specified in END before it actually exits.
+* Between BEGIN and END, awk iteratively reads the current row of the N-th column. The current row of the N-th column can be accessed with the $N syntax. 
+Note: Two other useful builtin variables are NF (Number of Fields, aka number of columns) and NR (Number of Rows). The syntax for BEGIN END is as follows:
+>>>>>>>>>>>>>>>>>>
+'BEGIN {commands;} condition {commands;} END {commands;}'
+<<<<<<<<<<<<<<<<<<
+For instance, the following snippet prints the sum of the 2nd column:
+>>>>>>>>>>>>>>>>>>
+awk -F"," 'BEGIN {sum=0;} 1!=2 {sum+=$2;} END {print sum;}' columns.csv
+<<<<<<<<<<<<<<<<<<
+
+
+
+3. The solution
+
+
+3.1 Mean of a column
+
+It should now be clean how the mean can be computed. Let's say with file data/folder1/columns1.csv as input:
+>>>>>>>>>>>>>>>>>>
+awk -F"," 'BEGIN {sum=0;} 1!=2 {sum+=$2;} END {print sum/NR;}' folder1/columns1.csv 
+<<<<<<<<<<<<<<<<<<
+
+
+3.2 Max of a column
+
+This is similar, just keep in mind the if syntax in awk:
+>>>>>>>>>>>>>>>>>>
+if (condition) commands
+<<<<<<<<<<<<<<<<<<
+Therefore it's pretty straightforward how the BEGIN END semantics can be populated to compute the max given file data/folder2/columns2.csv:
+>>>>>>>>>>>>>>>>>>
+awk -F"," 'BEGIN {sum=0; max=0;} 1!=2 {if ($2 > max) max=$2;} END {print max;}' data/folder2/columns2.csv
+<<<<<<<<<<<<<<<<<<
+
+
+3.3. Min of a column
+Again, given file data/folder2/columns2.csv:
+
+>>>>>>>>>>>>>>>>>>
+awk -F"," 'BEGIN {sum=0; min=99999999;} 1!=2 {if ($2 < min) min=$2;} END {print min;}' data/folder2/columns2.csv
+<<<<<<<<<<<<<<<<<<
+
+
+3.4 Parsing the folders and reporting min, max, mean
+
+The simplified folder structure we're dealing with is as follows:
+	data
+	├── folder1
+	│   └── columns1.csv
+	└── folder2
+		└── columns2.csv
+Using the find command, we can parse folder1 and folder2 (in reality there are more) and execute the three awk commands on each .csv file. So the final script to get the job done looks at follows (time_report.sh):
+
+>>>>>>>>>>>>>>>>>>
+#!/bin/bash
+
+for d in `find ./data -mindepth 1 -maxdepth 1 -type d`;do
+	echo -e "===== folder $d ====="
+	awk -F"," 'BEGIN {sum=0;} 1!=2 {sum+=$2;} END {printf "mean = %.2f\n", sum/NR;}' $d/*.csv 
+	awk -F"," 'BEGIN {sum=0; min=99999999;} 1!=2 {if ($2 < min) min=$2;} END {printf "min = %.2f\n", min;}' $d/*.csv 
+	awk -F"," 'BEGIN {sum=0; max=00000000;} 1!=2 {if ($2 > max) max=$2;} END {printf "max = %.2f\n", max;}' $d/*.csv 
+done
+<<<<<<<<<<<<<<<<<<
+Results:
+===== folder ./data/folder2 =====
+mean = 52.40
+min = 49.00
+max = 57.00
+===== folder ./data/folder1 =====
+mean = 49.35
+min = 45.00
+max = 54.00
+
+Only in 6 lines!!!
+
+
+
+4. Conclusion
+
+How long would this take in Python?
