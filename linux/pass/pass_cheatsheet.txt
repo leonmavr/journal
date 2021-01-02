@@ -1,0 +1,19 @@
+##########################################################################################################
+# pass cheatsheet
+# see also: https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1
+##########################################################################################################
+
+# insert existing pwd
+pass insert facebook.com
+
+# show all passwords
+pass
+
+# generate random password for facebook.com
+pass generate facebook.com 15
+
+# copy password for facebook.com to clipboard
+pass -c facebook.com 
+
+# edit existing password
+pass edit facebook.com
