@@ -17,3 +17,7 @@ pass -c facebook.com
 
 # edit existing password
 pass edit facebook.com
+
+# change how long (sec) pass is copied to clipboard for, e.g. 120 sec
+# $ vim ~/.bashrc
+export PASSWORD_STORE_CLIP_TIME=120
