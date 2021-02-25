@@ -12,6 +12,9 @@ pass
 # generate random password for facebook.com
 pass generate facebook.com 15
 
+# show password for facebook.com on the terminal
+pass facebook.com 
+
 # copy password for facebook.com to clipboard
 pass -c facebook.com 
 
