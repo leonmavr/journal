@@ -2,6 +2,18 @@
 # pass cheatsheet
 # see also: https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1
 ##########################################################################################################
+# if I want to import my personal secret key, which encrypts my password structure:
+gpg2 --import secret.gpg
+
+# if a password directory is not created
+makedir ~/.pass
+cd ~/.pass
+
+# then I can copy my pass files into this directory
+cp -r ~/pass ~/.pass
+
+# and initialise this as the pass directory using the import gpg key:
+pass init
 
 # insert existing pwd
 pass insert facebook.com
