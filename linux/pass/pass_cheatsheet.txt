@@ -1,5 +1,5 @@
 ##########################################################################################################
-# pass cheatsheet
+# This is a guide on how to set up and use the "pass" package to manage passwords with gpg encryption.
 # see also: https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1
 ##########################################################################################################
 # if not done before, do this and use the same name and email as the imported key (see next command)
