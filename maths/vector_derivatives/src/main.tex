@@ -1,0 +1,247 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+%\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+
+
+%------------------------------ New section ------------------------------%
+\bigtitle{Vector Differentiation Rules}
+% ref
+
+Derivatives with respect to a vector come up often in a multitude of areas, such as constrained optimisation, adaptive filtering, and machine learning. We begin by defining the simple case of a scalar differentiated by a vector.
+\begin{definition}[gradient]
+Let $\bx= (x_1,\ldots,x_n)$ be a column vector and let $f(\bx): \; \setR^n \rightarrow \setR$ be a function that maps to a scalar. The derivative of $f$ w.r.t $\bx$, also known as \emphasis{gradient}, is defined as:
+\begin{equation}
+    \nabla_{\bx}f := \frac{\partial f}{\partial \bx} := 
+    \begin{bmatrix}
+    \frac{\partial f}{\partial x_1} & \frac{\partial f}{\partial x_2} & \ldots & \frac{\partial f}{\partial x_n}
+    \end{bmatrix}\t
+    \label{eq:def_gradient}
+\end{equation}
+\end{definition}
+Both notations in \eqref{eq:def_gradient} are acceptable for the gradient
+\begin{exmp}
+Find the gradient of the function $f(x_1, x_2, x_3) = x_1 + 3x_2 + 2x_3$.
+\end{exmp}
+\begin{soln}
+\[
+\nabla_{\bx}f = 
+    \begin{bmatrix}
+    \frac{\partial  (x_1 + 3x_2 + 2x_3)}{\partial x_1} & \frac{\partial  (x_1 + 3x_2 + 2x_3)}{\partial x_2} &  \frac{\partial ( x_1 + 3x_2 + 2x_3)}{\partial x_3} 
+    \end{bmatrix}\t = 
+    \begin{bmatrix}
+    1 & 3 & 2
+    \end{bmatrix}\t
+\]
+\qed
+\end{soln}
+We already notice a property of vector differentiation in the example above; if $f(\bx) = \ba\t\bx$, where $\ba\t = \begin{bmatrix} 1 & 3 & 2 \end{bmatrix}$ is a coefficient row vector and $\bx = \begin{bmatrix} x_1 & x_2 & x_3 \end{bmatrix}\t$ a column vector, then $\nabla_{\bx}f = \ba$.
+
+For reference, the derivative of vector w.r.t. a vector is also defined just to highlight its difference with the derivative of a scalar w.r.t. a vector.
+\begin{definition}[Jacobian matrix]
+% see Lecture%20Note%203%20-%20Introduction%20to%20Vector%20and%20Matrix%20Differentiation%20(1).pdf
+Let $\bx \in \setR^m$ and $\textbf{f}: \setR^m \rightarrow \setR^n$ be a function that returns a $n \times 1$ vector, i.e. $\textbf{f}(\bx) = \begin{bmatrix}f_1(\textbf{x}) & \ldots & f_n(\bx)\end{bmatrix}\t$. Then the derivative of vector $\textbf{f}(\bx)$ w.r.t. $\bx$ is called \emphasis{Jacobian matrix} and is defined as \cite{nielsen}
+\begin{equation}
+    \textbf{J}(\bx) = \frac{\partial \textbf{f}(\bx)}{\partial \bx} = 
+    \begin{bmatrix}
+        \frac{\partial f_1(\bx)}{\partial x_1} & \frac{\partial f_1(\bx)}{\partial x_2} & \ldots & \frac{\partial f_1(\bx)}{\partial x_m} \\   
+        \frac{\partial f_2(\bx)}{\partial x_1} & \frac{\partial f_2(\bx)}{\partial x_2} & \ldots & \frac{\partial f_2(\bx)}{\partial x_m} \\
+        \vdots & \vdots & \ddots & \vdots \\
+        \frac{\partial f_n(\bx)}{\partial x_1} & \frac{\partial f_n(\bx)}{\partial x_2} & \ldots & \frac{\partial f_n(\bx)}{\partial x_m} \\   
+    \end{bmatrix}
+    \label{eq:def_jac_matrix}
+\end{equation}
+\end{definition}
+The determinant of the Jacobian matrix is called Jacobian determinant or \emphasis{Jacobian} for short. Therefore each row $k$ contains the derivative of the scalar function $f_k(.)$ with respect to the elements in $\bx$.
+\begin{exmp}
+% ref https://www.projectrhea.org/rhea/index.php/Jacobian
+Compute the Jacobian matrix of the transformation $T(u, v) = \begin{bmatrix} u & v & u^v \end{bmatrix}\t, \quad u > 0$ \cite{projectrhea}. 
+\end{exmp}
+\begin{soln}
+Using the notation from the definition we compute each row at a time.
+\[
+f_1(u, v) = u \Rightarrow \frac{\partial f_1(u,v)}{\partial u} = 1, \quad \frac{\partial f_1(u, v)}{\partial v} = 0 
+\]
+\[
+f_2(u,v) = v \Rightarrow \frac{\partial f_1(u,v)}{\partial u} = 0, \quad \frac{\partial f_1(u, v)}{\partial v} = 1
+\]
+\[
+f_3(u,v) = u^v \Rightarrow \frac{\partial f_3(u,v)}{\partial u} = vu^{v-1}, \quad \frac{\partial f_3(u, v)}{\partial v} = u^v \ \ln u
+\]
+\[
+\therefore \ \textbf{J}(u, v) = 
+\begin{bmatrix}
+1 & 0 \\
+0 & 1 \\
+vu^{v-1} & u^v \ \ln u
+\end{bmatrix}
+\]
+\qed
+\end{soln}
+Now we can derive and provide the derivatives of some common scalar ((i), (iii), (iv)) and one vector ((ii)) expressions w.r.t. a vector.
+\begin{lemma}[vector differentiation basic properties]
+Let $\bx, \ba \in \setR^n$ be two column vectors where $\ba$ is not a function of $\bx$ and $\bA\in \setR^{m\times n}$ be a real matrix. Then:
+\begin{flalign}
+& (i) && \frac{\partial (\ba\t \bx)}{\partial \bx} = \frac{\partial (\bx\t \ba)}{\partial \bx} = \ba & \\
+& (ii) && \frac{\partial (\bA\bx)}{\partial \bx} = \bA & \\
+& (iii) && \frac{\partial (\bx\t\bA\t)}{\partial \bx} = \bA\t \; , & \text{if} \quad m=n & \\
+& (iv) && \frac{\partial (\bx\t \bA \bx)}{\partial \bx} = (\bA + \bA\t)\ \bx \; , & \text{if} \quad m=n & 
+\end{flalign}
+\end{lemma}
+\begin{proof} \quad
+
+(i)
+From the dot product's definition:
+\[
+\frac{\partial (\ba\t \bx)}{\partial \bx}  =
+\begin{bmatrix}
+\frac{\sum_{i=1}^n a_ix_i}{\partial x_1} \\ \frac{\sum_{i=1}^n a_ix_i}{\partial x_2} \\ \vdots \\ \frac{\sum_{i=1}^n a_ix_i}{\partial x_n}
+\end{bmatrix}
+=
+\begin{bmatrix}
+a_1 \\ a_2 \\ \vdots \\ a_n
+\end{bmatrix} = \ba
+\]
+(ii) If we denote $\ba_1\t,\ldots,\ba_m\t$ the rows of $\bA$ expressed as column vectors, then  product $\bA\bx$ is written as:
+\[
+\bA\bx = 
+\begin{bmatrix}
+\ba_1\t \bx \\
+\ba_2\t \bx \\
+\vdots \\
+\ba_m\t \bx
+\end{bmatrix}
+\]
+We apply definition \eqref{eq:def_gradient} on each row, since each row is a scalar:
+\[
+\therefore \; \frac{\partial ( \bA\bx)}{\partial \bx} =
+\begin{bmatrix}
+\frac{\partial(\ba_1\t\bx)}{\partial \bx}  \stackrel{\text{(\ref{eq:def_gradient}})}{=} \ba_1 \\
+\frac{\partial(\ba_2\t\bx)}{\partial \bx} \stackrel{\text{(\ref{eq:def_gradient}})}{=} \ba_2 \\
+\vdots  \\
+\frac{\partial(\ba_m\t\bx)}{\partial \bx}  \stackrel{\text{(\ref{eq:def_gradient}})}{=} \ba_m \\
+\end{bmatrix}
+= 
+\begin{bmatrix}
+\ba_1 \\
+\ba_2 \\
+\vdots \\
+\ba_m
+\end{bmatrix}
+= \bA
+\]
+
+(iii) Left as exercise.
+
+(iv) % shorter: http://www.ams.sunysb.edu/~zhu/ams571/matrixvector.pdf
+The $i$-th element of the product $\bA\bx$, which is a vector, is written with the index notation as follows.
+\[
+(\bA\bx)_i = \sum_{j=1}^n A_{ij}x_{j}
+\]
+The dot product of $\bx$, $\bA\bx$ is written as:
+\[
+\bx\t \bA \bx = \sum_{i}^n x_i \sum_{j=1}^n A_{ij}x_{j}
+\]
+Applying the definition of the gradient (\eqref{eq:def_gradient}) to the dot product:
+\begin{align*}
+\frac{\partial(\bx\t \bA \bx)}{\partial \bx} &= \frac{\partial(\sum_{i}^n x_i \sum_{j=1}^n A_{ij}x_{j})}{\partial \bx}   \\
+&= \begin{bmatrix}
+\frac{\partial(\sum_{i=1}^n x_i \sum_{j=1}^n A_{ij}x_{j})}{\partial x_1} & \ldots &
+\frac{\partial(\sum_{i=1}^n x_i \sum_{j=1}^n A_{ij}x_{j})}{\partial x_n} \\
+\end{bmatrix}\t
+\end{align*}
+Using the product rule on the first element:
+\begin{align*}
+\frac{\sum_{i=1}^n x_i \sum_{j=1}^n A_{ij}x_{j}}{\partial x_1} &= \cancelto{\substack{1,\; i=1\\\text{else}\; 0}}{\frac{\partial \sum_{i=1}^n x_i}{\partial x_1}}\sum_{j=1}^n A_{ij}x_{j} \qquad + \qquad \sum_{i=1}^n x_i \cancelto{\substack{A_{ij},\; j=1\\\text{else}\; 0}}{\frac{\partial \sum_{j=1}^n A_{ij}x_{j}}{\partial x_1}} \\
+&= \sum_{j=1}^n A_{1j}x_{j} +  \sum_{i=1}^n x_i A_{i1}\\
+&= \ba_{1:}\bx + \ba_{:1}\bx = (\ba_{1:} + \ba_{:1}) \bx
+\end{align*}
+, where $\ba_{1:}$ denotes the first row of $\bA$ and $\ba_{:1}$ its first column (Matlab notation). Applying the result to the remaining indexes $2,\ldots,n$, we can rewrite the gradient as:
+\[
+\frac{\partial(\bx\t \bA \bx)}{\partial \bx} = 
+\begin{bmatrix}
+\ba_{1:} + \ba_{:1} & \ldots & \ba_{n:} + \ba_{:n}
+\end{bmatrix}
+\bx = (\bA + \bA\t)\bx
+\]
+\end{proof}
+
+Some other properties that can be readily derived from the basic ones are listed below.
+
+\begin{lemma}[vector differentiation follow-up properties]
+If $\bA\in \setR^{n\times n}$ is square and symmetric ($\bA = \bA\t$) and $\bx\in \setR^n$, then
+\begin{equation}
+    \frac{\partial (\bx\t\bA\bx)}{\partial \bx} = 2\bA\bx
+\end{equation}
+For $\bA=\bI$, we can derive the vector derivative of the squared norm-2:
+\begin{equation}
+    \frac{\partial (\bx\t\bx)}{\partial \bx} = \frac{\partial \norm{\bx}^2}{\partial \bx} = 2\bx
+\end{equation}
+\end{lemma}
+Finally, we define the chain rule for vector functions as it's expressed in a slightly different order than the chain rule of scalars.
+\begin{lemma}[chain rule for vector function]
+Let $\bx\in\setR^n$, $\by \in \setR^r$, $\bz \in \setR^m$, where $\bz = \bz(\by)$ and $\by = \by(\bx)$. Then
+\begin{equation}
+    \frac{\partial \bz}{\partial \bx} = \frac{\partial \by}{\partial \bx} \frac{\partial \bz}{\partial \by}
+\end{equation}
+\end{lemma}
+
+\begin{proof} \quad \\
+% ref http://www.ams.sunysb.edu/~zhu/ams571/matrixvector.pdf
+Proof is found in  \cite{weizhu}.
+\end{proof}
+
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+
+\end{document}

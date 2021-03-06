@@ -1,0 +1,462 @@
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Packages
+%%
+%\usepackage{fullpage} % Package to use full page
+\usepackage[top=1in,bottom=1in,left=1in,right=1in,heightrounded]{geometry}
+
+\usepackage{parskip}                    % Package to tweak paragraph skipping
+\usepackage{amsmath}                    % standard
+\usepackage{amssymb}                    % standard - Double R symbol etc.
+\usepackage{hyperref}
+\usepackage{amsthm}                     % standard - theorem, definition, etc.
+\usepackage{multicol}                   % multiple columns for numbering
+\usepackage{enumitem}                   % standard - enumerate styles
+\usepackage[utf8]{inputenc}
+\usepackage{scrextend}                  % indentation
+\usepackage{graphicx}                   % standard - add figures
+\usepackage{float}                      % standard - figure position, use [H] option
+\usepackage{pifont}                     % symbols http://willbenton.com/wb-images/pifont.pdf
+                                        % e.g. \ding{51}
+\usepackage{gensymb}                    % degree symbol \degree
+\usepackage{xcolor}                     % bg color
+\hypersetup{
+    colorlinks,
+    linkcolor={black!50!black},
+    citecolor={blue!50!black},
+    urlcolor={blue!80!black}
+}
+\usepackage{framed}                     % bg color
+\usepackage[T1]{fontenc}                % small caps
+\usepackage{sectsty}                    % headings colour
+\usepackage{mathtools}                  % Loads amsmath
+\usepackage{amsthm,thmtools,xcolor}     % coloured theorem
+\usepackage[toc,page]{appendix}         % reference to appendix
+%\usepackage{titlesec}                   % change chapter, section, etc. formats
+\usepackage{xifthen}                    % if, else
+\usepackage{etoolbox}
+% format numbering in theorem, lemma, etc. environment
+\AtBeginEnvironment{theorem}{\setlist[enumerate, 1]{font=\upshape,  wide=0.5em, before=\leavevmode}}
+\AtBeginEnvironment{lemma}{\setlist[enumerate, 1]{font=\upshape,  wide=0.5em, before=\leavevmode}}
+\usepackage[letterspace=150]{microtype} % \textls{<letterspaced text>} % 0 <= letterspace <= 1000, 1000 = M space
+\usepackage{letltxmacro}                % renew commands?
+\usepackage{minted}                     % package to list code
+    % otherwise minted goes off the page
+    \setmintedinline{breaklines}
+\usepackage{subfig}
+\usepackage{eso-pic}                    % title page bg pic
+\usepackage{varwidth}
+\PassOptionsToPackage{svgnames}{xcolor}
+\usepackage{fontawesome}                % \faQuestionCircle
+\usepackage{marvosym}                   %\Pointinghand
+\usepackage{mdframed}                   % easy outline frames
+\usepackage[many]{tcolorbox}            % colour box for theorem styles
+\usepackage{array,booktabs,calc} % table figs and text
+\usepackage{comment}                    % \begin{comment}
+\usepackage{fancyhdr}                   % page headings
+\usepackage{mdframed}                   % boxes
+\usepackage[backend=biber,sorting=none,style=ieee]{biblatex}
+\usepackage{caption}
+%%% caption options {
+%\DeclareCaptionFont{white}{\color{white}}
+\DeclareCaptionFormat{listing}{\colorbox{magenta!30!gray}{\parbox{\textwidth}{#1#2#3}}}
+\captionsetup[lstlisting]{format=listing,labelfont={bf,small},textfont=small,skip=-1pt}
+%%% }
+\addbibresource{bibliography.bib}
+\usepackage{url}
+\usepackage{textcomp}
+\usepackage[makeroom]{cancel}           % crossed symbols - \cancel{}, \bcancel{}, xcancel{}
+\usepackage{algorithm}
+\usepackage[noend]{algpseudocode}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,quotes} % arrows and nodes in tikz
+\usepackage{marginnote}                 % things in page margin by \marginnote{...}
+\usepackage{pgfplots}
+\usepackage{pstricks-add,pst-slpe}      % for fancy tikz arrows
+%\usepackage{titlesec}                  % title style
+\usepackage{lmodern}                    % a font
+\usepackage{titletoc}                   % Required for manipulating the table of contents
+\usepackage{titlesec}                   % Allows customization of titles
+\usepackage{fouriernc}                  % Use the New Century Schoolbook font
+\usepackage{booktabs}                   % better tables
+\usepackage{stmaryrd }                  % \varoast
+\usepackage{listings}                   % code listings
+\usepackage{longtable}                  % table across multiple pages
+\usepackage{todonotes}                  % TODO bubbles by \todo{...} command
+\usepackage{changepage}                 % paragraph margins
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{eso-pic}
+\usepackage{transparent}
+\usepackage[makeroom]{cancel}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Colours for various things
+%%
+
+
+\definecolor{shadecolor}{rgb}{1.,0.933,0.96} % bg color, r,g,b <= 1
+\definecolor{medium_blue}{RGB}{60,125,190}
+\definecolor{dark_blue}{RGB}{25,60,85}
+\definecolor{dark_red}{RGB}{77,16,16}
+\definecolor{LightPink}{rgb}{0.92.,0.8,0.84} % bg color, r,g,b <= 1
+\definecolor{LighterPink}{rgb}{1.,0.94,0.97} % bg color, r,g,b <= 1
+\definecolor{LightestPink}{rgb}{1.,0.95,0.99} % bg color, r,g,b <= 1
+\definecolor{DarkestPink}{rgb}{0.36, 0.0, 0.18}
+\definecolor{DarkerPink}{rgb}{0.41, 0.0, 0.21}
+\definecolor{DarkPink}{rgb}{0.55, 0.05, 0.37}
+\definecolor{lightestestpink}{RGB}{255,248,252}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codegrayblue}{rgb}{0.35,0.35,0.47}
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Define my own theorem styles
+%%
+
+% "base" styles
+\declaretheoremstyle[
+  headfont=\color{DarkPink}\bfseries,
+  bodyfont=\itshape,
+]{colored}
+
+\declaretheoremstyle[
+  headfont=\color{DarkPink}\bfseries,
+  bodyfont=\normalfont,
+]{colored_upright}
+
+% theorems (corollaries, etc) themselves, inherit from my style above
+% Usage:
+% \begin{theorem} \end{theorem}, \begin{lemma} \end{lemma}, ...
+\declaretheorem[
+	numberwithin=section,
+ 	style=colored,
+	name=\textsc{Theorem},
+]{theorem}
+
+\tcolorboxenvironment{theorem}{
+  boxrule=0pt,
+  boxsep=2pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
+\declaretheorem[
+	numberwithin=section,
+ 	style=colored,
+	name=\textsc{Corollary},
+]{corollary}
+
+\tcolorboxenvironment{corollary}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
+\declaretheorem[
+	numberwithin=section,
+	style=colored,
+	name=\textsc{Lemma},
+]{lemma}
+
+\tcolorboxenvironment{lemma}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!10!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
+\declaretheorem[
+	numberwithin=section,
+	style=colored,
+	name=\textsc{Definition},
+]{definition}
+
+\tcolorboxenvironment{definition}{
+  boxrule=0pt,
+  boxsep=1pt,
+  colback={magenta!25!white},
+  colframe=DarkPink,
+  enhanced jigsaw, 
+  borderline west={2pt}{0pt}{DarkPink},
+  sharp corners,
+  before skip=5pt,
+  after skip=5pt,
+  breakable,
+  right=0mm % for equations
+}
+
+\declaretheorem[
+	numberwithin=section,
+  	style=colored,
+  	name=\textsc{Example},
+]{exmp}
+
+\declaretheorem[
+	numberwithin=section,
+  	style=colored,
+  	name=\textsc{Solution},
+]{soln}
+
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+%%% code listings
+\lstdefinestyle{code1}{
+    backgroundcolor=\color{lightestestpink},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    breakatwhitespace=false,
+    breaklines=true,        
+    captionpos=t,             
+    keepspaces=true,        
+    numbers=left,           
+    numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+
+\lstdefinestyle{terminal}{
+    backgroundcolor=\color{black!5},   
+    commentstyle=\color{codegrayblue},
+    keywordstyle=\color{DarkerPink},
+    %numberstyle=\tiny\color{codegray},
+    stringstyle=\color{black!40!cyan},
+    basicstyle=\small\ttfamily,
+    numbers=none,
+    breakatwhitespace=false,
+    breaklines=true,        
+    %captionpos=t,             
+    keepspaces=true,        
+    %numbers=left,           
+    %numbersep=5pt,
+    showspaces=false, 
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=4
+}
+
+\lstset{style=code1}
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Headers (size, font, colour)
+%%
+
+\makeatletter
+\renewcommand{\@seccntformat}[1]{\llap{\textcolor{DarkestPink}{\csname the#1\endcsname}\hspace{1em}}}                    
+\renewcommand{\section}{\@startsection{section}{1}{\z@}
+{-4ex \@plus -1ex \@minus -.4ex}
+{1ex \@plus.2ex }
+{\normalfont\large\sffamily\bfseries\textcolor{DarkestPink}}}
+\renewcommand{\subsection}{\@startsection {subsection}{2}{\z@}
+{-3ex \@plus -0.1ex \@minus -.4ex}
+{0.5ex \@plus.2ex }
+{\normalfont\sffamily\bfseries\textcolor{DarkestPink}}}
+\renewcommand{\subsubsection}{\@startsection {subsubsection}{3}{\z@}
+{-2ex \@plus -0.1ex \@minus -.2ex}
+{.2ex \@plus.2ex }
+{\normalfont\small\sffamily\bfseries\textcolor{DarkestPink}}}                        
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Numberings, counters and spacings
+%%
+\numberwithin{equation}{section} % section number in eq/s
+\setlength{\jot}{7pt} % spacing in split, gathered env/s
+
+
+
+%% Custom examples
+%% Output - Example 1,2,...
+\newcounter{example}
+\newenvironment{example}[1][]{\refstepcounter{example}\par\medskip
+   \textbf{Example~\theexample. #1} \rmfamily}{\medskip}
+%%%%%%%%%%%% End of unused %%%%%%%%%%%%
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Paths
+%%
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% User defined macros (math mode)
+%%
+
+
+% Curly braces under text. Usage: \myunderbrace{upper}{lower}
+\newcommand{\myunderbrace}[2]{\mathrlap{\underbrace{\phantom{#1}}_{#2}} #1}
+\newcommand{\setR}{\mathbb{R}} % \ouble R
+\newcommand{\setRn}{\mathbb{R}^n} %  double R^n
+\newcommand{\setN}{\mathbb{N}} % double N
+\newcommand{\setZ}{\mathbb{Z}} % double Z
+\let\oldemptyset\emptyset
+\let\emptyset\varnothing % nice - looking empty set symbol
+\newcommand{\fancyN}{\mathcal{N}} % null space
+\newcommand{\fancyR}{\mathcal{R}} % range
+
+\newcommand{\ba}{\textbf{a}}
+\newcommand{\be}{\textbf{e}}
+\newcommand{\bw}{\textbf{w}}
+\newcommand{\bx}{\textbf{x}}
+\newcommand{\bu}{\textbf{u}}
+\newcommand{\bv}{\textbf{v}}
+\newcommand{\by}{\textbf{y}}
+\newcommand{\bz}{\textbf{z}}
+\newcommand{\bb}{\textbf{b}}
+\newcommand{\bA}{\textbf{A}}
+\newcommand{\bB}{\textbf{B}}
+\newcommand{\bC}{\textbf{C}}
+\newcommand{\bD}{\textbf{C}}
+\newcommand{\bI}{\textbf{I}}
+\newcommand{\bM}{\textbf{M}}
+\newcommand{\bO}{\textbf{0}}
+\newcommand{\bS}{\textbf{S}}
+\newcommand{\bX}{\textbf{X}}
+\newcommand{\bU}{\textbf{U}}
+\newcommand{\bY}{\textbf{Y}}
+% double bars as in norm
+%\newcommand{\norm}[1] {\left|\left| #1 \right| \right|} 
+\newcommand{\norm}[1]{\left\lVert#1\right\rVert}
+\renewcommand{\t}{^{\top}}
+
+\newcommand{\mean}[1]{\bar{#1}}
+\newcommand{\var}{\sigma^2}
+
+\newcommand{\partdevx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevt}[1]{\frac{\partial #1}{\partial t}}
+\newcommand{\partdevxx}[1]{\frac{\partial #1}{\partial x}}
+\newcommand{\partdevxn}[1]{\frac{\partial^n #1}{\partial x^n}}
+\newcommand{\partdevy}[1]{\frac{\partial #1}{\partial y}}
+\newcommand{\partdevyy}[1]{\frac{\partial #1}{\partial y}}
+\newcommand{\partdevyn}[1]{\frac{\partial^n #1}{\partial y^n}}
+
+% text above = symbol
+\newcommand{\overeq}[1]{\ensuremath{\stackrel{#1}=}} 
+\newcommand{\greatersmaller}{%
+  \mathrel{\ooalign{\raisebox{.6ex}{$>$}\cr\raisebox{-.6ex}{$<$}}}
+} % greater and smaller symbols on top of each other, same line
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% User defined macros (non math)
+
+\newcommand{\qedblack}{$\hfill\blacksquare$} % black square end of line
+\newcommand{\qedwhite}{\hfill \ensuremath{\Box}} % white square end of line
+\newcommand{\hquad}{\hskip0.5em\relax}% half quad space
+%\newcommand{\TODO}{\textcolor{red}{\bf TODO!}\;}
+
+\newcommand{\TODO}[1][]{%
+    \ifthenelse{\equal{#1}{}}{\textcolor{red}{\bf TODO!}\;}{\textcolor{red}{\textbf {TODO:} #1}\; }%
+}
+\newcommand{\B}[1]{\textbf{\textup{#1}}} % bold and upright
+\renewcommand{\labelitemi}{\scriptsize$\textcolor{DarkPink}{\blacksquare}$} % itemize - squares instead of bullets
+\newcommand{\emphasis}[1]{\textls{#1}}
+
+\LetLtxMacro{\originaleqref}{\eqref}
+\renewcommand{\eqref}{Eq.~\originaleqref}
+\renewcommand*{\eqref}[1]{Eq.~\originaleqref{#1}}
+
+
+
+
+
+% background images
+%%%%%%%
+\newcommand\BackgroundPic{%
+\put(0,0){%
+\parbox[b][\paperheight]{\paperwidth}{%
+\vfill
+%\centering
+\includegraphics[width=0.125\paperwidth,height=\paperheight,%
+]{img/background_02.png}% use ,keepaspectratio
+\vfill
+}}}
+%%%%%%%
+% end of background image
+%%%%%%%%%%%%%% my own frame
+\newmdenv[topline=false,bottomline=false]{leftrightbox}
+%%%%%%%%%%%%% end
+%%%%%%%%%%%%% my own comment
+\newcommand{\mycomment}[1]{\begin{leftrightbox}\Pointinghand~\textbf{Comment:}~#1 \end{leftrightbox}}
+%%%%%%%%%%%%% end
+% my custom note https://tex.stackexchange.com/questions/301993/create-custom-note-environment-with-tcolorbox
+\newmdenv[
+    topline=false,
+    bottomline=false,
+    rightline=false,
+    innerrightmargin=0pt
+]{siderule}
+\newenvironment{mynote}%
+    {\begin{siderule}\textbf{\Pointinghand~Note:}}
+    {\end{siderule}}
+    
+\newenvironment{myquote}%
+    {\begin{adjustwidth}{0.4cm}{0.4cm}\faQuoteLeft\ \itshape}
+    { \hfill \faQuoteRight  \end{adjustwidth}}
+%%%%%%%%%%%%% my own box
+\newcommand{\boxone}[1]{\begin{tcolorbox}[colback = LighterPink,colframe=LightPink]
+#1
+\end{tcolorbox}}
+\newcommand{\boxsimple}[1]{\begin{tcolorbox}[
+	colback = white,
+	colframe=black!70,
+	coltitle = black!20,
+	title    = {Problem},]
+#1
+\end{tcolorbox}}
+%%%%%%%%%%%%% end
+
+\newcommand{\bigtitle}[1]{\LARGE\textsc{{\textbf{#1}}}\normalsize\vspace{0.25cm}}
+
+\let\oldemptyset\emptyset
+\let\emptyset\varnothing
+%algorithmic
+\algdef{SE}[DOWHILE]{Do}{doWhile}{\algorithmicdo}[1]{\algorithmicwhile\ #1}%
+
+%%% otherwise minted goes off the page
+\setmintedinline{breaklines}
