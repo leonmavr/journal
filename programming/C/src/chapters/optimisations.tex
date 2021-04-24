@@ -1,0 +1,26 @@
+%------------------------------ New section ------------------------------%
+\section{Common optimisations}
+
+\subsection{Caching the end of the \texttt{for} loop}
+
+Often, it may feel natural to write a \texttt{for} loop by calling a function in the end conditions, e.g. when operating on a string (below is pseudocode):
+\begin{verbatim}
+for (i = 0; i < strlen(str); i++)
+    // do something with the string
+\end{verbatim}
+However this calls the \texttt{strlen} function $n$ times, where $n$ is the length of \texttt{str}. This may be a fast function, however for more costly functions and large loop the overhead may add up a lot. Therefore caching the length in a variable would remove the function call overhead:
+\begin{verbatim}
+len = strlen(str)
+for (i = 0; i < len; i++)
+    // do something with the string
+\end{verbatim}
+
+The neat way of doing this in C is by computing the length at the beginning step of the loop, i.e. the part where \texttt{i} is initialised. The following program illustrates this, except that instead of the \texttt{strlen} function we have \texttt{foo}, which simply stalls the execution by 1 second:
+
+\lstinputlisting[language=C,caption={Caching the end of loop value (\detokenize{src/optimisations/loop_cache.c)}.}]{src/optimisations/loop_cache.c}
+
+Doing the loop body work with:
+\begin{verbatim}
+for (int len = foo(), i = 0; i < len; i++)
+\end{verbatim}
+makes the program take at least 1337 more seconds, even if we compile with the \texttt{-O2} flag in \texttt{gcc}!
