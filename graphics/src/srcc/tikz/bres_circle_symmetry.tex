@@ -1,0 +1,34 @@
+\makeatletter
+\newsavebox{\measure@tikzpicture}
+\NewEnviron{scaletikzpicturetowidth}[1]{%
+  \def\tikz@width{#1}%
+  \def\tikzscale{1}\begin{lrbox}{\measure@tikzpicture}%
+  \BODY
+  \end{lrbox}%
+  \pgfmathparse{#1/\wd\measure@tikzpicture}%
+  \edef\tikzscale{\pgfmathresult}%
+  \BODY
+}
+
+\begin{scaletikzpicturetowidth}{0.4\textwidth}
+\begin{tikzpicture}[scale=\tikzscale]
+\draw[help lines, color=gray!30, dashed] (-4.9,-4.9) grid (4.9,4.9);
+\draw[->,thick] (-5,0)--(5,0) node[right]{$x$};
+\draw[->, thick] (0,-5)--(0,5) node[above]{$y$};
+\draw [ultra thin, dashed, color=black!50](0,0) circle (4cm);
+
+\draw[magenta,thick] (-4,-4)--(4,4) node[above]{$y=x$};
+\draw[magenta,thick] (4,-4)--(-4,4) node[above]{$y=-x$};
+\node[text width=2cm,align=right] at (2,1) {$(x,y)$, $(\Delta x, \Delta y)$};
+\node[text width=2cm,align=right] at (1,3.5) {$(y,x)$, $(\Delta y, \Delta x)$};
+\node[text width=2cm,align=right] at (-2,3.5) {$(-y,x)$, $(-\Delta y, \Delta x)$};
+\node[text width=2cm,align=right] at (-3.5,1) {$(-x,y)$, $(-\Delta x, \Delta y)$};
+
+\node[text width=2cm,align=right] at (-3.5,-1) {$(-x,-y)$, $(-\Delta x, -\Delta y)$};
+\node[text width=2cm,align=right] at (-2,-3.5) {$(-y,-x)$, $(-\Delta y, -\Delta x)$};
+\node[text width=2cm,align=right] at (2,-1) {$(x,-x)$, $(\Delta x, -\Delta y)$};
+\node[text width=2cm,align=right] at (1,-3.5) {$(y,-x)$, $(\Delta y, -\Delta x)$};
+
+\end{tikzpicture}
+
+\end{scaletikzpicturetowidth}
