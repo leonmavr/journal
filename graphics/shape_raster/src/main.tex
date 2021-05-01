@@ -296,7 +296,7 @@ In the same way, given the algorithm for the first two octants, using the transf
 \begin{figure}[H]
 	\centering
 	\input{tikz/bres_circle_symmetry.tex}
-	\caption{Deriving Bresenham for the full circle given the 1st octant.}
+	\caption{The Bresenham signs for the full circle given the 1st octant.}
 	\label{fig:all_octants_x_y}
 \end{figure}
 
@@ -571,10 +571,113 @@ This algorithm completely avoids floating point operations, unlike Alg. \ref{alg
 
 
 \clearpage
-\section{Circle rasterisation}
+\section{Circle rasterisation (midpoint algorithm)}
+
+\subsection{Derivation of the algorithm}
+One way to draw a circle centred at $(0,0)$ is by plotting the two $y$'s given by the circle equation for each $x$.  
+\begin{align*}
+x^2+y^2=r^2 \Rightarrow \\
+y = \pm \sqrt{r^2 - x^2}
+\end{align*}
+However, this method has two drawbacks; the square root is very expensive and the line is not guaranteed to be continuous, especially when the slope is high.
+
+The goal is to derive an algorithm that plots a continuous circle using cheap operations. We can exploit the 8--way symmetry of a circle about its centre to derive the algorithm for one octant and then derive the rest, as illustrated in Fig. \ref{fig:all_octants_x_y}. 
+
+For the sake of convention, we will start with octant 2, i.e. starting from $x=0,\ y=r$ and incrementing $x$ until $y=x$, therefore for the slope $m$: $0 \leq m \leq 1$. Because we work in octant 2 (going clockwise), assuming we have just plotted pixel $(x_p,y_p)$, we can either move to $E(x_p+1, y_p)$ or $SE(x_p+1, y_p-1)$ (Fig. \ref{fig:bres_algo_next_pixel}). Which of the two to select though? The idea is that if the circle curve passes above the midpoint $M(x_p+1, y_p-\tfrac{1}{2})$ of the next two choices, then we select $E(x_p+1, y_p)$. Otherwise, we select $SE(x_p+1, y_p-1)$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.25cm]{img/bres_algo_next_pixel.png}
+    \caption{The two possible choices for the next pixel when drawing a circle at octant 2; E and SE. For the above curve, we select E and SE as the next two pixels (striped).}
+    \label{fig:bres_algo_next_pixel}
+\end{figure}
+
+We need a decision variable to determine which pixel to visit next (E or SE). The midpoint $M$ between S and SE is at distance $(x_p+1)^2 + (y_p - \tfrac{1}{2})^2$ from the origin. As shown in Fig. \ref{fig:bres_algo_next_pixel}:
+\begin{itemize}
+    \item If $r^2 \geq (x_p+1)^2 + (y_p - \tfrac{1}{2})^2$, then we choose to visit the E pixel as it's closer to the line.
+    \item Otherwise SE is closer and we visit this one.
+\end{itemize}
+Therefore we define the decision variable w.r.t. the midpoint $M(x_p+1, y_p-\tfrac{1}{2})$ as:
+\begin{align*}
+    D &= F(M) = F\Bigg(x_p+1, y_p-\frac{1}{2}\Bigg)\\
+    &= (x_p+1)^2 + (y_p-\frac{1}{2})^2 - r^2
+\end{align*}
+And we decide:
+\begin{itemize}
+    \item If $D\geq 0$, the next pixel is SE.
+    \item If $D<0$, the next pixel is E.
+\end{itemize}
+It's important to note that at each iteration we compute the current $D$ given the previous. Therefore we need to define how we accumulate it in case E or SE was chosen next.
+\begin{itemize}
+    \item In case $E(x_p+1, y_p-\tfrac{1}{2})$ was chosen, then the new midpoint (at $x_p+1+1$) is $M(x_p+2, y_p-\frac{1}{2})$. Then it can be proven (App. \ref{app:decision_var_update}) that the new value of the decision variable is:
+    \begin{equation}
+    D_{E} = D + (2x_p + 3)
+    \label{eq:de}
+    \end{equation}
+    Hence, $D$ is incremented by $2x_p + 3$.
+    \item In case $SE(x_p+1, y_p-1-\tfrac{1}{2})$ was chosen, then the new midpoint is also $M(x_p+2, y_p-\frac{1}{2})$ -- same as before. Then it can be proven (App. \ref{app:decision_var_update}) that the decision variable $D$ is incremented by $2x_p-2y_p+5$:
+    \begin{equation}
+        D_{SE} = D + (2x_p-2y_p+5)    
+        \label{eq:d_se}
+    \end{equation}
+    
+\end{itemize}
+All that's left to define is how to initialise $D$. Because we start at $(0, r)$ going clockwise, the first midpoint is at $M(1, r - \tfrac{1}{2})$. Therefore the initial decision variable is:
+\begin{align*}
+    D_0 &= F(1, r-\frac{1}{2}) \\
+    &= 1 + (r-\frac{1}{2})^2  - r^2 \\
+    &= 1+ r^2 - r + \frac{1}{4} - r^2\\
+    &= \frac{5}{4} - r  
+\end{align*}
+To avoid dealing with floating points ($\tfrac{5}{4}$), notice that on each iteration we compare $D$ to 0. $D$ also gets updated with an integer quantity -- either $2x_p+3$ or $2x_p-2y_p+5$. Therefore $D+\tfrac{1}{4}$ is positive only when $D$ is positive; it is safe to drop the $\tfrac{1}{4}$. Hence, we can set $D_0$ to $1-r$ instead.
+\begin{equation}
+    D_0 = 1-r
+    \label{eq:d_0}
+\end{equation}
+Using the update rules in \eqref{eq:de}, \eqref{eq:d_se}, \eqref{eq:d_0}, we can draw a circular arc on the 2nd octant and mirror it on the rest to draw a full circle.
 
 % https://www.cs.bgu.ac.il/~graph161/wiki.files/09c-Rasterization.pdf
+% https://www.cs.bgu.ac.il/~graph161/wiki.files/09c-Rasterization.pdf
 % https://en.wikipedia.org/wiki/Midpoint_circle_algorithm
+% http://clux.x-pec.com/files/mathstuff/4thyear/CS324%20Computer%20Graphics/bres2.pdf
+% https://weber.itn.liu.se/~stegu/circle/circlealgorithm.pdf
+% https://stackoverflow.com/questions/33526137/where-am-i-going-wrong-in-bresenham-circle-drawing-algorithm
+% https://www.ques10.com/p/22016/explain-mid-point-circle-generation-algorithm-in-d/
+% file:///tmp/4221.pdf
+
+
+
+\subsection{Pseudocode and implementation of the algorithm}
+
+% ref https://www.ques10.com/p/22016/explain-mid-point-circle-generation-algorithm-in-d/
+\begin{algorithm}[H]
+\caption{Midpoint algorithm for circle drawing at a point $(x_0,y_0)$ with radius $r$.}
+\begin{algorithmic}[1]
+\Procedure{MidpointAlgorithm} {$x_0,y_0,r$}
+\State $x \leftarrow 0$
+\State $y \leftarrow r$
+\State $D \leftarrow 1 - r$ \Comment{Decision variable}
+\Do
+    \State putPixel($x + x_0,\ y + y_0$)    \Comment{Octant 2; draw all octants to fill the circle}
+    \State putPixel($y + x_0,\ x + y_0$)    \Comment{Octant 1}
+    \State putPixel($-x + x_0,\ y + y_0$)    \Comment{Octant 3}
+    \State putPixel($-y + x_0,\ x + y_0$)    \Comment{Octant 4}
+    \State putPixel($-y + x_0,\ -x + y_0$)    \Comment{Octant 5}
+    \State putPixel($-x + x_0,\ -x + y_0$)    \Comment{Octant 6}
+    \State putPixel($x + x_0,\ -y + y_0$)    \Comment{Octant 7}
+    \State putPixel($y + x_0,\ -x + y_0$)    \Comment{Octant 8}
+    \If{$D<0$}
+        \State $D\leftarrow D + 2x + 3$
+    \Else
+        \State $y\leftarrow y - 1$
+        \State $D \leftarrow D + 2x - 2y + 5$
+    \EndIf  
+    \State $x \leftarrow x + 1$
+\doWhile{$x < y$} % <--- use \doWhile for the "while" at the end
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+An implementation in C is found in my ``gfx-v4'' repo at \url{https://github.com/0xLeo/gfx-v4/blob/master/src/gfx/gfx.c#L355}.
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % References
@@ -736,5 +839,27 @@ From \url{https://github.com/0xLeo/gfx-v4}.
 \lstinputlisting[language=C,caption={Bresenham's code (\detokenize{src/bresenham.c)}.}, label=src:mylabel]{src/bresenham.c}
 
 
+
+%---------------------------------------- new appendix ----------------------------------------
+\newpage
+\subsection{Midpoint algorithm -- decision variable update}
+\label{app:decision_var_update}
+In case $E(x_p+2, y_p-\frac{1}{2})$ was chosen as the next point, then the new decision variable variable is:
+\begin{align*}
+    D_E &= F(x_p + 2, y_p - \frac{1}{2}) \\
+        &= (x_p+2)^2 + (y_p - \frac{1}{2})^2 - r^2 \\
+        &= (x_p^2+4x_p+2) + (y_p-\frac{1}{2})^2 - r^2 \\
+        &= (x_p +2x_p + 1) + (2x_p + 3) + (y_p-\frac{1}{2})^2 - r^2 \\
+        &= (x_p+1)^2 + (y_p-\frac{1}{2})^2 -r^2 + (2x_p + 3) \\
+        &= D + (2x_p+3)
+\end{align*}
+In case $SE(x_p+2, y_p-1-\frac{1}{2})$ was chosen as the next point, then the new decision variable variable is:
+\begin{align*}
+    D_{SE} &= F(x_p+2, y_p -\frac{3}{2}) \\
+    &= (x_p+2)^2 + (y_p-\frac{3}{2})^2 \\
+    &= (x_p^2 + 2x_p + 1) + (2x_p+3) + (y_p^2 -y_p + \frac{1}{4}) + (-2y_p+\frac{8}{4}) - r^2 \\
+    &= (x_p+1)^2 + (y_p - \frac{1}{2})^2 - r^2 + (2x_p+3) + (-2y_p + 2) \\
+    &= D + (2x_p -2y_p + 5)
+\end{align*}
 
 \end{document}
