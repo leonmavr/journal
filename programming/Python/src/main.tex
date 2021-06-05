@@ -1,0 +1,171 @@
+\documentclass[a4paper]{article}
+\usepackage[utf8]{inputenc}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% PREAMBLE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Important styling notes
+%%
+% For now, to include img.jpg in img/path/to/img.jpg, just use:
+% path/to/img.jpg - for details see style.tex
+\input{style.tex}
+
+
+
+
+\begin{document}
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% GLOBAL STYLES (DOCUMENT SCOPE)
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% caption: Figure 1 -> <bold> Fig. 1 </bold>
+\captionsetup[figure]{labelfont={bf},labelformat={default},labelsep=period,name={Fig.}}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% TITLE PAGE
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\input{title.tex}
+%\maketitle
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% MAIN DOCUMENT
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\tableofcontents
+\newpage
+
+
+
+%------------------------------ New section ------------------------------%
+\section{Higher-order functions, decorators, properties}
+
+
+\subsection{Functions as first-class citizens}
+
+% see https://www.datacamp.com/community/tutorials/decorators-python
+Functions in Python are \emphasis{first-class citizens}. According to Popplestone:
+\begin{definition}[first-class citizen (FCC)]
+A function is a first-class citizen if all of the below are true
+\begin{enumerate}
+    \item It can be the actual parameters of functions.
+    \item It can be returned as results of functions.
+    \item It can be the subject of assignment statements.
+    \item It can be tested for equality.
+\end{enumerate}
+\end{definition}
+Therefore if we assign a FCC function to a variable, then the variable acquires the function's properties. The example below illustrates this and of course prints \texttt{<b>some text</b>}. Python allows functions to be assigned to variables since both functions and variables are objects.
+\begin{minted}{python}
+def makebold(text: str):
+    return '<b>' + text + '</b>'
+
+bold = makebold # function gets assigned to a variable
+print(bold('some text'))
+\end{minted}
+The assigned variable (i.e. \texttt{bold}) holds a \textit{ready-to-use} (\textit{ready to call}) copy of the function object and it can call it on any arguments supported by the original function (i.e. \texttt{makebold}), acting as a proxy of it.
+
+
+\subsection{Higher-order functions}
+Another important concept is \emphasis{higher-order functions} (HOF). 
+\begin{definition}[higher-order function (HOF)]
+A first-class citizen function that takes another function as parameter or returns a (callable) function is called higher-order function.
+\end{definition}
+Therefore HOFs operate on other functions by augmenting them. Inside a HOF, an inner function is typically defined which takes the same parameters as the input function. However this inner function can be augmented. An important thing to note is that the inner function can be embedded with variables local to the HOF. These local variables then become embedded with the inner function. Then the inner function may or may not be return (see the HOF definition).
+
+The advantage of using HOFs is that if we want to call $g(f(x))$, instead of explicitly calling $g(f(x))$ every time, we can define $h(x) = g(f(x))$ and call the latter instead. 
+
+The best way to demonstrate this is with an example, where the aim is to augment the input function by wrapping its return in the \text{<b></b>} HTML tags.
+
+\lstinputlisting[language=python,caption={Wrapping in \texttt{<b></b>} the return of function \texttt{get\_text} (\detokenize{src/decorators/bold_text.py)}.}, label={lst:hof_bold}]{src/decorators/bold_text.py}
+The following text gets printed:
+\begin{verbatim}
+<i><b>The quick brown fox</b></i>
+<i><b>jumps over the</b></i>
+\end{verbatim}
+An important thing to remember is that the arguments passed in the HOF (i.e. \texttt{get\_text}) must be compatible with the arguments of the inner function (i.e. \texttt{inner}). Then supposing we have a new function to augment \texttt{join3} which takes 3 inputs, then \texttt{make\_bold} wouldn't work on it as the latter expects a 2-argument input. Then a new wrapper \texttt{make\_bold3} would be needed, which operates on a 3-argument function. This would lead to code duplication, as listed below:
+% bold_text_2_3_args.py
+\lstinputlisting[language=python,caption={Augmenting the functions \texttt{join2} and \texttt{join3} (\detokenize{src/decorators/bold_text_2_3_args.py)} with one wrapper for each.}]{src/decorators/bold_text_2_3_args.py}
+It prints:
+\begin{verbatim}
+<b>A quick</b>
+<b>brown fox jumps</b>
+\end{verbatim}
+
+A neat way to make HOFs more flexible is by allowing them accept functions that take variable number of arguments. In this case, the augmented function \texttt{inner} accepts any number of arguments and unpacks them (\texttt{*args} operator) in the ``augmentee'' function \texttt{func}. Therefore if we wanted \texttt{make\_bold} to operate on functions that take any number of arguments, we could rewrite the previous code as follows:
+\lstinputlisting[language=python,caption={Augmenting the functions \texttt{join2} and \texttt{join3} (\detokenize{src/decorators/bold_text_args.py)} with one wrapper for both.}, label={lst:hof_bold_args}]{src/decorators/bold_text_args.py}
+
+That is the idea of decorators in the next section -- to create a wrapper function which accepts some function inputs, augment or combine (i.e. ``decorate'') the inputs without modifying them, and return a new decorated function.
+
+
+
+
+\subsection{Decorators}
+
+Decorators are  a superset (with a grain of salt, I'm not 100\% sure if that's the official definition) to HOFs, in the sense that they can also accept a class as input.
+\begin{definition}[Decorator]
+A decorator is a function that takes another class/ function as input or returns a function.
+\end{definition}
+Python offers syntactic sugar for decorators (therefore HOFs as well). Decorators operate on a the function they aim to wrap, e.g. referring to the last example \texttt{make\_bold} operates on \texttt{join2} and \texttt{join3}. However when a decorator is applied, the input function's behaviour changes permanently. The syntax for decorators is as follows:
+\begin{minted}{python}
+@decorator
+def function_to_decorate():
+    # do some stuff
+\end{minted}
+This is equivalent to:
+\begin{minted}{python}
+function_to_decorate = decorator(function_to_decorate)
+\end{minted}
+
+Therefore instead of calling \texttt{function\_to\_decorate()}, \texttt{decorator(function\_to\_decorate())} is called. Applying this syntax to Listing \ref{lst:hof_bold_args}, the code is rewritten as:
+
+\lstinputlisting[language=python,caption={Applying the \texttt{make\_bold} to \texttt{join2} and \texttt{join3} (\detokenize{src/decorators/dec_bold.py)}.}, label={lst:dec_bold}]{src/decorators/dec_bold.py}
+
+Furthermore, multiple decorators can be chained on the same function. Referring to Listing \ref{lst:dec_bold}, if we wanted to make the text bold and then italic, the decorators would be chained as follows:
+\begin{minted}{python}
+@make_italic
+@make_bold
+def foo():
+    # return some text
+\end{minted}
+Therefore they are called from the innermost to the outermost decorator. Hence to decorate the return of \texttt{join3} with \texttt{make\_bold} and then \texttt{make\_italic} we could chain them as follows:
+\lstinputlisting[language=python,caption={Applying the \texttt{make\_bold} to \texttt{join2} and \texttt{join3} (\detokenize{src/decorators/dec_bold_it.py)}.},  label={lst:dec_bold_it}]{src/decorators/dec_bold_it.py}
+It prints:
+\begin{verbatim}
+<i><b>brown fox jumps</b></i>
+\end{verbatim}
+
+
+\clearpage
+\section{Caching}
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% References
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\printbibliography
+
+
+
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+% Appendices
+%=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
+\newpage
+\appendix
+
+\section{Appendices}
+
+% ------------------------ New appendix ------------------------ %
+\newpage
+\subsection{Appendix Example}
+%\label{app:my_cool_appendix}
+
+\lstinputlisting[language=python,caption={A code listing (\detokenize{src/foo_bar.py)}.}, label=src:mylabel]{src/foo_bar.py}
+
+
+
+\end{document}

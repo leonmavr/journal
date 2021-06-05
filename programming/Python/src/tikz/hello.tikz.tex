@@ -1,0 +1,22 @@
+\makeatletter
+\newsavebox{\measure@tikzpicture}
+\NewEnviron{scaletikzpicturetowidth}[1]{%
+  \def\tikz@width{#1}%
+  \def\tikzscale{1}\begin{lrbox}{\measure@tikzpicture}%
+  \BODY
+  \end{lrbox}%
+  \pgfmathparse{#1/\wd\measure@tikzpicture}%
+  \edef\tikzscale{\pgfmathresult}%
+  \BODY
+}
+
+\begin{scaletikzpicturetowidth}{0.4\textwidth}
+\begin{tikzpicture}[scale=\tikzscale]
+
+%\draw[help lines, color=gray!30, dashed] (-4.9,-4.9) grid (4.9,4.9);
+%\draw[->,thick] (-5,0)--(5,0) node[right]{$x$};
+%\draw[->,thick] (0,-5)--(0,5) node[above]{$y$};
+
+\end{tikzpicture}
+
+\end{scaletikzpicturetowidth}
