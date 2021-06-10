@@ -69,16 +69,23 @@ print(bold('some text'))
 The assigned variable (i.e. \texttt{bold}) holds a \textit{ready-to-use} (\textit{ready to call}) copy of the function object and it can call it on any arguments supported by the original function (i.e. \texttt{makebold}), acting as a proxy of it.
 
 
-\subsection{Higher-order functions}
+\subsection{Higher-order functions and closures}
 Another important concept is \emphasis{higher-order functions} (HOF). 
 \begin{definition}[higher-order function (HOF)]
 A first-class citizen function that takes another function as parameter or returns a (callable) function is called higher-order function.
 \end{definition}
-Therefore HOFs operate on other functions by augmenting them. Inside a HOF, an inner function is typically defined which takes the same parameters as the input function. However this inner function can be augmented. An important thing to note is that the inner function can be embedded with variables local to the HOF. These local variables then become embedded with the inner function. Then the inner function may or may not be return (see the HOF definition).
+Therefore HOFs operate on other functions by augmenting them. Inside a HOF, an inner function is typically defined which takes the same parameters as the input function. However this inner function can be augmented. An important thing to note is that the inner function can be embedded with variables local to the HOF. These local variables then become embedded with the inner function. Then the inner function may or may not be return (see the HOF definition). 
+
+There is a definition for enclosed functions combined with local variables of the wrapper function -- that is a \emphasis{closure}. An example of closure will be provided in Listing \ref{lst:hof_bold}.
+% ref https://st.inf.tu-dresden.de/Ocl4All2007/papers/akehurst.pdf
+\begin{definition}[closure]
+The concept of functions enclosed in other functions paired with an environment provided 
+by the outer function is known as closure. 
+\end{definition}
 
 The advantage of using HOFs is that if we want to call $g(f(x))$, instead of explicitly calling $g(f(x))$ every time, we can define $h(x) = g(f(x))$ and call the latter instead. 
 
-The best way to demonstrate this is with an example, where the aim is to augment the input function by wrapping its return in the \text{<b></b>} HTML tags.
+The best way to demonstrate this is with an example, where the aim is to augment the input function by wrapping its return in the \text{<b></b>} HTML tags. This is done by defining an \texttt{inner} function that returns a string, which is formed by referencing local variables of the wrapper. Therefore lines 5-7 define a closure that is returned.
 
 \lstinputlisting[language=python,caption={Wrapping in \texttt{<b></b>} the return of function \texttt{get\_text} (\detokenize{src/decorators/bold_text.py)}.}, label={lst:hof_bold}]{src/decorators/bold_text.py}
 The following text gets printed:
@@ -105,7 +112,10 @@ That is the idea of decorators in the next section -- to create a wrapper functi
 
 \subsection{Decorators}
 
-Decorators are  a superset (with a grain of salt, I'm not 100\% sure if that's the official definition) to HOFs, in the sense that they can also accept a class as input.
+
+\subsubsection{Basics}
+
+Decorators are  a superset (with a grain of salt, I'm not 100\% sure if that's the official definition) to HOFs, in the sense that they can also accept a class as input \footnote{To be more precise, Python decorators can accept any callable object, i.e. any object that implements the \texttt{self.\_\_call\_\_} method. We will focus on functions though.}.
 \begin{definition}[Decorator]
 A decorator is a function that takes another class/ function as input or returns a function.
 \end{definition}
@@ -131,7 +141,7 @@ Furthermore, multiple decorators can be chained on the same function. Referring 
 def foo():
     # return some text
 \end{minted}
-Therefore they are called from the innermost to the outermost decorator. Hence to decorate the return of \texttt{join3} with \texttt{make\_bold} and then \texttt{make\_italic} we could chain them as follows:
+Therefore they are called from bottom to top. Hence to decorate the return of \texttt{join3} with \texttt{make\_bold} and then \texttt{make\_italic} we could chain them as follows:
 \lstinputlisting[language=python,caption={Applying the \texttt{make\_bold} to \texttt{join2} and \texttt{join3} (\detokenize{src/decorators/dec_bold_it.py)}.},  label={lst:dec_bold_it}]{src/decorators/dec_bold_it.py}
 It prints:
 \begin{verbatim}
@@ -139,8 +149,57 @@ It prints:
 \end{verbatim}
 
 
+\subsubsection{Passing parameters to decorators}
+
+Because a decorator takes as input the function it decorates, additional arguments cannot be passed directly to it. The trick is to create another HOF that wraps the decorator and takes arguments that the decorator will use. Inside the wrapper, the decorator is defined and returned. Hence, when the decorator is applied (e.g. \texttt{@decorator(arg1 = 'val1', arg2 = 'val2')}), what is actually applied to the function is \texttt{decorator}'s ``inner'' function with \texttt{arg1} and \texttt{arg2} as its internal variables. In the example below the goal is to be able to pass the tag as a decorator parameter, so the user can use the same decorator for any tag.
+
+\lstinputlisting[language=python,caption={Modifying the \texttt{make\_bold} decorator to accept any tag (\detokenize{src/decorators/dec_any_tag.py)}.},  label={lst:dec_any_tag}]{src/decorators/dec_any_tag.py}
+It prints:
+\begin{verbatim}
+<div>brown fox </div>
+\end{verbatim}
+
+\subsubsection{Decorator application 1: logging to file}
+
+Often when we run unit tests a large number of debugging messages are printed on the screen. Some of them are valuable because they might help trace back a crash. Therefore it may be necessary log them  to redirect the standard output from stdout (screen) to a file. In Python this is achieved by adding the following before doing \texttt{print}'s:
+\begin{verbatim}
+sys.stdout = sys.stderr = open('logfile.txt', 'a') # 'a' to append
+\end{verbatim}
+We want to create a decorator that 
+\begin{itemize}
+    \item redirects all standard output from \texttt{stdout} and \texttt{stderr} to a file,
+    \item be able to select the file where the output will be redirected to.
+\end{itemize}
+A parameter-based decorator for this task can be applied to function \texttt{print\_table} as follows:
+\lstinputlisting[language=python,caption={A decorator which redirects the outputs from \texttt{print}s to a file (\detokenize{src/decorators/dec_logger.py)}.},  label={lst:dec_logger}]{src/decorators/dec_logger.py}
+Then, the following text would be appended to the output file (in this case \texttt{/tmp/log\_test1.txt}):
+\begin{verbatim}
+------------------
+| Test 1 results |
+------------------
+\end{verbatim}
+As a final thought, to make a more advanced logger more information could be appended to the log file via \texttt{log\_to\_file}, such as the name of the called function (\texttt{func.\_\_name\_\_}), when it was called, and when it exited. \texttt{datetime} module provides this functionality. However, making such a logger is not in the score of this article.
+
+
+\subsubsection{Decorator application 2: memoisation}
+
+Complicated functions, such as recursive ones, prime number finders, etc. often take longer and longer time the larger the input is. Specifically for recursive functions, the current input may depend on previous, e.g. the Fibonacci numbers. The idea of memoisation is to cache previously computer returns in a $\{x, f(x)\}$ dictionary so that when $f(x)$ is about to be called, if $x_i$ is in the dictionary, then return the pre-computed $f(x_i)$. If not, then add $\{x_i, f(x_i)\}$ in the cache. Decorators make it elegant to implement this.
+
+Before implementing a memoization, it's important to remember that closures encapsulate not just the returned function but also the local variables in the wrapper. Therefore the wrapper local variables don't die after the closure is called, but they keep living inside the wrapper (decorator).
+
+Using these specifications, the \texttt{memoize} decorator looks as follows:
+\lstinputlisting[language=python, firstline=3,lastline=10,caption={A ``memoiser'' which caches the returns of the function it wraps (\detokenize{src/decorators/dec_memoisation.py)}.},  label={lst:dec_memo_partial}]{src/decorators/dec_memoisation.py}
+
+To apply the decorator, a function is created which simulates some heavy work by sleeping for $0.1\times n$ seconds, where $n$ is its input. Adding this to the code in Listing \ref{lst:dec_memo_partial}, we end up with the following complete program:
+\lstinputlisting[language=python,caption={A ``memoiser'' applied to a function that takes a long time to process its input (\detokenize{src/decorators/dec_memoisation.py)}.},  label={lst:dec_memo}]{src/decorators/dec_memoisation.py}
+We can confirm that the memoiser does its job by examining that running \texttt{long\_function} 1000 times for the same input of $n=5$ takes around $0.5$ seconds, which is roughly the time for one run. The program prints:
+\begin{verbatim}
+Took 0.5008 sec
+\end{verbatim}
+
+
+
 \clearpage
-\section{Caching}
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
@@ -154,17 +213,15 @@ It prints:
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Appendices
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
-\newpage
-\appendix
+%\newpage
+%\appendix
 
-\section{Appendices}
+%\section{Appendices}
 
 % ------------------------ New appendix ------------------------ %
-\newpage
-\subsection{Appendix Example}
+%\newpage
+%\subsection{Appendix Example}
 %\label{app:my_cool_appendix}
-
-\lstinputlisting[language=python,caption={A code listing (\detokenize{src/foo_bar.py)}.}, label=src:mylabel]{src/foo_bar.py}
 
 
 
