@@ -316,12 +316,379 @@ Bresenham's algorithm may be easy to implement and fast, but has a certain disad
 Pros:
 \begin{itemize}
 	\item Simple to implement, can be efficiently implemented practically on any hardware!
-	\item Fast -- linear time.
+	\item Fast -- i.e. linear time.
 \end{itemize}
 Cons:
 \begin{itemize}
 	\item Does not account for aliasing.
 \end{itemize}
+
+
+
+
+\clearpage
+\section{B\'ezier and De Chasteljau curves from a programmer's perspective}%
+\label{sec:bezier_and_de_chasteljau_curves_from_a_programmer_s_perspective}
+
+
+\subsection{Applications}
+B\'ezier (1910--1999) and De Chasteljau (1930--) were/are two mathematicians who established an intuitive and efficient way of drawing smooth and constrained curves given only a few control points. They focused on cubic curves as cubic curves are not only smoothly joined but also have no ``wiggles'''. Several decades ago, this property made them applicable to car design, as B\'ezier and De Chasteljau used to independently from each other work for Renault and Citr\"oen respectively. Currently, however, their applications have been extended not only to software (fonts, scalable graphics, graphical design applications such as Inkscape etc.), but also to ship, aircraft design, etc.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4cm]{img/bezier/s_letter_control_points.png}
+    \caption{To render the S character at any size, only a few control points are needed (dots) instead of the entire curve.}%
+\end{figure}
+We will denote B\'ezier-De Chasteljau curves as BCD curves. BDC curves are parametric curves (instead of $x$ and $y$, they are defined given some scalar parameter $t$) and are based on a certain type of polynomials called Bernstein polynomials, which have some neat properties.
+\begin{figure}[H]
+    % ref CSU CS410 (c) Bruce Draper & J. Ross Beveridge
+    \centering
+    \includegraphics[height=3.5cm]{img/bezier/pen_paper.png}
+    \caption{When we draw a curve with a pen, instead of describing the position as $(x,y)$, we can describe it w.r.t $t$: $t\mapsto x(t), y(t)$.}%
+    \label{fig:name}
+\end{figure}
+
+
+
+\subsection{Bernstein polynomials}
+\subsubsection{The Bernstein polynomial subspace}
+As already known, 3rd degree polynomials are defined as:
+\begin{equation*}
+    P(t) = 1\cdot a_0 + a_1t + a_2t^2 + a_3t^3
+\end{equation*}
+The functions $\{1,t,t^2,t^3\}$ form a monomial basis (a.k.a. \emphasis{Hermite basis}). Therefore the dimension of the space they are a basis of is 4 (since we have 4 basis vectors). Bernstein  3rd degree polynomials are defined as follows:
+\begin{equation}
+    P(t) = (1-t)^3b_0 + 3(1-t)^2tb_1 + 3(1-t)t^2b_2 + t^3b_3
+\end{equation}
+Just for reference, the general definition of Bernstein polynomials is provided.
+\begin{definition}[Bernstein polynomial]
+The Bernstein polynomial basis functions of degree $n$ are defined as:
+% ref Computer Graphics CS 543 Lecture 12 (Part 1) Curves Prof Emmanuel Agu
+\begin{equation}
+    B_{in}(t) = {n \choose i}(1-t)^{n-i}t^i
+    \label{eq:bernstein_coeffs_general}
+\end{equation}
+, where $i$ is the index of basis function.
+\end{definition}
+% ref Computer Graphics CS 543 Lecture 12 (Part 1) Curves Prof Emmanuel Agu
+For instance, $B_{03}={3 \choose 0}(1-t)^{3-0}t^0 = (1-t)^3$, $B_{13}={3 \choose 1}(1-t)^{3-1}t^1 = 3(1-t)^2t$. Without loss of generality, we will see later from De Chasteljau algorithm that it suffices to restrict $t\in(0,1)$. Therefore the basis functions of 3rd degree Bernstein polynomials are $\{(1-t)^3,3(1-t)^2t,3(1-t)t^3,t^3\}$. They are a basis because they are linearly independent. Indeed, if
+\[
+    c_0(1-t)^3 + c_13(1-t)^2t + c_23(1-t)t^2 + c_3t^3 = 0 
+\]
+then
+\[
+    c_0 \left(\frac{1-t}{t}\right)^3 + 3 c_1 \left(\frac{1-t}{t}\right)^2 + 3 c_2 \left(\frac{1-t}{t}\right) + c_3 = 0
+\]
+Because $\frac{1-t}{t} > 0 \quad \forall \; t \in (0,1)$, we conclude that $c_0=c_1=c_2=c_3 = 0$.
+
+
+
+\subsubsection{Change of basis from Hermite to Bernstein}
+As a reminder, a cubic Hermite polynomial is defined as:
+\[
+    P(t) = a_0 + ta_1 + t^2a_2 + t^3a_3
+\]
+Therefore it is spanned by the ``monomial'' basis $\{1,t,t^2,t^3\}$.
+A question that comes naturally at this point is how the Bernstein is transformed to a Bernstein one, which is $\{(1-t)^3, 3(1-t)^3t, 3(1-t)t^2, t^3\}$, or more generally; how a Hermite polynomial is transformed into a Bernstein one, which is:
+\begin{align*}
+    P(t) &= b_0(1-t)^3 + 3b_1(1-t)^2t + 3b_2(1-t)t^2 + b_3t^3 \\
+    &= b_0(1-3t+3t^2-t^3) + b_1(3t-6t + 3t^3) + b_2(3t^2 - 3t^3) + b_3t^3 \\
+    &=  \begin{bmatrix}1-3t+3t^2-t^3 & 3t-6t + 3t^3 & 3t^2 - 3t^3 & t^3\end{bmatrix}
+        \underbrace{
+            \begin{bmatrix}
+                b_0 \\ b_1 \\ b_2 \\ b_3 
+            \end{bmatrix}
+        }_{\bB}
+    \tag{1}
+\end{align*}
+Having expanded the Bernstein basis vectors, it's easy to map from Hermite to Bernstein with a matrix multiplication:
+\[
+   \begin{bmatrix}1-3t+3t^2-t^3 \\ 3t-6t + 3t^3 \\ 3t^2 - 3t^3 \\ t^3\end{bmatrix}\t = 
+        \underbrace{
+            \begin{bmatrix}
+                1 & -3 & 3 & -1 \\
+                0 & 3 & -6 & 3 \\
+                0 & 0 & 3 & -3 \\ 
+                0 & 0 & 0 & 1
+            \end{bmatrix}
+        }_{\bC}
+        \underbrace{
+            \begin{bmatrix}
+                1 & t & t^2 & t^3 
+            \end{bmatrix}
+        }_{\textbf{H}}
+        \tag{2}
+\]
+From Eq. (1), (2), we obtain that $P(t) = \textbf{H}\t\bC\t\bB$.
+\begin{corollary}[change of basis from Hermite to Bernstein]
+    The cubic Bernstein polynomial $P(t) = b_0(1-t)^3 + 3b_1(1-t)^2t + 3b_2(1-t)t^2 + b_3t^3$ can be written w.r.t. the standard monomial basis $\{1,t,t^2t^3\}$ as follows:
+\begin{equation}
+    P(t) =
+    \begin{bmatrix}
+        1 \\ t \\ t^2 \\ t^3 
+    \end{bmatrix}\t
+    \begin{bmatrix}
+        1 & -3 & 3 -1 \\
+        0 & 3 & -6 & 3 \\
+        0 & 0 & 3 & -3 \\ 
+        0 & 0 & 0 & 1
+    \end{bmatrix}\t
+   \begin{bmatrix}
+        b_0 \\ b_1 \\ b_2 \\ b_3 
+    \end{bmatrix}
+\end{equation}
+\end{corollary}
+
+
+\subsubsection{Bernstein polynomials as blending functions}
+The Bernstein polynomials (not just the cubic, but any degree) can also be viewed as a weighted average of their coefficients. Why a weighted average? Because the basis functions  sum to $1$.
+\begin{corollary}[Bernstein basis functions sum to 1]
+    The basis functions $\{B_{03}, B_{13}, B_{23}, B_{33}\} = \{(1-t)^3, 3(1-t)^3t, 3(1-t)t^2, t^3\}$ of the cubic Bernstein polynomial $P(t)=b_0(1-t)^3 + b_13(1-t)^2t + b_23(1-t)t^2 + b_3t^3$ sum to 1\footnote{This holds for any degree $n$, however we are only interested in the cubic case.}     
+\end{corollary}
+\begin{proof}
+    \begin{align*}
+        1 &= ((1-t)+t)^3 \\
+         &= (1-t)^3 + 3(1-t)^3t + 3(1-t)t^2 + t^3
+    \end{align*} 
+\end{proof}
+Hence it is said that $B_{i3}(t), \ i=0,1,2,3$ ``blend together'' the polynomial coefficients $b_i, \ i = 0,1,2,3$. Apart from the fact that they sum to 1, the basis functions $B_{i3}(t)$ are strictly positive for $t\in(0,1)$.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/bezier/bernstein_coeff_cubic.png}
+    \caption{The 4 basis functions of the cubic Bernstein polynomial.}%
+\end{figure}
+
+
+
+
+
+\subsection{The B\'ezier curve}
+\subsubsection{Definition}
+Since Bernstein polynomials have been introduced, it is time to define the cubic B\'ezier curve $\fancyC(t)$:
+\begin{equation}
+    \fancyC(t) = (1-t)^3\bb_0 + 3(1-t)^2t\bb_1 + 3(1-t)t^3\bb_2 + t^3\bb_3, \quad t\in[0,1]
+    \label{eq:bezier_curve}
+\end{equation}
+$\bb_i = (x_i, y_i)$ in this case are called control points because they control the shape of $\fancyC(t)$ as we will see soon. \eqref{eq:bezier_curve} can be also expanded in each dimension as:
+\begin{align*}
+    x(t) = (1-t)^3x_0 + 3(1-t)^2tx_1 + 3(1-t)t^3x_2 + t^3x_3\\
+    y(t) = (1-t)^3y_0 + 3(1-t)^2ty_1 + 3(1-t)t^3y_2 + t^3y_3
+\end{align*}
+
+
+
+\subsubsection{Why are $\bb_i$ control points?}
+Plugging in \eqref{eq:bezier_curve} $t=0$ and $t=1$ respectively:
+\begin{align*}
+    \fancyC(0) &= \bb_0\ ,\\
+    \fancyC(1) &= \bb_3
+\end{align*}
+Therefore $\bb_0 = \fancyC(0)$ and $\bb_3 = \fancyC(1)$ control the beginning and end of the curve. If we derive $\fancyC(t)$, we furthermore compute:
+\[
+    \fancyC\prime(t) = 3(\bb_1-\bb_0)(1-t)^2 + 6(\bb_2-\bb_1)(1-t)t + 3(\bb_3-\bb_2)t^2
+\]
+Plugging in the derivative $t=0$ and then $t=1$:
+\begin{align*}
+    \fancyC\prime(0) &= 3(\bb_1-\bb_0)\ ,\\
+    \fancyC\prime(1) &= 3(\bb_3-\bb_2)
+\end{align*}
+Therefore the tangent of $\fancyC(t)$ at the beginning ($t=0$) points from $\bb_0$ to $\bb_1$ and the tangent at the end points from $\bb_2$ to $\bb_3$. This is how $\bb_0, \bb_1, \bb_2, \bb_3$ control the curve. In general, a B\'ezier curve of degree $n$ is controlled by $n+1$ control points.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{img/bezier/tangents_control_points.png}
+    \caption{How the control points affect the shape of the B\'ezier curve.}%
+\end{figure}
+It can also be proven that the tangent property holds for B\'ezier curves of any degree.
+
+
+\subsubsection{Convex hull property}
+
+The convex hull property states that the B\'ezier curve is always contained in the polygon formed by the 4 control points. Before it's proven, some definitions needs to be made.
+\begin{definition}[convex set]
+% (ref 10-725: Optimization Fall 2012 Lecture 3: September 4 Lecturer: Geoff Gordon Scribes: Adona Iosif, Xiaowen Ding, Yue Yu) 
+    A set $C \subset \setR^n$ is convex iff for any two points $\bx_1,\bx_2$ in $C$, the line segment joining them \footnote{see parametric straight line equation in \ref{app:param_straight_line}} also lies in $C$, i.e. 
+\begin{equation}
+\theta\bx_1 + (1-\theta)\bx_2 \in C \quad \forall \theta \in [0,1], \quad \forall \bx_1, \bx_2 \in C
+\end{equation}
+\end{definition}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.8cm]{img/bezier/convex_non_convex.png}
+    \caption{Example of a convex (left) and a non convex set (right).}%
+\end{figure}
+
+\begin{definition}[convex hull]
+Given a set of $n$ points $\{\bp_1,\ldots,\bp_n\}$, the \emphasis{convex hull} of them is defined as:
+\begin{equation}
+CH(p_1,\ldots,p_n) = \Big\{\bp_1p_1 + \ldots + \bp_np_n \; | \; p_1,\ldots,p_n\in[0,1] \; \land \; \sum_{i=1}^n p_i = 1\Big\} 
+\end{equation}
+\end{definition}
+% ref chapter 9 bezier curves
+The convex hull is a set of points is alternatively defined as the smallest convex set containing all points. Visually speaking the convex hull can be pictured by stretching an elastic band so that it is as small as possible and still contains all the control points. For example here is the convex hull for a set of eight points:
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3cm]{img/bezier/convex_hull_8_points.png}
+    \caption{A convex hull can be visualised as the area inside a rubber band fit around the points.}
+\end{figure}
+
+But, given the set $\{\bp_1,\ldots,\bp_n\}$why are all combinations $ \{p_1\bp_1 + \ldots + p_n\bp_n \; | \; p_1,\ldots,p_n\in[0,1] \; and \; \sum_{i=1}^n p_i = 1\}$ contained within the convex hull of the latter set? The lemma below proves why.
+\begin{lemma}
+If C is a convex set and $\bp_1,\ldots,\bp_n\in C$, then any convex combination (c.c.) $p_1\bp_1 + \ldots + p_n\bp_n$ (i.e. $p_i\geq0$ and $p_1+\ldots+p_n=1$) is also contained in C.
+\end{lemma}
+\begin{proof}
+By induction.
+For $n=1$ the lemma is trivial.
+For $n=2$ ($p_1+p_2=1$) then the original set is simply the straight line between $p_1$ and $p_2$. The convex combination of $p_1$ and $p_2$ is also $p_1p_1 + (p_2-p_1)p_2$, which is the equation of the line segment between $p_1$ and $p_2$, therefore the c.c. is also within the original set.
+Assume the statement is true for an integer $n-1, \; n \geq 3$, i.e. the c.c. of $\{p_1,\ldots,p_{n-1}\}$, which is any vector $\by$ such that:
+\begin{align*}
+\by = p_1\bp_1+\ldots+p_n\bp_{n-1}, \quad \forall \; p_i: \; p_i\geq 0, \; p_1+\ldots+p_{n-1}=1 \\
+    \therefore \by = \frac{p_1}{p_1+\ldots+p_{n-1}}\bp_1 + \ldots + \frac{p_{n-1}}{p_1 + \ldots + p_{n-1}}\bp_{n-1}
+\end{align*}
+, is in C.
+For the next integer $n$, we want to prove that $\bz=p_1\bp_1+\ldots+p_n\bp_n, \quad \forall \; p_i: \; p_i\geq 0, \; p_1+\ldots+p_n=1$ is also in C. However
+\[
+\bz = p_1\bp_1 + \ldots + p_{n-1}\bp_{n-1} + p_n\bp_n = (p_1+\ldots+p_{n-1})\by + p_n\bp_n
+\]
+Therefore $\bz$ lies in the segment between $\by$ and $\bp_n$. We know that both $\by$ and $\bp_n$ are in the convex set C and because C is convex all points along the latter segment (described by vector $\bz$) also belong in C. 
+\end{proof}
+Returning to the B\'ezier curve, these lemmas allows us to a establish a nice property about its shape. Recall that a B\'ezier curve is given by \eqref{eq:bezier_curve}:
+\[
+C(t) = (1-t)^3\bb_0 + 3(1-t)^2t\bb_1 + 3(1-t)t^3\bb_2 + t^3\bb_3
+\]
+It’s been proven that the weights $(1-t)^3,3(1-t)^2t,3(1-t)t^3,t^3$ are non-negative and sum to 1. Therefore we can establish the following nice property.
+\begin{lemma}[B\'ezier curves and convex hull]
+All points of the cubic Bezier curve 
+\[
+C(t) = (1-t)^3\bb_0 + 3(1-t)^2t\bb_1 + 3(1-t)t^3\bb_2 + t^3\bb_3
+\]
+lie within the convex hull defined by the four control points $\bb_0, \bb_1, \bb_2, \bb_3$.
+\end{lemma}
+This property is helpful as we know that the shape of the Bezier curve is spatially constrained in the polygon defined by $\bb_0, \bb_1, \bb_2, \bb_3$. Other curves, such as B-splines do not have that property, which makes them difficult to control or predict.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.5cm]{img/bezier/convex_hull_cubic.png}
+    \caption{A B\'ezier curve is always contained within of the convex hull of its control points.}%
+    \label{fig:}
+\end{figure}
+The convex hull lemma holds for B\'ezier curves of any degree, however its generalisation will not be proven.
+
+
+
+\subsubsection{Variation diminishing property}
+
+Variation diminishing property limits how ``wiggly'' B\'ezier curves can be. Without any proof, it states that:
+\begin{lemma}[variation diminishing of B\'ezier curves]
+% ref wolfram
+The number of  intersection points of any straight line with a Bezier curve is at most the number of intersection points of the same straight line with the control polygon of the curve.
+\end{lemma}
+In non technical words, it states that Bezier curves are smoother than the polygon formed by their control points. This property gives us another hint in advance regarding the shape of the Bezier curve to be drawn given some control points.
+
+\begin{figure}[H]
+    \centering
+    % ref http://web.mit.edu/hyperbook/Patrikalakis-Maekawa-Cho/node12.html?bcsi-ac-4d57fec82d0c41f9=271918E500000005p9MQ5tkLLOdTq7Ym5gWK7NO7uL3yAAAABQAAAL544gCAcAAAAQAAAFbLAQA=
+    \includegraphics[height=4cm]{img/bezier/variation_diminishing.png}
+    \caption{Left: The straight line crosses the B\'ezier curve up to 2 times and the polygon up to 2 times. Right: the straight line crosses the B\'ezier curve 3 times but cross the polygon 2 times.}%
+    \label{fig:}
+\end{figure}
+
+
+\subsection{De Chasteljau'salgorithm to draw B\'ezier curves}
+B\'ezier curves have some properties, but one needs to know how to draw them in practice. One could compute the Bernstein coefficients from \eqref{eq:bernstein_coeffs_general} for each $t$ but this gets computationally expensive, especially for large degrees $n$. De Chasteljau independently developed a recursive algorithm to compute each point of a Bezier curve without relying directly on \eqref{eq:bernstein_coeffs_general}. We will attempt to derive from scratch a De Chasteljau's method to draw cubic B\'ezier curves. 
+
+% ref: notes06.pdf
+The goal is to plot a cubic B\'ezier curve given 4 control points $\bb_0, \bb_1, \bb_2, \bb_3$. Suppose we want to plot a point $\bb_0^3(t)$ (this is not a control point, the weird superscript and subscript will become obvious later) in the curve for some fixed $t\in[0,1]$. Therefore $\bb_0^3(t)$ is written as:
+\begin{align*}
+    \bb_0^3(t) &= (1-t)^3\bb_0 + 3(1-t)^2t\bb_1 + 3(1-t)t^2\bb_2 + t^3\bb_3 \\
+    &= (1-t)\underbrace{[(1-t)^2\bb_0 + 2(1-t)t\bb_1 + t^2\bb_2]}_{\bb_0^2} + t\underbrace{[(1-t)^2\bb_1 + 2(1-t)t\bb_2 + t^2\bb_3]}_{\bb_1^2}
+    \tag{1}
+\end{align*}
+Eq. (1) expresses the point to draw $\bb_3^0(t)$ as a linear interpolation of two points $\bb_0^2(t)$ and $\bb_1^2(t)$. These points lie on two quadratic B\'ezier (coefficients sum to one and non-negative) curves. Therefore $\bb_3^0(t)$ is determined by two new control points $\bb_0^2(t)$ and $\bb_1^2(t)$. If we look at $\bb_0^2(t)$ and $\bb_1^2(t)$, then each point can be rewritten as:
+\begin{align*}
+    \bb_0^2(t) = & (1-t)^2\bb_0 + 2(1-t)t\bb_1 + t^2\bb_2 \\
+    = & (1-t) [(1-t)\bb_0 + t\bb_1] + t [(1-t)\bb_1 + t\bb_2] \\
+    \overeq{\bb_i = \bb_i^0} & (1-t) [\underbrace{(1-t)\bb_0^0 + t\bb_1^0}_{\bb_0^1}] + t [\underbrace{(1-t)\bb_1^0 + t\bb_2^0}_{\bb_1^1}]\ , \tag{2}\\
+    \bb_1^2(t) &= (1-t) [\underbrace{(1-t)\bb_1^0 + t\bb_2^0}_{\bb_1^1}] + t [\underbrace{(1-t)\bb_2^0 + t\bb_3^0}_{\bb_2^1}] \tag{3}
+\end{align*}
+Eq. (2) and (3) state that each of $\bb_0^2(t)$ and $\bb_1^2(t)$ is determined as a linear interpolation of $\bb_0^1, \ \bb_1^1$ and $\bb_1^1, \ \bb_2^1$ respectively. Finally, moving on to $\bb_0^1, \bb_1^1$ and $\bb_2^1$, they are linear interpolations of the original control points. Renaming for consistency $\bb_i$ to $\bb_i^0$ respectively, where $i=0,1,2,3$, then $\bb_i^1$ is a linear interpolation of $\bb_i^0$ and $\bb_{i+1}^0$, $i=0,1,2$.
+
+To summarise so far, Eq. (1), (2), (3) can be generalised as follows:
+\begin{equation}
+    \bb_i^j(t) = (1-t)\bb_i^{j-1}(t) + t\bb_{i+1}^{j-1}(t)\ , \quad i,j \leq 3
+    \label{eq:de_chas_general}
+\end{equation}
+If \eqref{eq:de_chas_general} is unfolded, then it shows how $\bb_0^3$ can be computed in a pyramid-like recursive way.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/bezier/casteljau_terms_schema.png}
+    \caption{Computing $\bb_0^3$ recursively from the control points. Arrow crossing denotes addition and each arrow denotes a multiplication.}%
+    \label{fig:de_chasteljau_terms_schema}
+\end{figure}
+
+Therefore a pseudocode to implement De Chasteljau (with uniform sampling for $t$ from $0$ to $1$) is the following.
+
+\begin{algorithm}[H]
+\caption{De Chasteljau curve drawing with uniform sampling -- works with any number of control points, therefore curve of any degree.}
+\label{alg:de_chasteljau}
+\begin{algorithmic}[1]
+    \Procedure {ComputePoint}{points, t} \Comment{Computes the topmost point of the DeChasteljau pyramid}
+        \If {len(points) =  0}
+            \State DrawPixel(points) \Comment{Only one point -- we're at the top}
+        \Else
+            \State higherLevelPoints $ \leftarrow \{\, \}$ 
+            \For {i$ = 0,\ldots,\textup{len(points)-1}}$
+                \State higherLevelPoint $\leftarrow (1-t)\textup{points[i]} + t\cdot \textup{points[i+1]}$
+                \State higherLevelPoints.append(higherLevelPoint)
+            \EndFor
+            ComputePoint(higherLevelPoints)
+        \EndIf
+    \EndProcedure
+    \State
+    \Procedure{DeChasteljau} {$\bb_0,\ \bb_1,\ \bb_2,\ \bb_3,\ dt$} \Comment{$\bb_i$ are the control points, $dt$ the sampling width}
+        \State $t\leftarrow 0$
+        \While{$t\leq 1$}
+            \State ComputePoint($\bb_0,\ \bb_1,\ \bb_2,\ \bb_3,\ t$)
+            \State $t \leftarrow t + dt$
+        \EndWhile
+\EndProcedure
+\end{algorithmic}
+\end{algorithm}
+
+Although uniform is relatively simple to implement, it was the drawback that if the portion of the curve being plotted is too flat (straight line), it's likely that we end up plotting redundant points. If the curve portion is too curvy, we may not plot enough points to capture its curvature. There are variations of the basic De Chasteljau's algorithm which subdivide the portion to draw based on the curvature, however they will not be discussed here.
+
+To get better intuition, it's also helpful to understand how De Chasteljau's can be recreated geometrically. Again, beginning with the control points $\bb_0^0,\bb_1^0,\bb_2^0,\bb_3^0$ and for some $t\in[0,1]$, the steps are the following.
+\begin{enumerate}
+    \item For each line segment $\bb_0^0,\bb_1^0$, $\bb_1^0,\bb_2^0$, $\bb_2^0,\bb_3^0$, subdivide the segment starting from $\bb_{i+1}^0$ to $\bb_i^0$ at a ratio $t$ and $1-t$. Therefore each new point $\bb_i^1$ is located $t\times$ the length of the segment away from $\bb_{i}^0$.
+    \item Now we have located $\bb_0^1,\bb_1^1, \bb_2^2$. Once again, $\bb_0^2$ is located $t\times$ the length of segment $\bb_0^1\bb_1^1$ away from $\bb_0^1$ and $\bb_1^2$ is located $t\times$ the length of segment $\bb_1^1\bb_2^1$ away from $\bb_1^1$.
+    \item We have determined $\bb_0^2$ and $\bb_1^2$ so there's only the final point $\bb_0^3$ left to determine. Again, subdivide segment $\bb_0^2\bb_1^2$ and starting from $\bb_0^2$ move $t$ times its length away. That's where $\bb_0^3$ is located.
+    \item Repeat for all necessary values of $t$.
+\end{enumerate}
+
+This is visualised by the figure below, where every colour denotes each step.
+
+\begin{figure}[H]
+    % creits https://tiborstanko.sk/teaching/geo-num-2016/tp1.html
+    \centering
+    \includegraphics[height=5cm]{img/bezier/casteljau_algo_bi.png}
+    \caption{Geometrically obtaining $\bb_0^3$ starting from the control points $\bb_i^0$ for $t=0.5$.}%
+\end{figure}
+
+\begin{exmp}
+    Given the control points $\bb_0=(-1,0), \bb_1=(0,1), \bb_2=(0,-1), \bb_3=(1,0)$, use De Chasteljau, to find the coordinates of $X(1/4)$.
+\end{exmp}
+\begin{soln}
+We were given $t=1/4$.
+\[
+    \bb_0^1 = (1-t)\bb_0 + t\bb_1 = (-3/4, 1/4), \; \bb_1^1 = (1-t)\bb_1 + t\bb_2 = (0, 2/4), \; \bb_2^1 = (1-t)\bb_2 + t\bb_3 = (1/4,-3/4)
+\]
+\begin{align*}
+    \bb_0^2 = (1-t)\bb_0^1 + t\bb_1^1 = 3/4 (-3/4, 1/4) + 1/4(0,2/4) = (-9/16, 5/16)\\
+    \bb_1^2 = (1-t)\bb_1^1 + t\bb_2^1 = 3/4 (0, 2/4) + 1/4(1/4,-3/4) = (1/16, 3/16)
+\end{align*}
+\begin{align*}
+    \bb_0^3 = (1-t)\bb_0^2 + t\bb_1^2 = 3/4 (-9/16, 5/16) + 1/4(1/16, 3/16) = (-26/64, 18/64)
+\end{align*}
+\end{soln}
+De Chasteljau has been implemented in C in my \texttt{gfx-v4} repo at \url{https://github.com/0xLeo/gfx-v4}.
 
 
 \clearpage
@@ -342,9 +709,9 @@ At each iteration, it keeps track of three variables -- the row number ($y$ coor
 
 \begin{figure}[H]
     \centering
-    \subfloat[\centering Triangle fill variables.]{{\includegraphics[width=4.75cm]{img/triangle_fill_variables.png} }}%
+    \subfloat[][\centering Triangle fill variables.]{\includegraphics[width=4.75cm]{img/triangle_fill_variables.png}}%
     \qquad
-    \subfloat[\centering Angles $a_1,a_2,a_3$ are utilised by the algorithm. highlighted.]{{\includegraphics[width=4.75cm]{img/triangle_fill_variables_angles.png} }}%
+    \subfloat[][\centering Angles $a_1,a_2,a_3$ are utilised by the algorithm. highlighted.]{\includegraphics[width=4.75cm]{img/triangle_fill_variables_angles.png} }%
     \caption{Line sweep fill divides the original triangle in two flat ones. (a) The variables $y,x_l,x_r$ considered at each iteration. (b) The angles utilised by the algorithm to update $x_l$, $x_r$}%
     \label{fig:triangle_line_sweep_vars}%
 \end{figure}
@@ -418,9 +785,9 @@ The perp vector comes in handy when we want to determine the relative orientatio
 
 \begin{figure}[H]
     \centering
-    \subfloat[\centering $\bb$ cw from $\ba$]{{\includegraphics[height=2.25cm]{img/b_cw_from_a.png} }}%
+    \subfloat[][\centering $\bb$ cw from $\ba$]{{\includegraphics[height=2.25cm]{img/b_cw_from_a.png} }}%
     \qquad
-    \subfloat[\centering $\bb$ ccw from $\ba$]{{\includegraphics[height=3cm]{img/b_ccw_from_a.png} }}%
+    \subfloat[][\centering $\bb$ ccw from $\ba$]{{\includegraphics[height=3cm]{img/b_ccw_from_a.png} }}%
     \caption{cw and ccw terminology}%
     \label{fig:cw_ccw_terms}%
 \end{figure}
@@ -430,9 +797,9 @@ Back to the perp vector, how is it able to tell us the relative orientation betw
  
 \begin{figure}[H]
     \centering
-    \subfloat[\centering $\ba^{\bot}\bb <0$ when $b$ is ccw from $\ba$ and the angle between $\ba$, $\bb$ is obtuse.]{{\includegraphics[height=2.5cm]{img/a_perpdot_b_ccw_obtuse.png} }}%
+    \subfloat[][\centering $\ba^{\bot}\bb <0$ when $b$ is ccw from $\ba$ and the angle between $\ba$, $\bb$ is obtuse.]{{\includegraphics[height=2.5cm]{img/a_perpdot_b_ccw_obtuse.png} }}%
     \qquad
-    \subfloat[\centering $\ba^{\bot}\bb <0$ when $b$ is ccw from $\ba$ and the angle between $\ba$, $\bb$ is acute.]{{\includegraphics[height=2.5cm]{img/a_perpdot_b_ccw_acute.png} }}%
+    \subfloat[][\centering $\ba^{\bot}\bb <0$ when $b$ is ccw from $\ba$ and the angle between $\ba$, $\bb$ is acute.]{{\includegraphics[height=2.5cm]{img/a_perpdot_b_ccw_acute.png} }}%
     \caption{$\ba^{\bot}\bb <0$ when $\bb$ is ccw is $\ba$.}%
     \label{fig:b_ccw_a_sign_pdot}%
 \end{figure}
@@ -441,9 +808,9 @@ Similarly, when $\bb$ is cw from $\ba$ then $\ba$, then $\ba^{\bot}\bb = \norm{\
 
 \begin{figure}[H]
     \centering
-    \subfloat[\centering $\ba^{\bot}\bb >0$ when $b$ is cw from $\ba$ and the angle between $\ba$, $\bb$ is obtuse.]{{\includegraphics[height=2cm]{img/a_perpdot_b_cw_obtuse.png} }}%
+    \subfloat[][\centering $\ba^{\bot}\bb >0$ when $b$ is cw from $\ba$ and the angle between $\ba$, $\bb$ is obtuse.]{{\includegraphics[height=2cm]{img/a_perpdot_b_cw_obtuse.png} }}%
     \qquad
-    \subfloat[\centering $\ba^{\bot}\bb >0$ when $b$ is cw from $\ba$ and the angle between $\ba$, $\bb$ is acute.]{{\includegraphics[height=2cm]{img/a_perpdot_b_cw_acute.png} }}%
+    \subfloat[][\centering $\ba^{\bot}\bb >0$ when $b$ is cw from $\ba$ and the angle between $\ba$, $\bb$ is acute.]{{\includegraphics[height=2cm]{img/a_perpdot_b_cw_acute.png} }}%
     \caption{$\ba^{\bot}\bb <0$ when $\bb$ is ccw is $\ba$.}%
     \label{fig:b_cw_a_sign_pdot}%
 \end{figure}
@@ -490,9 +857,9 @@ The figures below show the vectors $\overrightarrow{PP_1}$, $\overrightarrow{PP_
 
 \begin{figure}[H]
     \centering
-    \subfloat[\centering Vectors connecting $P$ and $Q$ to the vertices  when $P_1, P_2, P_3$ are ccw.]{{\includegraphics[height=3.2cm]{img/triangle_int_ext_ccw.png} }}%
+    \subfloat[][\centering Vectors connecting $P$ and $Q$ to the vertices  when $P_1, P_2, P_3$ are ccw.]{{\includegraphics[height=3.2cm]{img/triangle_int_ext_ccw.png} }}%
     \qquad \qquad
-    \subfloat[\centering Vectors connecting $P$ and $Q$ to the vertices  when $P_1, P_2, P_3$ are cw.]{{\includegraphics[height=3.2cm]{img/triangle_int_ext_cw.png} }}%
+    \subfloat[][\centering Vectors connecting $P$ and $Q$ to the vertices  when $P_1, P_2, P_3$ are cw.]{{\includegraphics[height=3.2cm]{img/triangle_int_ext_cw.png} }}%
     \caption{For the interior test, we consider the vectors from a point to the vertices. The vectors for a typical interior point  $P$ and an exterior point $Q$ are drawn.}
     \label{fig:triangle_int_ext}
 \end{figure}
@@ -839,6 +1206,35 @@ From \url{https://github.com/0xLeo/gfx-v4}.
 \lstinputlisting[language=C,caption={Bresenham's code (\detokenize{src/bresenham.c)}.}, label=src:mylabel]{src/bresenham.c}
 
 
+%---------------------------------------- new appendix ----------------------------------------
+\newpage
+\subsection{Parametric form of straight line}
+\label{app:param_straight_line}
+
+\begin{lemma}
+Given two points $P_0$, $P_1$ and a parameter $t\in\setR$, a straight line can be parametrised as:
+\begin{equation}
+P(t) = (1-t)P_0 + tP_1
+\end{equation}
+, where $P = (x,y),\; P_0=(x_0,y_0), \; P_1=(x_1,y_1)$.
+\end{lemma}
+Unwrapping this equation in each dimension, the points $(x(t), y(t))$ of line $P_0P_1$ are given by 
+\begin{align*}
+x(t) = (1-t)x_0 + tx_1\\
+y(t) = (1-t)y_0 + ty_1
+\end{align*}
+If we restrict $t\in[0,1]$, then we obtain the line segment bar $P_0P_1$, i.e. as $t$ changes from 0 to 1 we move between $P_0$ and $P_1$. For $t=0$, $P$ coincides with $P_0$, and for $t=1$ with $P_1$.
+\begin{proof}
+    As the figure below shows, any point between $P_0$ and $P_1$ can be reached from $P_0$ by adding $t(\bp_1-\bp_0)$ to it, where $t$ is a normalised scalar indicating where p falls along line $\bp_0\bp_1$ ($t=0$ at $\bp_0$, $t=1$ at $\bp_1$). Therefore:
+\[
+    \bp=\bp_0+t(\bp_1-\bp_0) = (1-t)\bp_0 + t\bp_1
+\]
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3cm]{img/bezier/param_straight_line.png}
+    \caption{How a point $\bp$ along a straight segment defined by $\bp_1,\bp_2$ can be parametrised.}%
+\end{figure}
+\end{proof}
 
 %---------------------------------------- new appendix ----------------------------------------
 \newpage
