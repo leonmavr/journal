@@ -1,0 +1,43 @@
+%------------------------------ New section ------------------------------%
+\section{Advanced pointer usages}
+
+\subsection{Const pointer vs pointer to const}
+%https://stackoverflow.com/questions/21476869/constant-pointer-vs-pointer-to-constant
+In C, we often want to make a pointer point to a constant address or reference a constant. The syntax for both of these instruction is similar but there is a subtle difference. In this section, shed some light on this syntax difference to make it easy to remember.
+
+\subsubsection{Constant pointer}
+
+The syntax for constant point (constant address) is as follows:
+\begin{verbatim}
+int*    const    ptr;
+\end{verbatim}
+This is expression is read right from left. Let's read it step-by-step.
+\begin{minted}{C}
+    int*    const    ptr;
+//                   ~~~~  
+//                   Define a pointer ptr
+//          ~~~~~
+//          that is constant
+//  ~~~~
+//  and points to an integer variable
+\end{minted}
+Therefore defines a constant point (the address it points to cannot change) to data of type \texttt{int}. Attempting to change the address results in a complication error. A toy example is listed below.
+\lstinputlisting[language=C,caption={DOs and DONTs of constant pointer (\texttt{src/pointers/const\_ptr.c})}, label={lst:const_ptr_code}]{src/pointers/const_ptr.c}
+It prints \texttt{3}.
+
+
+
+\subsubsection{Pointer to constant}
+The following pointer cannot have its value changed.
+\begin{minted}{C}
+    const    int    *ptr;
+//                  ~~~~ 
+//                  Define a pointer ptr
+//           ~~~
+//           that points to int data
+//  ~~~~~
+//  which data are constant
+\end{minted}
+It's clear that the \texttt{const} specifier acts upon the value (\texttt{int}), therefore the pointer is of constant value (pointer to \texttt{const}). Attempting to dereference the pointer and change its value results in a compilation error. However, we can still change the data it points to. A toy example is also listed below.
+\lstinputlisting[language=C,caption={DOs and DONTs of pointer to const (\texttt{src/pointers/ptr\_to\_const.c})}, label={lst:ptr_to_const_code}]{src/pointers/ptr_to_const.c}
+The example code prints \texttt{2}.
