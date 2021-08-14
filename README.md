@@ -1,14 +1,6 @@
 # diary
 ## Description
-This repository contains reference notes on different topics such as computer vision, machine learnig etc. Most of them contain easy to run code to demonstrate the theory. There's a huge list of things to add but the next ones are  
-- [x] write a small BIOS
-- [x] computer vision - finish localisation (tracking)
-- [ ] computer vision - features, homography, SIFT, HOGs
-- [x] computer vision - face recognition by Haar cascade classifier
-- [ ] machine learning - CNNs with Pytorch
-- [x] C - integer promotion rules
-- [x] Unix systems programming - processes
-- [ ] Unix systems programming - shared memory, pipes
+This repository contains reference notes on different topics such as computer vision, machine learnig etc. Explaining things to yourself is the best way to learn, plus I want to use these as reference without having to google stuff.
 
 ## Repository structure
 Each topic is readable from one pdf and its Latex source is provided.
