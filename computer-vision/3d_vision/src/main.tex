@@ -141,7 +141,7 @@ Spoiler; the answers are yes, no, and yes (at least for the pinhole model).
 \begin{figure}[H]
     \centering
     \includegraphics[height=4cm]{img/railway_tracks.png}
-    \caption{Two properties of the pinhole-based projection; parallel lines meet, straight lines remain straight (project to straight lines).}
+    \caption{Two properties of the pinhole-based projection; parallel lines that are not parallel to the horizon meet, straight lines remain straight (project to straight lines).}
     \label{fig:my_label}
 \end{figure}
 
@@ -329,7 +329,7 @@ The E.C. points $(x_0 + ta, y_0 + tb, z_0 + tc)$ approach infinity as $t\rightar
      \caption{Points at infinity along the direction $(-3,2)$}
  \end{figure}
 \begin{corollary}[point at infinity in H.C.]
-In H.C., points of the form $(a, b, 0)$ represent a point that tends to infinity in E.C. in the direction of $\textbf{v} = (a,b)$. They're also known as \emphasis{ideal points}.
+In H.C., points of the form $(a, b, 0)$ represent a point that tends to infinity in E.C. in the direction of $\textbf{v} = (a,b)$. They're also known as \emphasis{ideal points} (or \emphasis{vanishing points}).
 \end{corollary}
 % ref http://lear.inrialpes.fr/people/triggs/pubs/isprs96/node7.html
 Ideal points all lie along the same line $\elll$. If $\elll = (l_1,l_2,l_3)$ in H.C., then all ideal points $(a,b,0)$ must satisfy
@@ -339,7 +339,7 @@ Ideal points all lie along the same line $\elll$. If $\elll = (l_1,l_2,l_3)$ in 
 \end{align*}
 Therefore all ideal points lie along the line with coefficients $(0,0,c) \sim (0,0,1)$ in H.C. To summarise:
 \begin{corollary}[line at infinity]
-All ideal points lie along the line $\elll_{\infty} = (0,0,1)$ in H.C. This is known as \emphasis{ideal line}.
+All ideal points lie along the line $\elll_{\infty} = (0,0,1)$ in H.C. This is known as \emphasis{ideal line} (or \emphasis{vanishing line}).
 \end{corollary}
 Ideal points are important because that's where lines that are parallel in E.C. meet. To verify that, consider the equations of two parallel lines:
 \begin{align*}
@@ -368,7 +368,7 @@ $(b_1c_2 - b_1c_1, a_1c_2 - a_1c1, 0)$ is an ideal point. To summarise:
 \begin{corollary}[intersection of parallel lines in H.C.]
 Two parallel lines in H.C., $\elll_1 = (a, b, c)$ and $\elll_2 = (a, b, d), \quad c \neq d$ intersect at an ideal point $\textbf{\textup{p}}$ (point at infinity) given by:
 \begin{equation}
-    \textbf{\textup{p}} = (b(d-c), a(d-c), 0)
+    \textbf{\textup{p}} = \elll_1 \times \elll_2 = (b(d-c), a(d-c), 0)
 \end{equation}
 \end{corollary}
 
@@ -448,6 +448,212 @@ Below each case is derived geometrically.
 
 
 \subsection{The cross ratio}
+
+\subsubsection{The maths of cross ratio}
+
+An important quantity that lets us convert scene (real world, 3D) distance measurements to image distance measurements (pixels) and vice versa is the cross ratio. The most important property of the cross ratio is that it remains invariant under the perspective projection.
+
+\begin{definition}[cross ratio of points]
+The cross ratio of 4 collinear points $A,B,C,D$ is defined as:
+\begin{equation}
+    CR(A,B;C,D) = \frac{\frac{CA}{CB}}{\frac{DA}{DB}}
+    \label{eq:cross_ratio_points}
+\end{equation}
+, where $CA, CB, DA, DB$ are \textit{signed} distances, i.e. each one depends on the direction of the line they lie at.
+\end{definition}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=2cm]{img/cross_ratio_4_points.png}
+    \caption{The quantities that appear in the cross ratio $CR(A,B;C,D)$.}
+\end{figure}
+Obviously, the cross ratio does not depend on the direction of the line but it depends on the relative orienration of the 4 points. The cross ratio also does not depend on the choice of the projective coordinate system (it only involves distances). To remember \eqref{eq:cross_ratio_points}, think of the double ratio fraction as a $4\times 2$ matrix of 4 letters. On the first column ($CR(A,B;\ldots)$), the letter changes every row. On the second column ($CR(\ldots;C,D)$), it changes two rows.
+
+The cross ratio has a number of interesting properties but they will not be discussed. We will only prove that it is invariant under the projective transform. However, before getting to the main point, it is helpful to the \textit{cross ratio of 4 concurrent lines}.
+\begin{definition}[cross ratio of lines]
+Given 4 concurrent lines $a,b,c,d$ that meet a point $M$, the cross ratio of those lines as:
+\begin{equation}
+    CR(a,b;c,d) = \frac{\frac{\sin(c\hat{M}a)}{\sin(c\hat{M}b)}}
+    {\frac{\sin(d\hat{M}a)}{\sin(d\hat{M}b)}}
+\end{equation}
+\end{definition}
+We can show that given 4 collinear points $A,B,C,D$ and a centre of projection $M$, the cross ratio of points $CR(A,B;C,D)$ and the cross ratio of segments $a=MA,b=MB,c=MC,d=MD$ $CR(a,b;c,d)$ are equal.
+\begin{lemma}[CR of points equals CR of segments]
+Given 4 collinear points $A,B,C,D$, then
+\begin{gather}
+    CR(A,B;C,D) = CR(a,b;c,d) \Longleftrightarrow \nonumber \\
+    \frac{\frac{CA}{CB}}{\frac{DA}{DB}} = \frac{\frac{\sin(c\hat{M}a)}{\sin(c\hat{M}b)}}  {\frac{\sin(d\hat{M}a)}{\sin(d\hat{M}b)}}
+    \label{eq:cr_points_equals_cr_lines}
+\end{gather}
+\end{lemma}
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4cm]{img/cross_ratio_points_lines.png}
+    \caption{4 collinear points, their point of intersection $M$ and the lines to $M$.}
+\end{figure}
+\begin{proof}
+We express the area of each triangle in two different ways:
+\begin{align*}
+area(CMA) = \frac{1}{2}MC \cdot MA  \sin(C\hat{M}A) = \frac{h}{2} CA \\
+area(CMB) = \frac{1}{2}MC \cdot MB  \sin(C\hat{M}B) = \frac{h}{2} CB \\
+area(DMA) = \frac{1}{2}MD \cdot MA  \sin(D\hat{M}A) = \frac{h}{2} DA \\
+area(DMB) = \frac{1}{2}MD \cdot MB  \sin(D\hat{M}B) = \frac{h}{2} DB
+\end{align*}
+Then the cross ratio of distances is written as:
+\begin{align*}
+CR(a,b;c,d) = \frac{\frac{\sin(c\hat{M}a)}{\sin(c\hat{M}b)}} {\frac{\sin(d\hat{M}a)}{\sin(d\hat{M}b)}} = \\
+\frac{\frac{h/2\ CA/(MC\cdot MA)}{h/2\ CB/(MC\cdot MB)}}
+{\frac{h/2\ DA/(MD\cdot MA)}{h/2\ DB/(MD\cdot MB)}} = \frac{\frac{CA}{CB}}{\frac{DA}{DB}}
+\end{align*}
+\end{proof}
+
+We now have enough background to prove the main theorem.
+\begin{theorem}[perspective transform preserves the cross ratio]
+Any 4 points forming a pencil with common base have the same cross ratio. It is equal to the cross ratio of the base points.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4.5cm]{img/cross_ratio_pencils.png}
+    \caption{$CR(P_1,P_2;P_3,P_4) = CR(P_5,P_6,P_7,P_8) =CR(Q_1,Q_2,Q_3,Q_4) = CR(Q_5,Q_6,Q_7,Q_8) = CR(A,B,C,D)$}
+    \label{fig:cross_ratio_pencil}
+\end{figure}
+For the sets of points in Fig. \ref{fig:cross_ratio_pencil}, the theorem states that:
+\begin{equation}
+    CR(P_1,P_2;P_3,P_4) = CR(P_5,P_6;P_7,P_8) =CR(Q_1,Q_2;Q_3,Q_4) = CR(Q_5,Q_6;Q_7,Q_8) = CR(A,B;C,D)
+\end{equation}
+In other words, the cross ratio remains invariant under projective transformations.
+\end{theorem}
+\begin{proof}
+We proof the theorem for the green points first. We know from \eqref{eq:cr_points_equals_cr_lines} that:
+\begin{gather}
+CR(P_1,P_2;P_3,P_4) =
+\frac{\frac{\sin(P_3\hat{M}P_1)}{\sin(P_3\hat{M}P_2)}}   {\frac{\sin(P_4\hat{M}P_1)}{\sin(P_4\hat{M}P_2)}} = 
+\frac{\frac{\sin(P_7\hat{M}P_5)}{\sin(P_8\hat{M}P_6)}}   {\frac{\sin(P_8\hat{M}P_5)}{\sin(P_8\hat{M}P_6)}} = 
+CR(P_5,P_6;P_7,P_8) \Rightarrow \\
+CR(P_1,P_2;P_3,P_4) = CR(P_5,P_6;P_7,P_8) \tag{1}
+\end{gather}
+, as $P_i$ and $P_{i+4}$ lie on the same line hence the sines are equal. In exactly the same way, it can be proven that:
+\begin{gather}
+CR(P_1,P_2;P_3,P_4) = CR(A,B,C,D)  \tag{2}  
+\end{gather}
+Similarly:
+\begin{gather}
+CR(Q_1,Q_2;Q_3,Q_4) = CR(Q_5,Q_6;Q_7,Q_8) \tag{3}
+\end{gather}
+From Eq. (1), (2), (3) we can derive the theorem:
+\[
+CR(P_1,P_2;P_3,P_4) = CR(P_5,P_6;P_7,P_8) = CR(A,B;C,D) = CR(Q_1,Q_2;Q_3,Q_4) = CR(Q_5,Q_6;Q_7,Q_8) 
+\]
+\end{proof}
+
+
+\subsubsection{Cross ratio and single view metrology}
+
+Cross ratio helps relate distances in the 3D world ($xyz$ scene plane, e.g. in cm, m, or km) with distances in the image ($xy$ image plane, e.g. in pixels). Inferring real-world measurements from image measurements is called \emphasis{single-view metrology}.
+
+Suppose we are given the image in pixels on the right and want to know how far the car is from the crossroad in the real world. We have measured that $A'D'=300\; px$, $A'C'=275 \; px$ and $B'C'=50\; px$. We want to know $CD$.
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=5.5cm]{img/cross_ratio_crossroad.png}
+    \caption{An aerial view of a crossroad (left) and its image under the perspective transform of a camera (right).}
+    \label{fig:my_label}
+\end{figure}
+$A'$, $B'$, $C'$, $D'$ are the projections of $A,B,C,D$ on the ground plane therefore we can use the cross ratio preservation theorem:
+\begin{gather*}
+\frac{A'C'}{A'D'}:\frac{B'C'}{B'D'} = \frac{AC}{AD}:\frac{BC}{BD} \Rightarrow\\
+\frac{275}{300}:\frac{50}{A'D' - A'C'} = \frac{275}{300}:\frac{50}{75} = \frac{AC}{AD}:\frac{BC}{BD}  \Rightarrow \\
+\frac{AC}{AD}:\frac{BC}{BD} =1.375
+\end{gather*}
+However, $AC=4-CD$, $BC=2-CD$ therefore:
+\[
+\frac{4-CD}{4}:\frac{2-CD}{2} = 1.375 \Rightarrow CD = 0.857 \; km
+\]
+
+\marginnote{In the image plane, the vanishing point(s) can be determined as the intersection of two lines that are parallel in the real world.}If we know that  a point in the scene is a vanishing point, i.e. at infinity, then inferring distances in the scene is even easier. For instance, in the picture below, point $D'$ in the scene plane is at horizon of this plane, i.e. at infinity (also called vanishing point). When mapped to $D$ in the image plane, it is at the horizon of the image, which is the vanishing line. The latter is a finite point. Note that $D'$ in the image plane is at the intersection of lines $A'C'$ and $\ell$, which are parallel in the real world but meet at a vanishing point in the image plane (Fig. \ref{fig:tiles_perspective}).
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=3.5cm]{img/tiles_horizon.png}
+    \caption{Some square tiles in the image plane under perspective transform.}
+    \label{fig:tiles_perspective}
+\end{figure}
+
+Then, using the cross ratio theorem for the scene (points $A,B,C,D$, not shown) and image planes (Fig. \ref{fig:tiles_perspective}) we get:
+\[
+\frac{AC}{AD}:\frac{BC}{BD}  = \frac{A'C'}{A'D'}:\frac{B'C'}{B'D'} = 
+\]
+However, $AD/BD = \norm{\textbf{r}_A - \textbf{r}_D}/\norm{\textbf{r}_B - \textbf{r}_D}$ and as $\textbf{r}_D \rightarrow \infty$ then $\lim_{\textbf{r}_B\rightarrow \infty} \norm{\textbf{r}_A - \textbf{r}_D}/\norm{\textbf{r}_B - \textbf{r}_D} = 1$ therefore the cross ratio in the scene plane is re-written as $\frac{AC}{AD}:\frac{BC}{BD} = \frac{AC}{BC}$.
+\begin{corollary}[cross ratio including vanishing point]
+If $A,B,C,D$ are some scene (real-world) points and $D$ is a vanishing point, i.e. at infinity, then their cross ratio can be simplified such that it does not take $D$ into account:
+\begin{equation}
+    \frac{A'C'}{A'D'}:\frac{B'C'}{B'D'} = \frac{AC}{BC}, \quad \textbf{r}_D\rightarrow \infty
+    \label{eq:cross_ratio_vanishing_point}
+\end{equation}
+\end{corollary}
+Revisiting the train position inference problem, knowing that a point is vanishing allows to measure distances in the real world with only one reference distances.
+\begin{figure}[H]
+    % ref https://www.coursera.org/lecture/robotics-perception/cross-ratios-and-single-view-metrology-AV44m
+    \centering
+    \includegraphics[height=4cm]{img/train_metrology_vanishing_point.png}
+    \caption{To find the position of the train in the real world, we only need a vanishing point and the distance $A'D'$.}
+\end{figure}
+
+
+\subsubsection{Cross ratio and height forensics}
+
+Cross ratio given a vanishing point, as in \eqref{eq:cross_ratio_vanishing_point},is the main step of inferring the height of an object in an image given the height of another object as reference. Before explain how this is done, remember that points in parallel lines in the scene plane lie on the \textit{same} line in the image plane.
+
+Suppose the we want to infer the height of the man in black hat in the image below given the height of the statue.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[height=4cm]{img/metrology_painting_1.png}
+    \caption{The height $H$ of a person to be determined given the reference height $h$ of the statue.}
+\end{figure}
+
+We break the solution in several steps. Dashed points denote the scene and non-dashed the image.
+
+\begin{enumerate}
+    \item (\textbf{Find the vanishing line in the image}). To find the vanishing line, take the intersection of two lines that are obviously parallel in the scene. The horizontal line through that intersection is the vanishing line (horizon). All vanishing points lie along that line.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=4cm]{img/metrology_painting_2.png}
+        \caption{Finding the vanishing line.}
+    \end{figure}
+    \item (\textbf{Find a vanishing point}) We then find a vanishing point defined by the objects of interest. For that, we need a line in the real world that connects two parallel objects -- in this case the feet. We intersect that line with the horizon to find the vanishing point A.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=4cm]{img/metrology_painting_3.png}
+        \caption{Finding the vanishing line.}
+    \end{figure}
+    \item (\textbf{Distance transfer}) We know $h=B'C'$ in the scene plane, e.g. $179\; cm$. We transfer the known height $h$ onto the unknown object. Draw one more line from the vanishing point $A$ through the top $C$ of the known object and intersect it with the vertical of the unknown object at $E$. Because $A,C,E$ or on the same line in the image, they're paallel in the scene. Likewise for $A,B,D$. Therefore in the scene $D'E' = B'C' = h$. But $D'E'$ is not the full height of the unkown object. We know $D'E'$ and want $D'F'$.
+    \begin{figure}[H]
+        \centering
+        \includegraphics[height=4cm]{img/metrology_painting_4.png}
+        \caption{Transferring the height of the known object onto the unknown one.}
+    \end{figure}
+    \item (\textbf{Find the vertical vanishing point and use the cross ratio}) To find the height of the man, we want to know $D'E'/D'F'$. If the horizon is not in the middle, lines $BC$ and $DF$ are not actually parallel in the image plane, but they meet at a finite point $V$. $V$ is therefore the intersection of $BC$ and $DF$.
+        \begin{figure}[H]
+        \centering
+        \includegraphics[height=6cm]{img/metrology_painting_5.png}
+        \caption{Lines $BC$ and $DF$ interesect at the vertical vanishing point $V$.}
+        \label{fig:height_measurement_distance_transfer}
+    \end{figure}
+    $V'$ is at infinity in the scene plane. Therefore if we use \eqref{eq:cross_ratio_vanishing_point} then we can determine ratio $D'E'/D'F'$ (knowing $D'E'=h$):
+    \begin{gather*}
+        \frac{D'E'}{D'F'} = \frac{DE}{DF} : \frac{VE}{VF} \Rightarrow
+        D'F' =  \frac{1}{D'E'} \frac{VE}{VF} : \frac{DE}{DF} \Rightarrow
+        H = \frac{1}{h} \frac{VE}{VF} : \frac{DE}{DF}
+    \end{gather*}
+\end{enumerate}
+\begin{corollary}[height measurement via distance transfer]
+If we are given an image of a reference object of height $h=B'C'$ in the scene, then we can determine the height $H$ (in the scene) of an unknown object by the formula:
+\begin{equation}
+    H = \frac{1}{h} \frac{VE}{VF} : \frac{DE}{DF}
+\end{equation}
+Points $V,E,F,D$ are marked in Fig. \ref{fig:height_measurement_distance_transfer}.
+\end{corollary}
+
+These are the core steps height measurement via perspective. Additionally, point $V$ can be cross-produced as $\textbf{v}=\overrightarrow{DF}\times \overrightarrow{BC}$ as in Cor. \ref{cor:inters_lines_hc}, finding the horizon can be automated by Hough lines, or the algorithm can be semi-supervised by allowing the user to click at pixels in order to define lines.
+
 % http://cs.rkmvu.ac.in/~sghosh/public_html/bhu_igga/tute.pdf
 %http://www.ipb.uni-bonn.de/html/teaching/3dcs-ge-2020/stachniss/2020-3dcs-02-homogeneous-coords-4.pdf
 %https://beckassets.blob.core.windows.net/product/readingsample/6715665/9783642172854_excerpt_001.pdf
@@ -456,6 +662,11 @@ Below each case is derived geometrically.
 % https://teaching.csse.uwa.edu.au/units/CITS4402/lectures/Lecture09-ProjectiveGeometry.pdf
 % https://filebox.ece.vt.edu/~jbhuang/teaching/ece5554-4554/fa17/lectures/Lecture_12_CalibrationAndMetrology.pdf
 % https://mi.eng.cam.ac.uk/~cipolla/lectures/4F12/Examples/4F12-examples-2.pdf
+% https://sci-hub.se/https://doi.org/10.1080/0025570X.2006.11953376
+% https://math.stackexchange.com/questions/1022879/geometric-interpretation-of-the-cross-ratio
+% http://math.mit.edu/~notzeb/cross.pdf
+% https://www.cut-the-knot.org/pythagoras/Cross-Ratio.shtml
+% https://www.coursera.org/lecture/robotics-perception/cross-ratios-and-single-view-metrology-AV44m
 
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-

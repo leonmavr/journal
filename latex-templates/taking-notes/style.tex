@@ -55,7 +55,7 @@
 \usepackage{fancyhdr}                   % page headings
 \usepackage{mdframed}                   % boxes
 \usepackage[backend=biber,sorting=none,style=ieee]{biblatex}
-\usepackage{caption}
+\usepackage[font=small,labelfont=bf]{caption}
 %%% caption options {
 %\DeclareCaptionFont{white}{\color{white}}
 \DeclareCaptionFormat{listing}{\colorbox{magenta!30!gray}{\parbox{\textwidth}{#1#2#3}}}
@@ -87,6 +87,7 @@
 \usetikzlibrary{calc}
 \usepackage{eso-pic}
 \usepackage{transparent}
+\usepackage{trfsigns}                   % laplace, Laplace
 
 %=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-
 % Colours for various things
@@ -330,6 +331,7 @@
 
 % Curly braces under text. Usage: \myunderbrace{upper}{lower}
 \newcommand{\myunderbrace}[2]{\mathrlap{\underbrace{\phantom{#1}}_{#2}} #1}
+\newcommand{\setP}{\mathbb{P}} % \ouble P
 \newcommand{\setR}{\mathbb{R}} % \ouble R
 \newcommand{\setRn}{\mathbb{R}^n} %  double R^n
 \newcommand{\setN}{\mathbb{N}} % double N
@@ -338,6 +340,7 @@
 \let\emptyset\varnothing % nice - looking empty set symbol
 \newcommand{\fancyN}{\mathcal{N}} % null space
 \newcommand{\fancyR}{\mathcal{R}} % range
+\newcommand{\elll}{\boldsymbol{\ell}}
 
 \newcommand{\ba}{\textbf{a}}
 \newcommand{\bw}{\textbf{w}}
@@ -360,6 +363,8 @@
 %\newcommand{\norm}[1] {\left|\left| #1 \right| \right|} 
 \newcommand{\norm}[1]{\left\lVert#1\right\rVert}
 \renewcommand{\t}{^{\top}}
+\newcommand{\conv}{\circ--\bullet}
+\newcommand{\convrev}{\bullet--\circ}
 
 \newcommand{\mean}[1]{\bar{#1}}
 \newcommand{\var}{\sigma^2}
