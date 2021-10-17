@@ -39,3 +39,11 @@ pass edit facebook.com
 # change how long (sec) pass is copied to clipboard for, e.g. 120 sec
 # $ vim ~/.bashrc
 export PASSWORD_STORE_CLIP_TIME=120
+
+
+##########################################################################################################
+# Other tips
+##########################################################################################################
+# Encrypto and decrypt file with gpg
+gpg --encrypt --sign --armor -r mary-geek@protonmail.com plain.txt # it will output plain.txt.asc
+gpg --decrypt plain.txt.asc > plain.txt
