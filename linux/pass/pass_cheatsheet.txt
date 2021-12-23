@@ -5,7 +5,7 @@
 # if not done before, do this and use the same name and email as the imported key (see next command)
 gpg2 --full-gen-key
 
-# if I want to import my personal secret key, which encrypts my password structure:
+# use the following command to import the signature (personal secret key) from another computerd structure:
 gpg2 --import secret.gpg
 
 # if a password directory is not created
@@ -16,7 +16,7 @@ cd ~/.pass
 cp -r ~/pass ~/.pass
 
 # and initialise this as the pass directory using the import gpg key:
-pass init
+pass init .
 
 # insert existing pwd
 pass insert facebook.com
@@ -45,5 +45,5 @@ export PASSWORD_STORE_CLIP_TIME=120
 # Other tips
 ##########################################################################################################
 # Encrypto and decrypt file with gpg
-gpg --encrypt mary-geek@protonmail.com plain.txt # it will output plain.txt.asc
+gpg --encrypt -r mary-geek@protonmail.com plain.txt # it will output plain.txt.asc
 gpg --decrypt plain.txt.asc > plain.txt
