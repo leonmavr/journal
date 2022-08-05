@@ -1,0 +1,217 @@
+These notes are heavily based on Pablo Abad Fidalgo's and José Ángel Herrero Velasco's lecture
+notes. They are a condensed version of them with some additions. They are meant to be read in a
+notepad in a monospace font.
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+0. Overview diagram
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+
+    STAGE 1: Hardware               STAGE 2: Bootloader
+    +-----------------------+       +---------------------------------------------------+
+    |                       |       |                                                   |
+    |                       |       | +-------+                                         |
+    |                       |       | |LILO   |---------------------------------------+ |
+    |                       |       | |stage 1|                                       | |
+    |                       |       | +-------+                                       | |
+    |                       |       |     ^                                           | |
+    |                       |       |     | (either)                                  | |
+    |                       |       |     |                                           | |
+    |  +----+      +------+ |       | +------+                                        | |
+    |  |BIOS|----->|Boot  |-+-------+>|Boot  |                                        |-+------+
+    |  |post|      |sector| |       | |loader|                                        | |      |
+    |  +----+      +------+ |       | +------+                                        | |      |
+    |                       |       |     |                                           | |      |
+    |                       |       |     | (or)                                      | |      |
+    |                       |       |     v                                           | |      |
+    |                       |       | +-------+          +---------+       +--------+ | |      |
+    |                       |       | |Grub   |--------->|Grub     |------>| Grub   |-+ |      |
+    |                       |       | |stage 1|          |stage 1.5|       | stage 2|   |      |
+    |                       |       | +-------+          +---------+       +--------+   |      |
+    |                       |       |                                                   |      |
+    +-----------------------+       +---------------------------------------------------+      |
+                                                                                               |
++----------------------------------------------------------------------------------------------+
+|
+|   STAGE 3: Kernel                 STAGE 4: Init
+|   +------------+                  +-------------------------------+
+|   |            |                  |                     +------+  |
+|   |            |                  |                     |Login |  |
+|   |            |                  |                     |prompt|  |
+|   |            |                  |                     +------+  |
+|   |            |                  |                        ^      |
+|   |            |                  |                        |      |
+|   |            |                  |                        |      |
+|   | +--------+ |                  | +-------+           +-----+   |
++---+>| Kernel |-+------------------+>|Init   |---------->|Init |   |
+    | | loading| |                  | |process|           |level|   |
+    | +--------+ |                  | +-------+           +-----+   |
+    |            |                  |                        |      |
+    |            |                  |                        |      |
+    |            |                  |                        v      |
+    |            |                  |                     +-------+ |
+    |            |                  |                     |XDM    | |
+    |            |                  |                     |process| |
+    |            |                  |                     +-------+ |
+    +------------+                  +-------------------------------+
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+1. Booting Stage 1: Hardware
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+After pushing the power-on button of a computer, the RESET VECTOR tells the CPU the address of the
+instruction to be executed. For x86 systems, this instruction is always located at address
+FFFF_FFF0h.
+After resetting the registers, the reset vector gives control to an initial ("bootstrap")
+processor. This bootstrap processor leads to the BIOS stage.
+BIOS (Basic Input Output System) resides in the motherboard and when it is reached, it performs
+several sequential tasks:
+1. POST (Power-On Selt Test): examination, verification and startup of hardware devices (CPU, RAM,
+controllers, etc.) .
+2. Configuration of previous aspects, independent of OS (virtualisation extension, security, etc.).
+3. Starting up the OS: It looks for the OS loader in the first block (512 bytes). Namely, it looks
+for the MASTER BOOT RECORD (MBR) from the booting decide in the configured order. When found, the
+contents are loaded into the memory.
+
+The MBR contains some bootloader code, a partition table (information about four primary partitions
+such as their beginning, end, blocks, total size, etc.) (64 bytes), and a boot signaturei a hex
+value indicating the presence of valid bootloader code (2 bytes).
+A primary partition is a partition in the hard drive where the OS can be installed and it's
+identified with a number, e.g. /dev/hda1 or /dev/sda1.
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+2. Booting Stage 2: Bootloader - LILO and Grub
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+2.1 Booting with LILO
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+
+LILO (LInux LOader) is a two stage bootlader and nowadays it's rather obsolete. It doesn't
+understand about the operating system or the filesystem. Only works with physical locations.
+Following the MBR, LILO takes the steps below before the kernel takes over:
+1. MBR loads LILO from the first active partition and runs it. LILO can be in the MBR or in the
+boot block of a primary partition.
+2. LILO asks the user what kind of boot (partition, kernel, mode) through a prompt.
+3. LILO loads the kernel and ramdisk.
+4. LILO starts running once it's loaded in the memory.
+
+A typical LILO config file (found at /etc/lilo.conf) is listed and commented below.
+
+boot=/dev/hda #o by ID <-- device where LILO is installed (IDE/SATA/Floppy etc.)
+map=/boot/map # file with info about disk blocks with files required for booting
+install=/boot/boot.b # loader assembly code
+prompt
+timeout=50
+message=/boot/message
+linear
+default=linux
+image=/boot/vmlinuz-2.6.2-2 # kernel for booting its options
+    label=linux
+    read-only
+    root=/dev/hda2 # Linux system partition (/). Not necessarily a disk
+    initrd=/boot/initrd-2.4.2-2.img # filesystem loaded in memory as ramdisk
+other=/dev/hda1 # link to other loader (boot a different OS)
+    label=dos
+    optional
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+2.2 Booting with Grub
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+GRUB (GRand Unified Bootloader) is a bootloader and Linux kernel loader. It consists of 3 stages.
+It can work with file systems (e.g. ext2, ext3. ext4, etc.) directly assigning partitions (no need
+for map files). It's flexible, has its own shell, and currently it's the most commonly used
+bootloader.
+It's more complex than LILO, however its configs are easy to edit can be updated by the update-grub
+command.
+It consists of the following stages:
+STAGE 1: Boot.img stored in MBR isloaded in memory and executed, loading in turn core.img.
+STAGE 1.5: core.img  is a small subset of Grub and its purpose is to provide access to /boot/grub. It does
+that by loading the configuration files and drivers for the filesystem.
+STAGE 2: Load kernel and ramdisk, accessing directly the filesystem (/boot/grub).
+
+This is illustrated below.
++-------+---------------------+---------------+------------+------------------------------+------------------+
+|boot.--+--> core. -----------+---------------+------------+-> /boot/grub                 |                  |
+|img    |    img              |               |            |                              |                  |
++-------+---------------------+---------------+------------+------------------------------+------------------+
+MBR     | occup.    |  empty  |  sda1         | sda3       | sda5 (et4, /boot/, /)        | sda6 (et4, /home)|
+sector0                          NTFS                      |                                                 |
+                                                           |              sda2 extended partition            |
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+2.3 Unified bootloader: UEFI
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-
+UEFI (Unified Extensible Firmware Interface) combines the BIOS and bootloader into one module, as
+drawn below:
+
+    STAGE 1+2: UEFI             STAGE 3: Kernel                 STAGE 4: Init
+    +-----------------+         +------------+                  +-------------------------------+
+    |                 |         |            |                  |                     +------+  |
+    |                 |         |            |                  |                     |Login |  |
+    |                 |         |            |                  |                     |prompt|  |
+    |                 |         |            |                  |                     +------+  |
+    |                 |         |            |                  |                        ^      |
+    |                 |         |            |                  |                        |      |
+    |                 |         |            |                  |                        |      |
+    |  +-------+      |         | +--------+ |                  | +-------+           +-----+   |
+    |  |UEFI   |------+---------+>| Kernel |-+------------------+>|Init   |---------->|Init |   |
+    |  |(+Grub)|      |         | | loading| |                  | |process|           |level|   |
+    |  +-------+      |         | +--------+ |                  | +-------+           +-----+   |
+    |                 |         |            |                  |                        |      |
+    |                 |         |            |                  |                        |      |
+    |                 |         |            |                  |                        v      |
+    |                 |         |            |                  |                     +-------+ |
+    |                 |         |            |                  |                     |XDM    | |
+    |                 |         |            |                  |                     |process| |
+    |                 |         |            |                  |                     +-------+ |
+    +-----------------+         +------------+                  +-------------------------------+
+
+Two important things about UEFI are that it emulates BIOS and requires support from the OS.
+UEFI is more flexible than BIOS as it supports big disks, it can eliiminate the need for a
+bootloader, it supports more booting device (e.g. secure network boot) and has its own shell.
+Instead of a 512 MBR and some boot code, UEFI has its own filesystem, with files and drives (FAT32,
+200-500Mb). Each installed OS has its own directory in EFI partition.
+
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+3. Booting Stage 3: Kernel
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+The bootloader has loaded kernel & ramdisk files into memory:
+-- vmlinuz - the uncommpressed version of kernel image in ELF format able to be used for debugging        
+-- initrd.img - (initial RAM disk) an initial root filesystem mounted before the real fs is
+   available
+Once Stage 2 is complete, kernel execution starts:
+-- The Kernel uncompresses itself.
+-– Detects memory map, the CPU and its features supported.
+-– Starts the display (console) to show information through the screen.
+-– Checks the PCI bus, crea#ng a table with the peripheral detected.
+-– Initializes the system in charge of virtual memory management, including swapper.
+–- Initializes the drivers for the peripherals detected (Monolithic or modular).
+–- Mount file system root (/).
+–- Calls the init process (Stage 4): PID 1, father of the rest of processes.
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+4: Booting Stage 4: INIT (SysV)
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+SysV is a system that takes over from the init process and is responsible for starting services. A
+modern alternative is SystemD.
+
+The init process performs the following tasks:
+Step 1. Configuration: read from the file /etc/inittab the initial configuration
+of the system: Operatioon mode, runlevels, consoles,...
+Step 2. Initialization: runs the command /etc/init.d/rc.S (debian), which performs a basic
+initialisation of the system (loads swap space, mounts locals filesystems, clear /tmp etc.).
+Step 3. Services: according to the runlevel configured, runs the scripts/services pre-established
+for that runlevel. Services are defined at /etc/init.d (e.g. cron, ssh) and /etc/rcN.d.
+
+There are 7 run levels (0-6) and each one is executed at a certain state of the system, e.g. 0 at
+half.
+
+
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+References
+~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~-~
+1. https://ocw.unican.es/pluginfile.php/2782/course/section/2579/topic_3.pdf
