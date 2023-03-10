@@ -1,49 +1,90 @@
 ##########################################################################################################
-# This is a guide on how to set up and use the "pass" package to manage passwords with gpg encryption.
-# see also: https://medium.com/@chasinglogic/the-definitive-guide-to-password-store-c337a8f023a1
+# `pass` is a simple GNU package the relies on gpg and wraps around it to encrypt and decrypt information.
+# Therefore you need a private and public gpg key to use it.
 ##########################################################################################################
-# if not done before, do this and use the same name and email as the imported key (see next command)
-gpg2 --full-gen-key
 
-# use the following command to import the signature (personal secret key) from another computerd structure:
-gpg2 --import secret.gpg
+#--------------------------------------------------------------------------------------------------------
+# Step 1
+# Create or import a gpg key
+#--------------------------------------------------------------------------------------------------------
 
-# if a password directory is not created
-makedir ~/.pass
-cd ~/.pass
+# `pass` works with a unique private and public key combination
+# STORE YOU SECRET KEY AND MASTER PASSWORD IN A TOP SECRET PLACE!!!
+# You should be the only owner of your private gpg key but you can share the public one
 
-# then I can copy my pass files into this directory
-cp -r ~/pass ~/.pass
+# to import an existing key combination:
+gpg --import my_public.key
+gpg --import my_private.key
 
-# and initialise this as the pass directory using the import gpg key:
-pass init .
+# to create a new key:
+gpg --gen-key
 
-# insert existing pwd
-pass insert facebook.com
+# the newly created key will be sealed with a master password to remember to save the latter
 
-# show all passwords
-pass
+#--------------------------------------------------------------------------------------------------------
+# Step 2
+# Initialise pass
+#--------------------------------------------------------------------------------------------------------
 
-# generate random password for facebook.com
-pass generate facebook.com 15
+# after installing `pass`, initialise it
+pass init <email_or_public_rsa_key_from_gpg>
 
-# show password for facebook.com on the terminal
-pass facebook.com 
+#--------------------------------------------------------------------------------------------------------
+# Step 3
+# Add or modify a password
+#--------------------------------------------------------------------------------------------------------
+# NOTE: each time you execute one of the following commands, you'll be prompted to enter your gpg password
+# you can have each file to only contain a password, e.g. for the bank account I'll be pretending to work
+# with:
+pass insert bank
 
-# copy password for facebook.com to clipboard
-pass -c facebook.com 
+# or you can create folder hierarchies such as fin/bank, fin/crypto, etc.
 
-# edit existing password
-pass edit facebook.com
+# but I prefer to create multiline files that contain a username, password, website, etc:
+pass insert bank -m
 
-# change how long (sec) pass is copied to clipboard for, e.g. 120 sec
-# $ vim ~/.bashrc
+# for multiline files, `pass` interprets the first line as the password and second as username so it's a
+# good practice to store them as:
+# <password>
+# <username>
+# <misc>
+
+# you can of course also edit or remove respectively with:
+pass edit bank
+pass rm bank
+
+# finally, you can generate a randomly-generated password with:
+pass generate test
+
+#--------------------------------------------------------------------------------------------------------
+# Step 4
+# Copy a password
+#--------------------------------------------------------------------------------------------------------
+# generate random password for my bank
+pass generate bank
+
+# show password on the terminal without copying it
+pass bank
+
+# copy my bank's password to clipboard
+# NOTE: if that's a multiline file, it will only copy the first line
+pass -c bank
+
+# TIP: the password will only be copied to your clipboard for a certain number of certain so to change that
+# you can add the following in your ~/.bashrc, e.g. for 120 seconds
 export PASSWORD_STORE_CLIP_TIME=120
 
+# after you're done, you can view the password hierachy as a tree simply with:
+pass
 
-##########################################################################################################
-# Other tips
-##########################################################################################################
-# Encrypto and decrypt file with gpg
-gpg --encrypt -r mary-geek@protonmail.com plain.txt # it will output plain.txt.asc
-gpg --decrypt plain.txt.asc > plain.txt
+#--------------------------------------------------------------------------------------------------------
+# Tips
+#--------------------------------------------------------------------------------------------------------
+
+
+#--------------------------------------------------------------------------------------------------------
+# References
+#--------------------------------------------------------------------------------------------------------
+1. https://www.passwordstore.org/
+2. https://wiki.archlinux.org/title/Pass
+3. https://www.youtube.com/watch?v=sVkURNfxPd4
