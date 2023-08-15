@@ -22,3 +22,11 @@ This becomes:
 ```
 IgnorePkg = rofi 
 ```
+
+## 2. File xxx is corrupted invalid signature
+
+If you get this message while installing a package, the cage is often an outdate keyring file.  
+To update it, do:
+```
+sudo pacman -Sy archlinux-keyring
+```
