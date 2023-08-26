@@ -1,0 +1,425 @@
+                                   QUICKSORT
+
+                                1. Introduction
+                                ~~~~~~~~~~~~~~~
+
+QuickSort is based on the divide-and-conquer design paradigm. Unlike MergeSort
+where most of the work is done after the recursive call returns, in QuickSort
+the work is done before the recursive call is made. It's a top-to-bottom
+approach as it does the heavy work before dividing the input array.
+
+                                  2. The idea
+                                  ~~~~~~~~~~~
+
+In quicksort, the function that does most of the work is the partition.
+Partition picks an element as PIVOT. It rearranges all elements in the array
+such that every element left of the pivot is less than equal to it and every
+element to its right is greater than or equal to it.
+
+Quicksort works as follows:
+1) Pick an element, say p (the pivot)
+2) Rearrange the elements into 3 sub-blocks,
+   those less than or equal to (<=) p (the left-block S1)
+   pivot p (the only element in the middle-block)
+   those greater than or equal to (>=) p (the rightblock S2)
+3) Repeat the process recursively for the left and right sub-blocks.
+4) Return {quicksort(S1), quicksort(S2)}.
+
+                               3. Implementation
+                               ~~~~~~~~~~~~~~~~~
+
+The implementation follows the idea discussed above.
+
+                            3.1. Partition function
+                            ~~~~~~~~~~~~~~~~~~~~~~~
+
+Two popular partition schemes are HOARE's and LOMUTO's.
+
+                            3.1.1 Hoare's partition
+                            ~~~~~~~~~~~~~~~~~~~~~~~
+
+Hoare's the more intuitive of the two partition schemes. It maintains a left and
+right index initialized at the beginning and end of the array respectively. It
+increments the left index until an element greater than the pivot is
+encountered. Then, it increments the right index until an element smaller than
+the pivot is encountered.
+
+If the indexes haven't crossed, swap the elements under the two indexes and
+repeat the increment process. Otherwise exit the loop. Repeat this forever (in
+a while(1) loop). Let's see an execution of it on a sample array.
+
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  |
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | Initialisation: ip = l = 0, r = 1, p = 5
++---+---+---+---+---+---+---+---+  |
+  ^                           ^    |
+  |                           |    |
+  l                           r    |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+  ^                           ^    |
+  |                           |    |
+  l                           r    |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 8 | 6 | 4 | 7 | 3 | 5 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+          ^                   ^    |
+          |                   |    |
+          l                   r    |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 5 | 6 | 4 | 7 | 3 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+          ^                   ^    |
+          |                   |    | 
+          l                   r    |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 5 | 6 | 4 | 7 | 3 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+          ^               ^        |
+          |               |        |  
+          l               r        |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 3 | 6 | 4 | 7 | 5 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+          ^               ^        |
+          |               |        |
+          l               r        |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 3 | 6 | 4 | 7 | 5 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+              ^           ^        |
+              |           |        |  
+              l           r        |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 3 | 5 | 4 | 7 | 6 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+              ^           ^        |
+              |           |        |
+              l           r        |
+                                   |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 3 | 4 | 5 | 7 | 6 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | swap(arr[l], arr[r])
+              ^   ^                |
+              |   |                | 
+              l   r                |
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  | while (arr[l] < 5): l++
+| 1 | 3 | 3 | 4 | 5 | 7 | 6 | 8 |  | while (arr[r] > 5): r--
++---+---+---+---+---+---+---+---+  | l = r => return l 
+                  ^               
+                  |
+                  l,r                 
+
+The implementation is pretty straightforward and listed below. A swap function
+is also listed as it's required.
+
+ . . . . . . . . . . . Listing 1. Hoare's partition in C. . . . . . . . . . . .
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+
+size_t partition_hoare(int* arr, size_t left, size_t right) {
+    // pivot value
+    int p = arr[left];
+    while (1) {
+        while (arr[left] <= p) left++;
+        while (arr[right] > p) right--;
+        if (left >= right) return right;
+        swap(&arr[left], &arr[right]);
+    }
+}
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+
+
+
+                            3.1.2 Lomuto's partition
+                            ~~~~~~~~~~~~~~~~~~~~~~~~
+
+The idea behind Lomuto's partition scheme is that we maintain two indexes; one
+left and one right. Left index tracks where elements smaller than the pivot will
+go. Right index iterates until the end of the array and seeks elements smaller
+than the pivot. If it finds one, it increments the left index and swaps the
+elements at the two indexes. At the end, the pivot element and the element the
+left index points to are swapped.
+
+For simplicity, it is customary to choose the first element as the pivot.
+Therefore the left index is initialised pointing at the first element (pivot)
+and the right pointing at the second element (one after the pivot).
+
+An example is illustrated below (ip = pivot's index, p = pivot, l = left index,
+r = right index).
+
+  ip                               |
+  |                                |
+  v                     arr        |
++---+---+---+---+---+---+---+---+  |
+| 5 | 3 | 8 | 6 | 4 | 3 | 7 | 1 |  | Initialisation: ip = l = 0, r = 1, p = 5
++---+---+---+---+---+---+---+---+  |
+  ^   ^                            |
+  |   |                            |
+  l   r                            |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? YES
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | => l++, swap(arr[l], arr[r])
++---+---+---+---+---+---+---+---+  |    r++
+  ^   ^                            |
+  |   |                            |
+  l   r                            |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? NO
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | => r++
++---+---+---+---+---+---+---+---+  |
+      ^   ^                        |
+      |   |                        |
+      l   r                        |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? NO
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | => r++
++---+---+---+---+---+---+---+---+  |
+      ^       ^                    |
+      |       |                    |
+      l       r                    |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? YES
+| 5 | 3 | 8 | 6 | 4 | 7 | 3 | 1 |  | => l++, swap(arr[l], arr[r])
++---+---+---+---+---+---+---+---+  |    r++
+      ^           ^                |
+      |           |                |
+      l           r                |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? NO
+| 5 | 3 | 4 | 6 | 8 | 7 | 3 | 1 |  | => r++
++---+---+---+---+---+---+---+---+  |
+          ^           ^            |
+          |           |            |
+          l           r            |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? YES
+| 5 | 3 | 4 | 3 | 8 | 7 | 6 | 1 |  | => let++, swap(arr[l], arr[r])
++---+---+---+---+---+---+---+---+  |    r++
+              ^           ^        |
+              |           |        |
+              l           r        |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? YES
+| 5 | 3 | 4 | 3 | 8 | 7 | 6 | 1 |  | => let++, swap(arr[l], arr[r])
++---+---+---+---+---+---+---+---+  |    r++
+              ^               ^    |
+              |               |    |
+              l               r    |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | arr[r] < 5? YES
+| 5 | 3 | 4 | 3 | 8 | 7 | 6 | 1 |  | => let++, swap(arr[l], arr[r])
++---+---+---+---+---+---+---+---+  |    r++ => end of loop
+                  ^           ^    |
+                  |           |    |
+                  l           r    |
+                                   |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | end of loop => final swap
+| 5 | 3 | 4 | 3 | 1 | 7 | 6 | 8 |  | i.e. swap(arr[ip], arr[l])
++---+---+---+---+---+---+---+---+  |
+                  ^           ^    |
+                  |           |    |
+                  l           r    |
+  ip                               |
+  |                                |
+  v                                |
++---+---+---+---+---+---+---+---+  | array partitioned around l 
+| 1 | 3 | 4 | 3 | 5 | 7 | 6 | 8 |  | => return l
++---+---+---+---+---+---+---+---+  |
+                  ^           ^    |
+                  |           |    |
+                  l           r    |
+                                   |
+
+Note that the final array is not sorted yet (7 is preceding 6), but only
+partitioned.
+
+From the example, we can deduce that the implementation of LOMUTO's partition
+scheme is as follows:
+
+. . . . . . . . . . . Listing 2. Lomuto's partition in C.. . . . . . . . . . . 
+size_t partition_lomuto(int* arr, size_t lo, size_t hi) {
+        // Lomuto uses the first element as pivot
+        int p = arr[lo];
+        size_t left = lo, right;
+        for (right = lo+1; right < hi; right++) {
+                if (arr[right] < p) {
+                        left++;
+                        swap(&arr[left], &arr[right]);
+                }
+        }
+        swap(&arr[left], &arr[lo]);
+        return left;
+}
+ . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 
+
+
+                              3.2 Whole algorithm
+                              ~~~~~~~~~~~~~~~~~~~
+
+As mentioned in section 2, after partitioning the input array about the pivotr
+into two sub-blocks S1, S2, quick sort is recursively called on S1 and S2 until
+we reach the base case (array of length 1). Therefore first we partition the
+array and then call quick sort on the two sub-arrays. In pesudocode, this is
+written as:
+
+QuickSort(array arr, int left, int right)
+    if (left >= right) or (left < 0) return               // length 1 
+    int ip = partition(arr, left, right)                  // partition index
+    QuickSort(arr, left, ip-1)                            // on the left block 
+    QuickSort(arr, ip+1, right)                           // on the right block
+} 
+
+For completeness, the full algorithm can be implemented in C as follows:
+
+. . . . . . . . . . . . .. Listing 3. Quicksort in C.. . . . . . . . . . . . . 
+
+#include <stdio.h> // printf
+#include <stddef.h> // size_t
+#include <assert.h> // assert
+
+/* Swap the values of a, b */
+void swap(int* a, int* b) {
+    int temp = *a;
+    *a = *b;
+    *b = temp;
+}
+
+/**
+* @brief Lomuto's partition scheme for quicksort
+*
+* @param arr[] Input array to sort
+* @param lo Index to start sorting from (inclusive)
+* @param hi Index to sort up to (inclusive)
+* @returns the pivot's index
+*/
+size_t partition_lomuto(int arr[], size_t lo, size_t hi) {
+    // Lomuto uses the first element as pivot
+    int p = arr[lo];
+    size_t left = lo, right;
+    for (right = lo+1; right < hi; right++) {
+        if (arr[right] < p) {
+            left++;
+            swap(&arr[left], &arr[right]);
+        }
+    }
+    swap(&arr[left], &arr[lo]);
+    return left;
+}
+
+/**
+* @brief Hoare's partition scheme for quicksort
+*
+* @param arr[] Input array to sort
+* @param left  Index to start sorting from (inclusive)
+* @param right Index to sort up to (inclusive)
+* @returns the pivot's index
+*/
+size_t partition_hoare(int arr[], size_t left, size_t right) {
+    // pivot value
+    int p = arr[left];
+    while (1) {
+        while (arr[left] <= p) left++;
+        while (arr[right] > p) right--;
+        if (left >= right) return right;
+        swap(&arr[left], &arr[right]);
+    }
+}
+
+/* Change to what this function points to to select a different partition scheme */
+size_t (*partition)(int* arr, size_t left, size_t right) = partition_hoare;
+
+/**
+* @brief qsort 
+*
+* @param arr[] Input array to sort
+* @param left  Index to start sorting from (inclusive)
+* @param right Index to sort up to (inclusive)
+*/
+void qsort(int arr[], size_t left, size_t right) {
+    if ((left >= right) || (left < 0)) return;
+    // pivot's index
+    size_t ip = partition(arr, left, right);
+    qsort(arr, left, ip-1);
+    qsort(arr, ip+1, right);
+}
+
+
+int main() {
+    int arr[8] = {5, 3, 8, 6, 4, 7, 3, 1};
+    size_t len = sizeof(arr)/(sizeof(arr[0]));
+    qsort(arr, 0, len-1);
+    for (int i = 0; i < len-1; i++)
+        assert((arr[i] <= arr[i+1]) || (arr[i] >= arr[i+1]));
+    printf("===== SUCCESS. Your array is sorted =====\n");
+}
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .  
+
+
+                            4. Running time analysis
+                            ~~~~~~~~~~~~~~~~~~~~~~~~
