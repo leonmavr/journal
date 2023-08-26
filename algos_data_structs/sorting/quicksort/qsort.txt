@@ -423,3 +423,89 @@ int main() {
 
                             4. Running time analysis
                             ~~~~~~~~~~~~~~~~~~~~~~~~
+
+ve will do not a detailed run time analysis. For this, see [2].  Running time
+depends on how well PARTITION divides the array.  First of all, note that the
+partition only does one pass along the array, i.e. it is of time Θ(r-l) = Θ(n),
+where r, l are the left and right indexes respectively.  Θ is just like the
+big-oh (O) notation, however it represents the average and best case time.
+
+
+                                 4.1 Best case
+                                 ~~~~~~~~~~~~~
+
+If array is always partitioned nicely in two halves, i.e. is the pivot is
+roughly the median, (partition returns p=(left+right)/2), we have the
+recurrence (Θ denotes the average running time)
+
+                             T(n) = 2T(n/2) + Θ(n)
+
+We know from merge sort that the solution to this equation is:
+
+                                T(n) = Θ(nlogn)
+
+Θ is just like the big-oh notation but here it denotes the average running time.
+
+                                 4.2 Worst case
+                                ~~~~~~~~~~~~~~~
+
+The worst case (maximum number of partitions) occurs when the data is already
+sorted.  When the pivot is the smallest (or largest) element at partitioning on
+a block of size Θ(n), the result yields one empty sub-block, one element
+(pivot) in the "correct" place and one sub-block of size (n-1). It takes Θ(n)
+times.
+We obtain the recurrence relation:
+
+                                    T(1) = 1
+                              T(n) = T(n-1) + O(n)
+
+The solution is T(n) = O(n^2).
+
+
+                                4.3 Average case
+                                ~~~~~~~~~~~~~~~~
+
+It can be proven that the average case also takes Θ(nlogn) time.
+
+                               5. Pivot selection
+                               ~~~~~~~~~~~~~~~~~~
+
+So the trick is to select a good pivot
+Different ways to select a good pivot:
+1) First element
+2) Last element
+3) Median-of-three elements - pick three elements, and find the median x of
+   these elements. Use that median as the pivot.
+4) Random element - randomly pick a element as a pivot.
+
+Pivot selections (3) and (4) are likely to improve the run time.
+
+As a conclusion, we compare the time and space complexity of merge sort. The
+space complexity of merge sort is Θ(n) and of quicksort is Θ(1) as it only
+needs to allocate individual variables such as the pivor. So to summarise:
+
+ ++-------------+--------------------------------------------------------------------------+
+ | Sorting      |   Worst-case        Average-case       Best-case         Space overhead  |
+ | algorithm    |   time              time               time                              |
+ +--------------+--------------------------------------------------------------------------+
+ | Mergesort    |   Θ(nlogn)          Θ(nlogn)           Θ(nlogn)          Θ(n)            |
+ +--------------+--------------------------------------------------------------------------+
+ | Quicksort    |   Θ(n^2)            Θ(nlogn)           Θ(nlogn)          Θ(1)            |
+ +--------------+--------------------------------------------------------------------------+
+
+                                    +-----+
+                                    | END |
+                                    +-----+
+
+                                   References
+                                   ~~~~~~~~~~
+
+1. https://www.cs.umd.edu/users/meesh/cmsc351/mount/lectures/lec15-quicksort.pdf
+2. https://home.cse.ust.hk/~dekai/271/notes/L01a/quickSort.pdf
+3. https://tildesites.bowdoin.edu/~ltoma/teaching/cs231/fall16/Lectures/04-quicksort/quicksort.pdf
+4. https://www.computersciencebytes.com/sorting-algorithms/quick-sort/quick-sort-practice/
+5. https://learntocodetogether.com/quicksort/
+6. https://en.wikipedia.org/wiki/Quicksort#Lomuto_partition_scheme
+7. https://home.cse.ust.hk/~dekai/271/notes/L01a/quickSort.pdf
+8. https://aquarchitect.github.io/swift-algorithm-club/Quicksort/
+9. https://tildesites.bowdoin.edu/~ltoma/teaching/cs231/fall16/Lectures/04-quicksort/quicksort.pdf
