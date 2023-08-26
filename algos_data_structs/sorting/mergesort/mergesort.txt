@@ -1,0 +1,232 @@
+                                     1. Introduction
+                                     ~~~~~~~~~~~~~~~
+
+Merge sort is an efficient and popular number sorting algorithm. It was invented in 1945
+by J. Neumann. It's a divide-and-conquer approach, i.e. recursively breaks down the
+original problem into two or more similar subproblems until it reaches a small enough
+subproblem that can be easily solved (base case). Then all subproblems are combined into
+the original problem.
+
+
+                                    2. Implementation
+                                    ~~~~~~~~~~~~~~~~~
+
+                                      2.1. The code
+                                      ~~~~~~~~~~~~
+
+Merge sort takes an input an array and outputs an array.
+
+It involves two operations - the DIVIDE and the MERGE. The DIVIDE recursively breaks down
+the array into two halves until the base case of length 1 is reached. Then the input is
+already sorted. It recursively breaks down the entire array and then sorts all subarrays,
+propagating up.
+
+First let's implement the MERGE step. The MERGE steps assumes that the two smaller
+subproblems are solved and combines them. It iterates two arrays at the same time and
+compares the two current eleents. Then it copies the smaller eleent into an output array.
+Once the first array is done, exit the loop. Then it copies the remaining elements of the
+other array into the output. The pseudocode for the MERGE step is below.
+
+. . . . . . . . . . . . . Listing 1. MERGE pseudocode. . . . . . . . . . . . . . . . . .
+function merge(int[] array, int begin, int mid, int end)
+    index_final = 0
+    left = begin
+    right = end
+    // output array
+    merged[end-begin+1] = zeros;
+    while (left < mid and right <= end)
+        if array[left] < array[right]
+            merged[final] = array[left]
+            final++
+            left++
+        else
+            merged[final] = array[right]
+            final++
+            right++
+        end_if
+    // right subarray was done first
+    while (left < mid)
+        merged[final] = array[left]
+        final++
+        left++
+    end_while
+    // left subarray was done first
+    while (right <= end)
+        merged[final] = array[right]
+        final++
+        right++
+    end_while
+    // copy back to original array
+    for (i = begin..end-begin+1)
+        array[i] = merge[i]
+    end_for
+
+end_function
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+So the conquer step is implemented. But before that, the divide step needs to be
+impplemented. Mergesort recurses splits the input array in two halves. It recurses itsself
+into the first half (A) and then the other half B. A recurses itself in two halves, then
+each half in another two halves etc., until the base case is reached. For example to sort
+the array:
+
+a e f h b c g j
+
+The divide calls would look as follows:
+
+                      a    e    f    h    b    c    g    j
+                      |              |    |              |
+                      |              |    |              |
+                      +---- aefh ----+    +---- bcgj ----+
+                      |      ||      |    |      ||      |
+                      |      ||      |    |      ||      |
+                      +--ae--++--fh--+    +--bc--++--gj--+
+                      |  ||  ||  ||  |    |  ||  ||  ||  |
+                      |  ||  ||  ||  |    |  ||  ||  ||  |
+                      +--++--++--++--+    +--++--++--++--+
+                       a    e   f   h      b    c  g   h
+
+The divide other is as follows (M standing for MERGESORT):
+1.  M(aefhbcgj)
+2.  M(aefh))
+3.  M(ae)
+4.  M(a)
+5.  M(e)
+6.  M(fh)
+7.  M(f)
+8.  M(h)
+9.  M(bcgj)
+10. M(bc)
+11. M(b)
+12. M(c)
+13. M(gj)
+14. M(g)
+15. M(j)
+
+i.e. the order of recursion is depth-first. Note that the merge part is not included in
+the example above. To put everything together, we need to include the MERGE step. Remember
+that it is called after dividing each two halves. The final pseudocode looks as follows:
+
+. . . . . . . . .  Listing 2. Merge sort function pseudocode. . . . . . . . . . . . . .
+function mergesort(int[] array, int begin, int end)
+    // base case - don't do anything
+    if (begin == end)
+        return
+    end_if
+    left = begin
+    mid = begin + (end - begin)/2
+    right = end
+    mergesort(array, begin, mid)
+    mergesort(array, mid+1, right)
+    merge(array, left, mid+1, right)
+end_function
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+In C, mergesort is implemented by the code below:
+
+. . . . . . . . . . . . .  Listing 3. Merge sort in C. . . . . . . . . . . . . . . . . .
+#include <stddef.h> // size_t
+#include <string.h> // memcpy
+
+/**
+* @brief Merges two sorted adjacent subarrays of a given array
+*        back into the input array. The first subarray ranges
+*        from index `begin` to `mid` inclusive and the second
+*        one ranges from `mid+1` to `end` inclusive. Hence sorts
+*        the range `begin` to `end` inclusive in the input array.
+*
+* @param[in|out]    arr    Array containing two sorted subarrays
+* @param[in]        begin  Beginning index of the first subarray
+* @param[in]        mid    Ending index of the first subarray
+* @param[in]        end    Ending index of the second subarray
+*/
+void merge(int* arr,  const size_t begin, const size_t mid, const size_t end) {
+    //const size_t mid = begin + (hi-begin)/2;
+    size_t ifinal = 0, ileft = begin, iright = mid;
+    const size_t length = end - begin + 1;
+    int merged[length];
+    // iterate both and copy the smaller element of each
+    // the "most merged" subarray will be done first
+    while ((ileft < mid) && (iright <= end)) {
+        if (arr[ileft] < arr[iright])
+            merged[ifinal++] = arr[ileft++];
+        else
+            merged[ifinal++] = arr[iright++];
+    }
+    // copy the remaining elements of the left subarray if necessary
+    while (ileft < mid)
+        merged[ifinal++] = arr[ileft++];
+    // copy the remaining elements of the right subarray if necessary
+    while (iright <= end)
+        merged[ifinal++] = arr[iright++];
+    // copy back to original array
+    memcpy(arr+begin, merged, length * sizeof(arr[0]));
+}
+
+
+/**
+* @brief Sorts the input array.
+*
+* @param arr
+* @param begin
+* @param end
+*/
+void mergesort(int* arr, size_t begin, size_t end) {
+    // base case - already sorted
+    if (end == begin) {
+        return;
+    }
+    size_t left = begin;
+    size_t mid = begin + (end-begin)/2;
+    size_t right = end;
+    mergesort(arr, left, mid);
+    mergesort(arr, mid+1, right);
+    merge(arr, left, mid+1, right);
+}
+. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . .
+
+
+
+
+
+                              2.2. Visualising the recursion
+                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+                                   3. Run time analysis
+                                   ~~~~~~~~~~~~~~~~~~~~
+
+Let n be the size of the input and T(n) be runtime for it. We want to
+express it as a function of n. Mergesort calls
+Itself twice on each half of the array, which takes time 2T(n/2).
+It also calls merge. Merge simply iterates of the two halves once, 
+which is a linear time operation. It also copies back to the original
+array (Listing 3), which takes linear time. In general, MERGE takes can
+time, where c is a constant. Therefore T(n) is written as
+
+                                   T(n) = 2T(n/2) + cn
+
+Using the recurrence:
+
+                     T(n) = 2(2T(n/4) + cn/2) + cn = 2^2T(n/4) + 2cn
+
+The next recurrence will yield:
+
+                                  T(n) = 2^3T(n/8) + 3cn
+
+etc.
+
+How many times does this expansion continue? Until we reach the base case of T(1) where we
+call MERGESORT with only one element. T(1) is just 1 (constant time) as it corresponds to
+a return statement. In each step we halve n so to reach the base case it takes log_2(n)
+steps. Plugging in T(log_2(n)) = 1 and n = log_2(n), we obtain for T(n):
+
+T(n) = 2^log_2(n) T(1) + cnlog_2(n) 
+
+
+
+                                         +-----+
+                                         | END |
+                                         +-----+
+
+:center
+:set textwidth=90
